@@ -15,11 +15,31 @@
   height: 100%;
 }
 
+.aura-mist {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.6s ease;
+}
+
+.aura-mist.is-active {
+  opacity: 0.9;
+}
+
 .wallpaper-image {
   object-fit: contain;
   object-position: center;
   opacity: 0;
   transition: opacity 1.35s ease;
+}
+
+.wallpaper-image.is-guide {
+  opacity: 0.24;
 }
 
 .wallpaper-image.is-visible {
@@ -43,6 +63,10 @@
   }
 
   .code-reveal {
+    display: none;
+  }
+
+  .aura-mist {
     display: none;
   }
 }

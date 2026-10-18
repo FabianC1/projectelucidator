@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import wallpaper from '../kiritoasuna.jpg'
+import wallpaper from '../kiritoasuna-clean.png'
+import { AuraMist } from './AuraMist'
 
 type Glyph = {
   x: number
@@ -18,7 +19,7 @@ type Glyph = {
 }
 
 const GLYPHS = '0123456789ABCDEF<>/{}[]:=+-_'
-const MAX_GLYPHS = 5200
+const MAX_GLYPHS = 1450
 const VOID_END = 2
 const INIT_END = 5
 const DUAL_WIELD_END = 7
@@ -100,6 +101,7 @@ export function CodeReveal() {
   const hostRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [revealing, setRevealing] = useState(false)
+  const [guideVisible, setGuideVisible] = useState(false)
 
   useEffect(() => {
     const host = hostRef.current
@@ -125,6 +127,7 @@ export function CodeReveal() {
     let particles: Glyph[] = []
     let disposed = false
     let revealStarted = false
+    let guideStarted = false
 
     const image = new Image()
     image.src = wallpaper
@@ -169,11 +172,14 @@ export function CodeReveal() {
           const r = pixels[offset]
           const g = pixels[offset + 1]
           const b = pixels[offset + 2]
+          const opacity = pixels[offset + 3] / 255
           const brightness = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 255
-          if (brightness < 0.16) continue
+          // The clean reference is transparent around the weapon core. Ignore
+          // faint edge haze so glyphs trace the actual swords instead of clouds.
+          if (brightness < 0.34 || opacity < 0.3) continue
 
           const selection = ((px * 17 + py * 31) % 100) / 100
-          if (selection > clamp((brightness - 0.1) * 1.28, 0.18, 0.94)) continue
+          if (selection > clamp((brightness - 0.2) * opacity * 1.5, 0.12, 0.84)) continue
 
           const x = imageRect.x + px / sampleScale
           const y = imageRect.y + py / sampleScale
@@ -196,7 +202,7 @@ export function CodeReveal() {
             buildY,
             side,
             delay: distance * 0.12,
-            size: 7 + random * 0.22,
+            size: 9 + random * 0.27,
             char: GLYPHS[(px * 11 + py * 19) % GLYPHS.length],
             color,
             brightness,
@@ -357,6 +363,10 @@ export function CodeReveal() {
       drawTerminal(elapsed)
 
       const revealProgress = clamp((elapsed - REVEAL_START) / REVEAL_DURATION, 0, 1)
+      if (elapsed >= OVERRIDE_END && !guideStarted) {
+        guideStarted = true
+        setGuideVisible(true)
+      }
       if (revealProgress > 0 && !revealStarted) {
         revealStarted = true
         setRevealing(true)
@@ -388,11 +398,12 @@ export function CodeReveal() {
   return (
     <div ref={hostRef} className="wallpaper-screen">
       <img
-        className={`wallpaper-image${revealing ? ' is-visible' : ''}`}
+        className={`wallpaper-image${guideVisible ? ' is-guide' : ''}${revealing ? ' is-visible' : ''}`}
         src={wallpaper}
         alt="Elucidator and Lambent Light crossed, glowing against a black background"
       />
       <canvas ref={canvasRef} className={`code-reveal${revealing ? ' is-fading' : ''}`} aria-hidden="true" />
+      <AuraMist active={revealing} />
     </div>
   )
 }
