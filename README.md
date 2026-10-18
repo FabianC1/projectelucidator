@@ -359,8 +359,8 @@ Work through the milestones in order. Do not attempt to build the complete cinem
 
 ### Milestone 3 — Weapon design
 
-- [ ] Define Elucidator's silhouette and proportions.
-- [ ] Define Lambent Light's silhouette and proportions.
+- [x] Define Elucidator's silhouette and proportions.
+- [x] Define Lambent Light's silhouette and proportions.
 - [ ] Construct recognisable blades, guards, grips and pommels.
 - [ ] Position the swords in their final crossed composition.
 - [ ] Establish the blue and pale-pink colour palettes.
@@ -370,8 +370,8 @@ Work through the milestones in order. Do not attempt to build the complete cinem
 
 ### Milestone 4 — Code-based weapon construction
 
-- [ ] Design how glyphs are positioned along each weapon.
-- [ ] Build the outline-drawing effect.
+- [x] Design how glyphs are positioned along each weapon.
+- [x] Build the outline-drawing effect.
 - [ ] Fill the blade silhouettes with animated code.
 - [ ] Construct the guards, grips and pommels from denser glyphs.
 - [ ] Animate code flowing along the blade direction.
@@ -384,7 +384,7 @@ Work through the milestones in order. Do not attempt to build the complete cinem
 
 - [ ] Implement the opening cursor and typing effect.
 - [ ] Add system initialisation commands.
-- [ ] Split the code into two weapon streams.
+- [x] Split the code into two weapon streams.
 - [ ] Animate the construction of both weapons.
 - [ ] Rotate the swords inward.
 - [ ] Add the crossing flash and hexadecimal shockwave.
