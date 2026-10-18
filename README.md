@@ -20,7 +20,7 @@ The final result is not a video or a static image. It is a real-time animated we
 
 ### Core principles
 
-- **The code is the material.** The swords must be constructed from individual digital glyphs, not ordinary solid swords with text printed on top.
+- **Geometry-guided code.** Three-dimensional weapon guide meshes define the exact surfaces for glyph placement, then stay hidden so the visible crossed swords are made from code.
 - **Recognisable silhouettes.** Elucidator and Lambent Light must have deliberately designed shapes, including their distinctive blades, guards, grips and pommels.
 - **Cinematic construction.** The weapons are progressively compiled into existence, rather than simply fading into view.
 - **Controlled movement.** The final wallpaper should feel alive without becoming distracting.
@@ -35,13 +35,13 @@ The entire screen begins as a black void.
 
 A tiny cyan cursor awakens in the centre. System commands begin appearing, multiplying and breaking apart into streams of digital characters. The streams separate into two weapon signatures: electric blue and dark metallic tones for Elucidator, and silver-white with a pale-pink tint for Lambent Light.
 
-The characters begin to organise themselves. They trace the weapons' silhouettes, fill the blades and assemble the finer details. The code gradually becomes dense enough to reveal two recognisable swords.
+The characters begin to organise themselves. They trace the weapons' silhouettes, fill the blades and assemble the finer details over three-dimensional weapon geometry. The guide meshes stay hidden; aligned glyphs define the visible dark-blue Elucidator and silver-white Lambent Light forms.
 
 Both weapons rotate inward and cross at the centre. A brilliant blue-white flash erupts at the intersection, scattering hexadecimal characters outward in a circular shockwave.
 
-When the light fades, the swords remain crossed, composed entirely of flowing code.
+When the light fades, the swords remain crossed as dense, geometry-guided code. Restrained rings and a few drifting fragments carry the digital identity into the idle scene.
 
-The scene settles into a near-black background. Thin luminous rings rotate around the weapons, characters flow through the blades, particles drift around the intersection, and a subtle camera movement creates a sense of depth.
+The scene settles into a near-black background. Thin luminous rings rotate around the weapons, a few particles drift around the intersection, and a subtle camera movement creates a sense of depth. The aligned glyphs remain the visible weapon surfaces.
 
 The result should resemble a living SAO system display, not a conventional screensaver.
 
@@ -144,8 +144,7 @@ The scene settles into its final composition.
 
 - Crossed swords occupy roughly half the screen's height.
 - The background returns to near-total black.
-- Blue characters flow towards Elucidator's tip.
-- Pale-pink and white characters flow through Lambent Light.
+- The code-built blade surfaces remain crisp and stable.
 - Tiny fragments detach from the edges and occasionally return.
 - The intersection emits a soft pulse every few seconds.
 - A small number of hexadecimal characters drift through the background.
@@ -167,7 +166,7 @@ The idle animation includes:
 - Small code fragments travelling around the rings.
 - Subtle movement of the swords themselves.
 - Gentle glow pulses.
-- Continuous code flowing through both blades.
+- Gentle glow pulses over the code-built weapon surfaces.
 - Occasional particles drifting away from the intersection.
 - Very slow camera movement to create a sense of depth.
 
@@ -372,11 +371,11 @@ Work through the milestones in order. Do not attempt to build the complete cinem
 
 - [x] Design how glyphs are positioned along each weapon.
 - [x] Build the outline-drawing effect.
-- [ ] Fill the blade silhouettes with animated code.
-- [ ] Construct the guards, grips and pommels from denser glyphs.
-- [ ] Animate code flowing along the blade direction.
+- [x] Fill the blade silhouettes with animated code.
+- [x] Construct the guards, grips and pommels from denser glyphs.
+- [x] Animate code flowing along the blade direction.
 - [ ] Add the final stabilisation effect.
-- [ ] Ensure the code itself creates the sword silhouettes.
+- [x] Ensure the code itself creates the sword silhouettes.
 
 **Definition of done:** Both swords can be assembled from animated digital characters while remaining recognisable.
 
@@ -396,7 +395,7 @@ Work through the milestones in order. Do not attempt to build the complete cinem
 ### Milestone 6 — Idle animation
 
 - [ ] Add rotating blue and pale-pink rings.
-- [ ] Animate continuous code flow through the blades.
+- [ ] Add subtle lighting pulses to the materialized weapon surfaces.
 - [ ] Add subtle weapon movement.
 - [ ] Add restrained camera drift.
 - [ ] Add occasional particles and gentle light pulses.
@@ -453,7 +452,7 @@ Work through the milestones in order. Do not attempt to build the complete cinem
 - Digital flash and hexadecimal shockwave.
 - Infinite idle animation.
 - Rotating rings.
-- Animated blade code.
+- Digital code-based materialisation during the intro.
 - Subtle camera movement.
 - Windows wallpaper integration.
 - Performance optimisation for the target PC.
@@ -534,9 +533,9 @@ The project is complete when all of the following are true:
 - System code appears and separates into two distinct streams.
 - Elucidator and Lambent Light are progressively assembled from digital glyphs.
 - The swords rotate inward, cross and trigger a digital shockwave.
-- The final swords remain sharp, recognisable and composed of flowing code.
+- Hidden Three.js guide meshes define dense glyphs that form dimensional crossed swords.
 - Luminous rings rotate around the weapons during idle.
-- Blade code, particles, lighting and camera movement provide restrained continuous motion.
+- Rings, particles, lighting and camera movement provide restrained continuous motion after the weapon code has materialized.
 - The intro does not repeat as part of the idle loop.
 - The wallpaper can run continuously as a Windows desktop background.
 - Performance is acceptable on the target PC.

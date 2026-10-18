@@ -1,7 +1,6 @@
 /**
- * Normalized, sword-local silhouette guides for later code-glyph construction.
- * x runs across the blade; y runs from its tip (-1) to the pommel (+1).
- * These point paths are design data only and are not drawn by the renderer.
+ * Normalized sword-local profiles used to build both the 3D models and their
+ * temporary code surfaces. x runs across the blade; y runs tip (-1) to pommel (+1).
  */
 export type DesignPoint = readonly [x: number, y: number]
 
@@ -31,6 +30,13 @@ export type WeaponDesign = {
     bladeWidth: number
     gripLength: number
   }
+  /** Normalized physical thickness used to build glyphs over beveled 3D surfaces. */
+  depth: {
+    blade: number
+    guard: number
+    grip: number
+    pommel: number
+  }
   /** Opposing crossed pose around a shared center in normalized screen space. */
   finalPose: {
     center: DesignPoint
@@ -45,23 +51,24 @@ export const WEAPON_DESIGNS: readonly WeaponDesign[] = [
     id: 'elucidator',
     displayName: 'Elucidator',
     palette: {
-      edge: '#8794a5',
-      glyph: '#2a91ff',
-      accent: '#86d8ff',
-      guard: '#29476c',
-      grip: '#111923',
-      gem: '#4d86ed',
-      inlay: '#8492a4',
+      edge: '#a9c9e8',
+      glyph: '#267dff',
+      accent: '#8de8ff',
+      guard: '#152b46',
+      grip: '#080d16',
+      gem: '#53ceff',
+      inlay: '#84cfff',
     },
     proportions: {
       bladeLength: 1.34,
       bladeWidth: 0.23,
       gripLength: 0.44,
     },
+    depth: { blade: 0.052, guard: 0.072, grip: 0.045, pommel: 0.06 },
     finalPose: {
       center: [0.5, 0.5],
-      rotationRadians: Math.PI / 4,
-      lengthOfShortScreenSide: 0.78,
+      rotationRadians: Math.PI * 3 / 4,
+      lengthOfShortScreenSide: 0.98,
     },
     silhouette: [
       {
@@ -87,19 +94,19 @@ export const WEAPON_DESIGNS: readonly WeaponDesign[] = [
         part: 'guard',
         closed: true,
         points: [
-          [-0.31, 0.19], [-0.29, 0.31], [-0.22, 0.39], [-0.15, 0.34],
-          [-0.11, 0.29], [-0.08, 0.32], [0.08, 0.32], [0.12, 0.29],
-          [0.2, 0.34], [0.29, 0.31], [0.34, 0.19], [0.27, 0.23],
-          [0.16, 0.22], [0.08, 0.26], [-0.08, 0.26], [-0.16, 0.22],
-          [-0.25, 0.23], [-0.31, 0.19],
+          [-0.39, 0.16], [-0.32, 0.2], [-0.29, 0.39], [-0.2, 0.36],
+          [-0.11, 0.29], [-0.075, 0.32], [0.075, 0.32], [0.11, 0.29],
+          [0.2, 0.36], [0.29, 0.39], [0.32, 0.2], [0.39, 0.16],
+          [0.29, 0.13], [0.18, 0.18], [0.08, 0.23], [-0.08, 0.23],
+          [-0.18, 0.18], [-0.29, 0.13], [-0.39, 0.16],
         ],
       },
       {
         part: 'guard',
         closed: false,
         points: [
-          [0.12, 0.29], [0.21, 0.22], [0.24, 0.12], [0.23, 0.29],
-          [0.19, 0.45], [0.11, 0.61], [0.06, 0.67],
+          [-0.24, 0.2], [-0.19, 0.27], [-0.1, 0.3], [0, 0.27],
+          [0.1, 0.3], [0.19, 0.27], [0.24, 0.2],
         ],
       },
       {
@@ -125,23 +132,24 @@ export const WEAPON_DESIGNS: readonly WeaponDesign[] = [
     id: 'lambent-light',
     displayName: 'Lambent Light',
     palette: {
-      edge: '#dce8f5',
-      glyph: '#f1f5f7',
-      accent: '#f0b8d9',
-      guard: '#72bcb0',
-      grip: '#276e66',
-      gem: '#356bd1',
-      inlay: '#79bdb1',
+      edge: '#f4f7ff',
+      glyph: '#f4f7ff',
+      accent: '#f1b8d7',
+      guard: '#c5d0de',
+      grip: '#34313b',
+      gem: '#f0badb',
+      inlay: '#d8e3f0',
     },
     proportions: {
       bladeLength: 1.34,
       bladeWidth: 0.12,
       gripLength: 0.5,
     },
+    depth: { blade: 0.028, guard: 0.05, grip: 0.036, pommel: 0.045 },
     finalPose: {
       center: [0.5, 0.5],
-      rotationRadians: -Math.PI / 4,
-      lengthOfShortScreenSide: 0.76,
+      rotationRadians: -Math.PI * 3 / 4,
+      lengthOfShortScreenSide: 0.98,
     },
     silhouette: [
       {

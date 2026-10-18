@@ -1,89 +1,48 @@
-.system-screen {
+.wallpaper-screen {
   position: relative;
   width: 100%;
-  min-height: 100vh;
-  min-height: 100svh;
+  height: 100%;
   overflow: hidden;
   background: #000;
-  isolation: isolate;
 }
 
-.data-canvas {
+.wallpaper-image,
+.code-reveal {
   position: absolute;
-  z-index: -1;
   inset: 0;
   display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.wallpaper-image {
+  object-fit: contain;
+  object-position: center;
+  opacity: 0;
+  transition: opacity 1.35s ease;
+}
+
+.wallpaper-image.is-visible {
+  opacity: 1;
+}
+
+.code-reveal {
   pointer-events: none;
+  opacity: 1;
+  transition: opacity 1.35s ease;
 }
 
-.terminal-log {
-  position: absolute;
-  top: 50%;
-  left: clamp(1rem, 7vw, 7rem);
-  width: min(88vw, 43rem);
-  max-height: 84svh;
-  overflow: hidden;
-  transform: translateY(-50%);
-  color: #82efff;
-  font-family: var(--mono);
-  font-size: clamp(0.66rem, 1.2vw, 0.9rem);
-  font-weight: 400;
-  letter-spacing: 0.045em;
-  line-height: 1.85;
-  text-shadow: 0 0 7px rgb(56 225 255 / 42%), 0 0 18px rgb(56 225 255 / 16%);
-}
-
-.terminal-line {
-  min-height: 1.85em;
-  margin: 0;
-  white-space: pre;
-}
-
-.terminal-current {
-  color: #b5f7ff;
-}
-
-.terminal-cursor {
-  margin-left: 0.08em;
-  animation: cursor-blink 0.72s steps(2, start) infinite;
-}
-
-.system-label {
-  position: absolute;
-  right: clamp(1rem, 4vw, 3rem);
-  bottom: clamp(1rem, 3vh, 2rem);
-  color: rgb(91 231 255 / 34%);
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.2em;
-}
-
-.system-label span {
-  padding: 0 0.5em;
-  color: rgb(91 231 255 / 65%);
-}
-
-@keyframes cursor-blink {
-  to {
-    visibility: hidden;
-  }
-}
-
-@media (max-width: 540px) {
-  .terminal-log {
-    left: 1rem;
-    width: calc(100vw - 2rem);
-    font-size: clamp(0.58rem, 2.6vw, 0.75rem);
-    letter-spacing: 0.015em;
-  }
-
-  .system-label {
-    font-size: 0.52rem;
-  }
+.code-reveal.is-fading {
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .terminal-cursor {
-    animation: none;
+  .wallpaper-image {
+    opacity: 1;
+    transition: none;
+  }
+
+  .code-reveal {
+    display: none;
   }
 }
