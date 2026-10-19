@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
+import { changeBrightness, getBrightnessToken, readBrightnessMonitors, saveBrightnessToken, type BrightnessMonitor } from './brightnessBridge'
 import './App.css'
 
 declare global {
@@ -81,6 +82,7 @@ function parseNowPlaying(data: unknown): NowPlayingTrack | null | undefined {
 const DATABASE = 'project-elucidator-wallpaper'
 const STORE = 'selection'
 const KEY = 'active'
+const DEFAULT_WALLPAPER_URL = 'sword-art-online-3840x2160-10492.jpg'
 const WIDGET_PREF_KEY = 'project-elucidator-widgets'
 const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
 const WIDGET_SCALE_KEY = 'project-elucidator-widget-scales'
@@ -265,6 +267,7 @@ const COMMAND_COMPLETIONS = [
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
   'sys widget move 1 50 20', 'sys widget size 1 1', 'sys widgets size 1', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys anti-magic', 'sys domain expansion', 'sys limitless',
   'sys breathing water', 'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys httyd', 'sys night fury', 'sys plasma', 'sys stealth', 'sys alpha', 'sys help', 'help',
@@ -278,6 +281,9 @@ function findCommandCompletions(value: string) {
     return ['current', 'select', 'list', 'next', 'previous', 'scan', 'fit'].map((action) => `sys wallpaper ${action}`)
   }
   if (/^sys wallpaper fit\s+$/.test(prefix)) return WALLPAPER_FITS.map((fit) => `sys wallpaper fit ${fit}`)
+  if (/^sys brightness\s+$/.test(prefix)) return ['sys brightness status', 'sys brightness list', 'sys brightness help']
+  if (/^sys brightness monitor\s+$/.test(prefix)) return ['sys brightness monitor 1 ', 'sys brightness monitor 2 ']
+  if (/^sys brightness monitor \d+\s+$/.test(prefix)) return [0, 20, 40, 60, 80, 100].map((value) => `sys brightness monitor ${prefix.match(/^sys brightness monitor (\d+)/)?.[1]} ${value}`)
   if (/^sys mode\s+$/.test(prefix)) {
     return ['normal', 'stealth', 'combat', 'idle', 'diagnostic'].map((mode) => `sys mode ${mode}`)
   }
@@ -320,6 +326,7 @@ function App() {
   const [readyMessage, setReadyMessage] = useState(false)
   const [bootToken, setBootToken] = useState(0)
   const [command, setCommand] = useState('')
+  const [brightnessToken, setBrightnessToken] = useState(getBrightnessToken)
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
   const [mode, setMode] = useState<SystemMode>('NORMAL')
   const [theme, setTheme] = useState<ThemeId>('sao')
@@ -362,8 +369,8 @@ function App() {
   const [widgetLayout, setWidgetLayout] = useState<WidgetLayout>(() => {
     try {
       const saved = localStorage.getItem(WIDGET_LAYOUT_KEY) as WidgetLayout | null
-      return saved && ['free', 'left', 'right', 'top', 'bottom'].includes(saved) ? saved : 'free'
-    } catch { return 'free' }
+      return saved && ['free', 'left', 'right', 'top', 'bottom'].includes(saved) ? saved : 'right'
+    } catch { return 'right' }
   })
   const [consoleFrame, setConsoleFrame] = useState<ConsoleFrame | null>(null)
   const [layoutPresets, setLayoutPresets] = useState<Record<string, LayoutSnapshot>>(() => {
@@ -403,6 +410,11 @@ function App() {
           setWallpaperUrl(url)
           setWallpaperName(saved.name)
           setStatus(`WALLPAPER RESTORED · ${saved.name.toUpperCase()}`)
+        } else {
+          wallpaperStartedAt.current = Date.now()
+          setWallpaperUrl(DEFAULT_WALLPAPER_URL)
+          setWallpaperName('sword-art-online-3840x2160-10492.jpg')
+          setStatus('DEFAULT WALLPAPER LOADED · SWORD ART ONLINE')
         }
       } catch {
         if (!cancelled) setStatus('CACHE UNAVAILABLE · USING FILE SELECTOR')
@@ -445,19 +457,34 @@ function App() {
 
   useEffect(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem(WIDGET_PREF_KEY) ?? '[]') as unknown
-      if (Array.isArray(stored)) {
-        const ids = stored.filter((id): id is number => Number.isInteger(id) && WIDGET_IDS.includes(id as typeof WIDGET_IDS[number]))
+      const saved = localStorage.getItem(WIDGET_PREF_KEY)
+      if (saved === null) {
+        setEnabledWidgets([...WIDGET_IDS])
+        setRenderedWidgets([...WIDGET_IDS])
+      } else {
+        const stored = JSON.parse(saved) as unknown
+        const legacyIds = Array.isArray(stored)
+          ? stored.filter((id): id is number => Number.isInteger(id) && WIDGET_IDS.includes(id as typeof WIDGET_IDS[number]))
+          : null
+        const currentIds = stored && typeof stored === 'object' && !Array.isArray(stored)
+          ? (stored as { version?: unknown; enabled?: unknown }).version === 2
+            && Array.isArray((stored as { enabled?: unknown }).enabled)
+            ? ((stored as { enabled: unknown[] }).enabled.filter((id): id is number => Number.isInteger(id) && WIDGET_IDS.includes(id as typeof WIDGET_IDS[number])))
+            : null
+          : null
+        const ids = currentIds ?? (legacyIds?.length ? legacyIds : [...WIDGET_IDS])
         setEnabledWidgets(ids)
         setRenderedWidgets(ids)
       }
     } catch {
-      // Keep widgets closed if saved preferences are unavailable.
+      // Keep the default right-side widgets available if preferences are unavailable.
+      setEnabledWidgets([...WIDGET_IDS])
+      setRenderedWidgets([...WIDGET_IDS])
     }
   }, [])
 
   useEffect(() => {
-    try { localStorage.setItem(WIDGET_PREF_KEY, JSON.stringify(enabledWidgets)) } catch { /* Preferences are optional. */ }
+    try { localStorage.setItem(WIDGET_PREF_KEY, JSON.stringify({ version: 2, enabled: enabledWidgets })) } catch { /* Preferences are optional. */ }
   }, [enabledWidgets])
 
   useEffect(() => {
@@ -702,7 +729,7 @@ function App() {
     event.preventDefault()
     const submittedCommand = command.trim()
     const normalized = submittedCommand.toLowerCase().replace(/^\/+/, '').replace(/\s+/g, ' ')
-    if (submittedCommand) commandHistoryRef.current.push(submittedCommand)
+    if (submittedCommand && !/^sys\s+brightness\s+pair\s+/i.test(submittedCommand)) commandHistoryRef.current.push(submittedCommand)
     historyIndexRef.current = commandHistoryRef.current.length
     commandDraftRef.current = ''
     setCommand('')
@@ -710,7 +737,73 @@ function App() {
     const args = normalized.replace(/^sys\s*/, '').split(' ').filter(Boolean)
     const [domain, action] = args
 
-    if (domain === 'visual') {
+    if (domain === 'brightness') {
+      const listMonitors = (monitors: BrightnessMonitor[]) => monitors.length
+        ? monitors.map((monitor) => `DISPLAY ${monitor.id} · ${monitor.name.toUpperCase()} · ${monitor.supported && monitor.brightness !== null ? `${monitor.brightness}%` : 'DDC/CI UNAVAILABLE'}`)
+        : ['NO DDC/CI MONITORS DETECTED']
+      const helperInstructions = ['INSTALL HELPER · scripts/install-brightness-helper.ps1', 'THEN PAIR · SYS BRIGHTNESS PAIR <TOKEN>']
+
+      if (action === 'pair' && args.length === 3) {
+        const token = submittedCommand.match(/^(?:sys\s+)?brightness\s+pair\s+(\S+)$/i)?.[1] ?? args[2]
+        if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) {
+          report(['BRIGHTNESS PAIRING ERROR', 'TOKEN FORMAT INVALID · COPY THE TOKEN FROM THE HELPER INSTALLER'])
+          setStatus('BRIGHTNESS PAIRING FAILED')
+        } else if (!saveBrightnessToken(token)) {
+          report(['BRIGHTNESS PAIRING ERROR', 'BROWSER STORAGE IS UNAVAILABLE'])
+          setStatus('BRIGHTNESS PAIRING FAILED')
+        } else {
+          setBrightnessToken(token)
+          report(['DDC/CI BRIDGE PAIRED', 'TOKEN STORED IN THIS APP PROFILE', 'RUN SYS BRIGHTNESS STATUS TO READ MONITORS'])
+          setStatus('BRIGHTNESS HELPER PAIRED')
+        }
+      } else if (action === 'unpair' && args.length === 2) {
+        saveBrightnessToken(null)
+        setBrightnessToken('')
+        report(['DDC/CI BRIDGE UNPAIRED', 'LOCAL TOKEN REMOVED FROM THIS APP PROFILE'])
+        setStatus('BRIGHTNESS HELPER UNPAIRED')
+      } else if ((!action || action === 'status' || action === 'list') && args.length <= 2) {
+        if (!brightnessToken) {
+          report(['DDC/CI BRIGHTNESS CONTROL', ...helperInstructions])
+          setStatus('BRIGHTNESS HELPER NEEDS PAIRING')
+        } else {
+          try {
+            const result = await readBrightnessMonitors(brightnessToken)
+            report(['MONITOR BRIGHTNESS STATUS', ...listMonitors(result.monitors), 'COMMAND · SYS BRIGHTNESS <0–100>', 'PER DISPLAY · SYS BRIGHTNESS MONITOR <ID> <0–100>'])
+            setStatus('DDC/CI STATUS · ' + result.monitors.length + ' MONITOR(S)')
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'BRIGHTNESS HELPER UNAVAILABLE'
+            report(['BRIGHTNESS STATUS UNAVAILABLE', message.toUpperCase(), ...(message.includes('NOT PAIRED') ? helperInstructions : [])])
+            setStatus('BRIGHTNESS HELPER UNAVAILABLE')
+          }
+        }
+      } else if (action === 'help' && args.length === 2) {
+        report(['DDC/CI BRIGHTNESS COMMANDS', 'SYS BRIGHTNESS STATUS · SHOW DISPLAY LEVELS', 'SYS BRIGHTNESS <0–100> · SET ALL COMPATIBLE DISPLAYS', 'SYS BRIGHTNESS MONITOR <ID> <0–100> · SET ONE', 'SYS BRIGHTNESS PAIR <TOKEN> · CONNECT THE WINDOWS HELPER', 'SYS BRIGHTNESS UNPAIR · REMOVE THE STORED TOKEN'])
+        setStatus('BRIGHTNESS COMMAND HELP')
+      } else {
+        const allLevel = action !== undefined && /^\d{1,3}$/.test(action) && args.length === 2 ? Number(action) : null
+        const oneLevel = action === 'monitor' && args.length === 4 && /^\d+$/.test(args[2]) && /^\d{1,3}$/.test(args[3])
+          ? { id: Number(args[2]), brightness: Number(args[3]) }
+          : null
+        const brightness = allLevel ?? oneLevel?.brightness
+        if (brightness === undefined || brightness === null || brightness < 0 || brightness > 100 || (oneLevel && oneLevel.id < 1)) {
+          report(['BRIGHTNESS COMMAND ERROR', 'USE SYS BRIGHTNESS HELP'])
+          setStatus('BRIGHTNESS COMMAND ERROR')
+        } else if (!brightnessToken) {
+          report(['DDC/CI BRIDGE NOT PAIRED', ...helperInstructions])
+          setStatus('BRIGHTNESS HELPER NEEDS PAIRING')
+        } else {
+          try {
+            const result = await changeBrightness(brightnessToken, brightness, oneLevel?.id ?? null)
+            report(['DDC/CI RESPONSE · VERIFY THE PANEL VISUALLY', result.message, ...listMonitors(result.monitors)])
+            setStatus(result.message)
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'BRIGHTNESS CHANGE FAILED'
+            report(['BRIGHTNESS CHANGE FAILED', message.toUpperCase()])
+            setStatus('BRIGHTNESS CHANGE FAILED')
+          }
+        }
+      }
+    } else if (domain === 'visual') {
       if (!action || action === 'list') {
         report(['VISUAL THEMES', ...VISUAL_THEMES.map((item) => (item === visualTheme ? 'ACTIVE ' : 'AVAILABLE') + ' Â· VISUAL ' + item.toUpperCase()), 'SELECT ONE Â· VISUAL <THEME>'])
         setStatus('VISUAL THEMES Â· ' + visualTheme.toUpperCase() + ' ACTIVE')
@@ -729,7 +822,7 @@ function App() {
         setStatus('VISUAL COMMAND ERROR')
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
@@ -982,7 +1075,7 @@ function App() {
       } else if (action === 'reset' && args.length === 2) {
         setConsoleFrame(null)
         setWidgetPositions({})
-        setWidgetLayout('free')
+        setWidgetLayout('right')
         try { localStorage.removeItem(CONSOLE_FRAME_KEY) } catch { /* Reset remains applied for this session. */ }
         report(['LAYOUT RESET', 'CONSOLE AND WIDGETS RETURNED TO DEFAULT POSITIONS.'])
         setStatus('DEFAULT LAYOUT RESTORED')
@@ -1015,7 +1108,7 @@ function App() {
       }
     } else if (domain === 'widget' && action === 'reset' && args.length === 2) {
       setWidgetPositions({})
-      setWidgetLayout('free')
+      setWidgetLayout('right')
       report(['WIDGET LAYOUT', 'CUSTOM POSITIONS CLEARED.', 'DEFAULT RIGHT-SIDE LAYOUT RESTORED.'])
       setStatus('WIDGET LAYOUT RESET')
     } else if (domain === 'widget' && args.length === 3) {
@@ -1133,9 +1226,10 @@ function App() {
 
   const positionWidget = (id: number) => {
     const scale = widgetScales[id] ?? 1
-    if (widgetLayout !== 'free') return scale === 1 ? undefined : { zoom: scale }
+    const scaleStyle = { '--widget-user-scale': scale } as CSSProperties
+    if (widgetLayout !== 'free') return scale === 1 ? undefined : scaleStyle
     const position = widgetPositions[id]
-    if (!position) return scale === 1 ? undefined : { zoom: scale }
+    if (!position) return scale === 1 ? undefined : scaleStyle
     const cardWidth = (window.innerWidth <= 700
       ? Math.min(224, window.innerWidth - 20.8)
       : Math.min(288, window.innerWidth - 32)) * scale
@@ -1145,7 +1239,7 @@ function App() {
       left: `${Math.min(position.x, maxX)}%`,
       top: `${Math.min(position.y, maxY)}%`,
       right: 'auto',
-      zoom: scale,
+      ...scaleStyle,
     }
   }
 

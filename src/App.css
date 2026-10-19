@@ -318,6 +318,7 @@
   text-shadow: 0 0 9px rgb(51 190 236 / 24%);
   animation: widget-arrive 420ms cubic-bezier(.18,.68,.25,1) both;
   pointer-events: auto;
+  zoom: var(--widget-user-scale, 1);
   transition: border-color 650ms ease, background 650ms ease, color 650ms ease, box-shadow 650ms ease, text-shadow 650ms ease;
 }
 
@@ -351,16 +352,39 @@
 }
 
 .system-widgets.widget-layout-left { align-items: flex-start; }
-.system-widgets.widget-layout-right { align-items: flex-end; }
+.system-widgets.widget-layout-right {
+  --widget-stack-fit: clamp(0.35, calc((100dvh - 20px) / 916px), 1);
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 5px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
 
-.system-widgets.widget-layout-left .system-widget,
-.system-widgets.widget-layout-right .system-widget {
+.system-widgets.widget-layout-right::-webkit-scrollbar { display: none; }
+
+.system-widgets.widget-layout-left .system-widget {
   position: relative;
   inset: auto;
   flex: 0 1 auto;
   width: min(22rem, calc(100vw - 2 * clamp(0.65rem, 1.5vw, 1.25rem)));
   max-width: 100%;
   max-height: min(26rem, calc((100vh - 6rem) / 5));
+}
+
+.system-widgets.widget-layout-right .system-widget {
+  position: relative;
+  inset: auto;
+  flex: 0 0 auto;
+  width: min(18rem, calc(100vw - 2 * clamp(0.65rem, 1.5vw, 1.25rem)));
+  max-width: 100%;
+  max-height: none;
+  zoom: calc(var(--widget-user-scale, 1) * var(--widget-stack-fit));
+}
+
+.system-widgets.widget-layout-right .system-widget.widget-1 {
+  width: min(22rem, calc(100vw - 2 * clamp(0.65rem, 1.5vw, 1.25rem)));
 }
 
 .system-widgets.widget-layout-top,

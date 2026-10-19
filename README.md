@@ -9,7 +9,7 @@ Project Elucidator is a full-screen, SAO-inspired wallpaper launcher. A short sy
 3. The wallpaper settles into a full-screen view.
 4. A minimal command line remains available in the lower-left corner.
 
-The boot sequence runs on each app launch and when a different wallpaper is selected. If no wallpaper has been selected yet, the system boots to black and waits for a file selection.
+The boot sequence runs on each app launch and when a different wallpaper is selected. On a fresh install with no saved wallpaper, the bundled `sword-art-online-3840x2160-10492.jpg` image is loaded as the default. A wallpaper previously selected in the app takes precedence on later launches.
 
 ## System console
 
@@ -32,6 +32,10 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys anime` | Open a theme-aware status panel for the active anime interface |
 | `sys mode` | List modes; use `sys mode normal`, `stealth`, `combat`, `idle`, or `diagnostic` to switch |
 | `sys hardware` | Show live CPU, GPU 3D, RAM and network metrics when Lively provides them; otherwise report browser/unavailable state |
+| `sys brightness status` / `sys brightness list` | Read current brightness from connected DDC/CI displays |
+| `sys brightness <0–100>` | Set brightness on every compatible display |
+| `sys brightness monitor <ID> <0–100>` | Set one display from the ID shown by the status command |
+| `sys brightness pair <TOKEN>` / `sys brightness unpair` | Pair or disconnect this app profile from the local Windows helper |
 | `sys audio` | Open the Audio Link widget and show the active Windows media session when Lively provides it |
 | `sys widgets` | List widget IDs and which displays are active |
 | `sys widgets all on` / `sys widgets all off` | Enable or disable all five widgets at once |
@@ -89,9 +93,15 @@ The primary color drives the console and widget structure, the secondary color h
 | 4 | Audio Link | Current Windows media session when Lively provides one |
 | 5 | Anime status | Theme-specific readout that updates with the active system theme |
 
-Use `sys widget <ID> on` / `off` to control an individual widget. `sys widgets all on` enables all five. Scale every widget with `sys widgets size 1.25`, or one widget with `sys widget size 3 1.5`; supported scales range from `0.5` to `2` in quarter-step increments. Scale preferences persist across restarts. `sys layout left`, `right`, `top`, and `bottom` arrange every active widget. `sys stealth` hides widgets without changing which ones are enabled; clicking the command input fades them back in and exits stealth.
+On a fresh install, all five widgets open in a right-side stack with a 5 px gap. The stack scales to fit the available screen height and keeps each widget's natural width, so the hardware panel can be wider than the others without overlap. Saved widget choices and layouts are restored on later launches. Use `sys widget <ID> on` / `off` to control an individual widget. `sys widgets all on` enables all five. Scale every widget with `sys widgets size 1.25`, or one widget with `sys widget size 3 1.5`; supported scales range from `0.5` to `2` in quarter-step increments. Scale preferences persist across restarts. `sys layout left`, `right`, `top`, and `bottom` arrange every active widget. `sys stealth` hides widgets without changing which ones are enabled; clicking the command input fades them back in and exits stealth.
 
 Hardware, clock, session, anime status, and audio commands open their matching digital widgets. The Audio Link widget displays track, artist, album, and artwork from Lively's Windows now-playing feed when an active player exposes a Windows media session. It is read-only because Lively's documented feed does not provide playback controls. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header or drag the console heading to move it. `sys layout` applies a widget arrangement without moving the console, and named layouts save the current arrangement. The console no longer has mouse resize handles; use its saved position or drag its heading to move it. The hardware display uses dials for CPU, GPU 3D, and RAM readings. CPU/GPU temperatures and FPS remain unavailable unless the wallpaper host supplies those sensors.
+
+### Monitor brightness (Windows DDC/CI)
+
+Browser pages cannot directly access physical monitor controls. For DDC/CI brightness commands, create the Lively build and companion helper ZIP with `npm run package:lively`; install the companion once by extracting `ProjectElucidator.BrightnessHelper.zip` and running `install-brightness-helper.ps1` in PowerShell. The installer copies the small helper into your user profile, starts it, and adds it to the current user's Windows Startup folder; it does not require administrator access. Copy the pairing command it prints into Elucidator, for example `sys brightness pair <TOKEN>`. The token is stored in that browser profile. Then use `sys brightness status`, `sys brightness 40` to set all compatible monitors, or `sys brightness monitor 2 60` for a single display. Use `sys brightness unpair` to clear the app's token, and `uninstall-brightness-helper.ps1` to remove the Windows helper.
+
+The helper listens only on `127.0.0.1` and exposes an authenticated local endpoint; it is separate from the Lively wallpaper ZIP because a web wallpaper cannot launch native Windows code. Enable DDC/CI in each monitor's on-screen menu. Windows exposes brightness only if the monitor, connection, GPU path and OSD setting all support DDC/CI; unsupported screens are reported without pretending the command succeeded. The command changes the monitor's hardware brightness control, not Windows' software display brightness slider.
 
 ### Built-in widget layouts
 
@@ -107,7 +117,7 @@ The active image and images selected through the app are stored in IndexedDB in 
 
 ### Lively Wallpaper
 
-The project includes `public/LivelyInfo.json`, which Vite copies into `dist` and configures with Lively's `--system-information --system-nowplaying` arguments. Lively treats a folder containing `LivelyInfo.json` as an already packaged wallpaper, so do not add the `dist` folder through its new-project wizard. Run `npm run package:lively` to build the project and create `ProjectElucidator.Lively.zip` with `LivelyInfo.json` at the archive root, then drag that ZIP into the Lively library. The hardware widget and `sys hardware` show live readings when Lively calls `livelySystemInformation(data)`; the Audio Link widget receives track metadata through `livelyCurrentTrack(data)`. In a normal browser, these callbacks do not arrive, so the interface reports the host requirement instead of inventing readings.
+The project includes `public/LivelyInfo.json`, which Vite copies into `dist` and configures with Lively's `--system-information --system-nowplaying` arguments. Lively treats a folder containing `LivelyInfo.json` as an already packaged wallpaper, so do not add the `dist` folder through its new-project wizard. Run `npm run package:lively` to build the project and create `ProjectElucidator.Lively.zip` with `LivelyInfo.json` at the archive root, plus `ProjectElucidator.BrightnessHelper.zip` for the optional Windows DDC/CI companion. Drag the Lively ZIP into the Lively library; install the companion separately as described above. The hardware widget and `sys hardware` show live readings when Lively calls `livelySystemInformation(data)`; the Audio Link widget receives track metadata through `livelyCurrentTrack(data)`. In a normal browser, these callbacks do not arrive, so the interface reports the host requirement instead of inventing readings.
 
 ## Development
 
@@ -125,4 +135,4 @@ For Lively Wallpaper, use the built web project and keep the same browser profil
 
 - SAO-style terminal boot and wallpaper reveal are implemented.
 - Command entry, file picking, and IndexedDB persistence are implemented.
-- No wallpaper image is bundled into the runtime; only the selected image is loaded.
+- The Sword Art Online image is bundled as the first-run default; subsequent launches restore the user's saved wallpaper.
