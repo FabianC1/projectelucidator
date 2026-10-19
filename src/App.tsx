@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent } from 'react'
-import defaultWallpaper from '../kiritoasuna-clean.png'
 import './App.css'
 
 type SavedWallpaper = { blob: Blob; name: string }
@@ -7,14 +6,7 @@ type SavedWallpaper = { blob: Blob; name: string }
 const DATABASE = 'project-elucidator-wallpaper'
 const STORE = 'selection'
 const KEY = 'active'
-const BOOT_LINES = [
-  'SYSTEM.INIT()',
-  'DISPLAY.DRIVER: READY',
-  'WALLPAPER.CACHE: READY',
-  'IMAGE.BUFFER: SYNCHRONIZING',
-  'RENDER.PIPELINE: ONLINE',
-]
-
+const BOOT_LINE_COUNT = 5
 function openWallpaperDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DATABASE, 1)
@@ -56,14 +48,21 @@ function decodeImage(url: string) {
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const objectUrlRef = useRef<string | null>(null)
-  const [wallpaperUrl, setWallpaperUrl] = useState(defaultWallpaper)
-  const [wallpaperName, setWallpaperName] = useState('Elucidator wallpaper')
+  const [wallpaperUrl, setWallpaperUrl] = useState('')
+  const [wallpaperName, setWallpaperName] = useState('NO WALLPAPER SELECTED')
   const [ready, setReady] = useState(false)
   const [booting, setBooting] = useState(true)
   const [bootStep, setBootStep] = useState(0)
   const [bootToken, setBootToken] = useState(0)
   const [command, setCommand] = useState('')
   const [status, setStatus] = useState('ENTER WALLPAPER SELECT · HELP')
+  const bootLines = [
+    'SYSTEM.INIT()',
+    'DISPLAY.DRIVER: READY',
+    `WALLPAPER.CACHE: ${wallpaperUrl ? 'RESTORED' : 'EMPTY'}`,
+    wallpaperUrl ? 'IMAGE.BUFFER: SYNCHRONIZING' : 'FILE.SELECTOR: READY',
+    'RENDER.PIPELINE: ONLINE',
+  ]
 
   useEffect(() => {
     let cancelled = false
@@ -76,6 +75,7 @@ function App() {
           objectUrlRef.current = url
           setWallpaperUrl(url)
           setWallpaperName(saved.name)
+          setStatus(`WALLPAPER RESTORED · ${saved.name.toUpperCase()}`)
         }
       } catch {
         if (!cancelled) setStatus('CACHE UNAVAILABLE · USING DEFAULT WALLPAPER')
@@ -94,16 +94,16 @@ function App() {
   useEffect(() => {
     if (!ready) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setBootStep(BOOT_LINES.length)
+      setBootStep(BOOT_LINE_COUNT)
       setBooting(false)
       return
     }
     setBooting(true)
     setBootStep(0)
     const timers: number[] = []
-    BOOT_LINES.forEach((_, index) => {
+    for (let index = 0; index < BOOT_LINE_COUNT; index += 1) {
       timers.push(window.setTimeout(() => setBootStep(index + 1), 420 + index * 560))
-    })
+    }
     timers.push(window.setTimeout(() => setBooting(false), 4200))
     return () => timers.forEach(window.clearTimeout)
   }, [ready, bootToken])
@@ -163,18 +163,20 @@ function App() {
 
   return (
     <main className="wallpaper-experience">
-      <img
-        key={bootToken}
-        className={`wallpaper-backdrop${!ready ? ' is-loading' : booting ? ' is-booting' : ' is-ready'}`}
-        src={wallpaperUrl}
-        alt={wallpaperName}
-      />
+      {wallpaperUrl && (
+        <img
+          key={bootToken}
+          className={`wallpaper-backdrop${!ready ? ' is-loading' : booting ? ' is-booting' : ' is-ready'}`}
+          src={wallpaperUrl}
+          alt={wallpaperName}
+        />
+      )}
 
       {ready && booting && (
         <section className="boot-sequence" aria-live="polite" aria-label="Wallpaper system boot sequence">
           <div className="boot-log">
             <p className="boot-prompt">&gt; SYS<span className="boot-cursor">_</span></p>
-            {BOOT_LINES.slice(0, bootStep).map((line, index) => (
+            {bootLines.slice(0, bootStep).map((line, index) => (
               <p
                 className="boot-line"
                 key={line}
@@ -183,7 +185,7 @@ function App() {
                 {line}
               </p>
             ))}
-            {bootStep >= BOOT_LINES.length && <p className="boot-ready">&gt; WALLPAPER.READY<span className="boot-cursor">_</span></p>}
+            {bootStep >= bootLines.length && <p className="boot-ready">&gt; WALLPAPER.READY<span className="boot-cursor">_</span></p>}
           </div>
           <div className="boot-scan" aria-hidden="true" />
         </section>

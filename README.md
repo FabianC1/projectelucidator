@@ -9,7 +9,7 @@ Project Elucidator is a full-screen, SAO-inspired wallpaper launcher. A short sy
 3. The wallpaper settles into a full-screen view.
 4. A minimal command line remains available in the lower-left corner.
 
-The boot sequence runs on each app launch and when a different wallpaper is selected. The swords artwork currently bundled with the project is only the first-launch default; it is not required for other wallpapers.
+The boot sequence runs on each app launch and when a different wallpaper is selected. If no wallpaper has been selected yet, the system boots to black and waits for a file selection.
 
 ## Wallpaper commands
 
@@ -39,5 +39,4 @@ For Lively Wallpaper, use the built web project and keep the same browser profil
 
 - SAO-style terminal boot and wallpaper reveal are implemented.
 - Command entry, file picking, and IndexedDB persistence are implemented.
-- The bundled image is used until the user selects a preferred wallpaper.
-- The older sword-construction renderer is no longer used by the app.
+- No wallpaper image is bundled into the runtime; only the selected image is loaded.
