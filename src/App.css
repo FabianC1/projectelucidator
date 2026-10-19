@@ -1,4 +1,6 @@
 .wallpaper-experience {
+  --reveal-duration: 5.2s;
+  --reveal-delay: 180ms;
   position: relative;
   width: 100%;
   height: 100%;
@@ -20,14 +22,14 @@
   background: #000;
 }
 
+.wallpaper-backdrop.is-loading {
+  clip-path: inset(0 0 100% 0);
+}
+
 .wallpaper-backdrop.is-booting {
   clip-path: inset(0 0 100% 0);
   filter: brightness(0.72) saturate(0.9);
-  animation: decode-wallpaper 2.5s steps(36, end) 1.65s forwards;
-}
-
-.wallpaper-backdrop.is-loading {
-  clip-path: inset(0 0 100% 0);
+  animation: decode-wallpaper var(--reveal-duration) cubic-bezier(0.18, 0.64, 0.38, 1) var(--reveal-delay) forwards;
 }
 
 .wallpaper-backdrop.is-ready {
@@ -39,41 +41,49 @@
   position: absolute;
   z-index: 2;
   inset: 0;
-  display: grid;
-  align-items: center;
-  justify-items: center;
   overflow: hidden;
-  background: transparent;
-  animation: boot-fade 600ms ease 3.75s forwards;
+  opacity: 1;
   pointer-events: none;
+  transition: opacity 650ms ease, visibility 0s linear 650ms;
+}
+
+.boot-sequence.is-complete {
+  visibility: hidden;
+  opacity: 0;
 }
 
 .boot-log {
-  width: min(34rem, calc(100vw - 3rem));
-  transform: translateY(-1rem);
-  text-shadow: 0 0 10px #000, 0 0 19px rgb(80 218 255 / 58%);
-}
-
-.boot-prompt,
-.boot-line,
-.boot-ready {
-  margin: 0;
-  min-height: 1.8em;
-  font-size: clamp(0.75rem, 1.4vw, 0.95rem);
-  line-height: 1.8;
-  letter-spacing: 0.035em;
-}
-
-.boot-prompt,
-.boot-ready {
-  color: #a8f5ff;
-}
-
-.boot-line {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: min(45rem, calc(100vw - 2rem));
+  max-height: 88vh;
+  margin-left: clamp(1rem, 4vw, 4rem);
+  padding: 1rem clamp(0.6rem, 1.6vw, 1.4rem);
   overflow: hidden;
-  color: #77cbdc;
+  background: linear-gradient(90deg, rgb(0 0 0 / 72%), rgb(0 0 0 / 42%) 68%, transparent);
+  text-shadow: 0 0 10px #000, 0 0 18px rgb(69 201 255 / 45%);
+}
+
+.boot-prompt,
+.boot-ready,
+.boot-phase-title,
+.boot-line,
+.boot-progress-row {
+  margin: 0;
+  font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
+  font-size: clamp(0.62rem, 0.95vw, 0.78rem);
+  line-height: 1.42;
+  letter-spacing: 0.025em;
   white-space: nowrap;
-  animation: line-arrive 260ms ease both;
+}
+
+.boot-prompt {
+  margin-bottom: 0.35rem;
+  color: #c4f8ff;
+  font-size: clamp(0.76rem, 1.2vw, 0.95rem);
 }
 
 .boot-cursor,
@@ -81,20 +91,90 @@
   animation: cursor-blink 850ms steps(1, end) infinite;
 }
 
-.boot-ready {
-  margin-top: 0.55rem;
-  color: #e1fcff;
+.boot-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.4rem;
+  color: #8ab7c3;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+}
+
+.boot-progress-track {
+  display: inline-block;
+  width: clamp(4rem, 10vw, 7rem);
+  height: 3px;
+  overflow: hidden;
+  background: rgb(96 170 188 / 22%);
+}
+
+.boot-progress-track > span {
+  display: block;
+  height: 100%;
+  background: #77eaff;
+  box-shadow: 0 0 8px #51d9ff;
+  transition: width 60ms linear;
+}
+
+.boot-phase {
+  margin-top: 0.14rem;
+}
+
+.boot-phase-title {
+  margin: 0.2rem 0 0.06rem;
+  color: #80dced;
+  font-size: 0.58rem;
+  letter-spacing: 0.11em;
+}
+
+.boot-phase-title span {
+  display: inline-block;
+  min-width: 5.4rem;
+  color: #4f99ad;
+}
+
+.boot-line {
+  display: flex;
+  align-items: baseline;
+  min-height: 1.42em;
+  color: #d2eff3;
+}
+
+.line-cursor {
+  color: #a2f3ff;
+  text-shadow: 0 0 8px #65e7ff;
+}
+
+.line-result {
+  margin-left: 0.7rem;
+  color: #6dc9d8;
+  font-size: 0.58rem;
 }
 
 .boot-scan {
   position: absolute;
+  z-index: 1;
   top: 0;
   left: 0;
   width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #8ff5ff, transparent);
-  box-shadow: 0 0 16px 3px rgb(83 220 255 / 35%);
-  animation: scan-wallpaper 2.5s ease-in-out 1.65s both;
+  height: 170px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(18 143 255 / 2%) 55%,
+    rgb(27 176 255 / 8%) 84%,
+    rgb(85 226 255 / 24%) 96%,
+    rgb(219 254 255 / 92%) 100%
+  );
+  filter: drop-shadow(0 0 14px rgb(34 183 255 / 68%));
+  animation: scan-wallpaper var(--reveal-duration) cubic-bezier(0.18, 0.64, 0.38, 1) var(--reveal-delay) both;
+}
+
+.boot-ready {
+  margin-top: 0.4rem;
+  color: #e2fcff;
+  text-shadow: 0 0 12px rgb(98 225 255 / 75%);
 }
 
 .command-console {
@@ -116,6 +196,176 @@
 .command-console:focus-within {
   border-color: rgb(103 228 244 / 55%);
   background: rgb(0 8 13 / 78%);
+}
+
+.console-output {
+  max-height: min(15rem, 42vh);
+  margin-bottom: 0.55rem;
+  overflow: auto;
+  scrollbar-color: rgb(89 201 222 / 35%) transparent;
+  font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
+  font-size: clamp(0.62rem, 1.1vw, 0.76rem);
+  line-height: 1.5;
+  letter-spacing: 0.035em;
+  color: rgb(183 226 234 / 78%);
+  text-shadow: 0 0 8px rgb(79 208 255 / 20%);
+}
+
+.console-output p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.console-output .console-heading {
+  color: #c9f8ff;
+  letter-spacing: 0.09em;
+}
+
+.mode-stealth {
+  border-color: rgb(94 140 160 / 20%);
+  box-shadow: none;
+}
+
+.mode-stealth .console-output,
+.mode-stealth .command-line {
+  text-shadow: none;
+}
+
+.mode-combat {
+  border-color: rgb(71 177 255 / 52%);
+  box-shadow: 0 0 28px rgb(33 122 204 / 18%);
+}
+
+.mode-diagnostic .console-output {
+  color: #a9f4ff;
+}
+
+.system-widgets {
+  position: absolute;
+  z-index: 3;
+  top: clamp(1rem, 4vh, 3rem);
+  right: clamp(1rem, 3vw, 3rem);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.7rem;
+  width: min(18rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(85 196 226 / 30%) transparent;
+  pointer-events: auto;
+}
+
+.system-widget {
+  position: relative;
+  overflow: hidden;
+  padding: 0.8rem 0.9rem 0.75rem;
+  border: 1px solid rgb(90 202 234 / 34%);
+  border-left: 2px solid rgb(88 224 255 / 75%);
+  background:
+    linear-gradient(110deg, rgb(0 28 47 / 82%), rgb(1 10 22 / 74%) 76%),
+    rgb(0 8 16 / 86%);
+  box-shadow: inset 0 0 20px rgb(28 154 217 / 9%), 0 0 18px rgb(28 154 217 / 9%);
+  color: #a9dce9;
+  font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
+  text-shadow: 0 0 9px rgb(51 190 236 / 24%);
+  animation: widget-arrive 260ms ease-out both;
+}
+
+.system-widget::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2.4rem;
+  height: 1px;
+  background: #8bf1ff;
+  box-shadow: 0 0 8px #64dfff;
+  content: '';
+}
+
+.system-widget header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  color: #79cfe4;
+  font-size: 0.59rem;
+  letter-spacing: 0.12em;
+}
+
+.system-widget header i {
+  color: #64f0dc;
+  font-style: normal;
+}
+
+.system-widget .widget-close {
+  margin: -0.3rem -0.35rem -0.3rem auto;
+  padding: 0 0.25rem;
+  border: 0;
+  background: transparent;
+  color: #78b8c9;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.system-widget .widget-close:hover,
+.system-widget .widget-close:focus-visible {
+  color: #e3fbff;
+  outline: 1px solid rgb(111 220 239 / 55%);
+}
+
+.system-widget strong {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: #e0faff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.system-widget p {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.25rem 0;
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+}
+
+.system-widget p b {
+  color: #dcf8ff;
+  font-weight: 500;
+  text-align: right;
+}
+
+.system-widget small {
+  display: block;
+  margin-top: 0.6rem;
+  color: #669eae;
+  font-size: 0.53rem;
+  letter-spacing: 0.08em;
+}
+
+.system-widget .widget-clock {
+  font-size: 1.55rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallpaper-experience.mode-stealth .boot-scan {
+  filter: drop-shadow(0 0 5px rgb(34 183 255 / 30%));
+  opacity: 0.56;
+}
+
+.wallpaper-experience.mode-combat .boot-scan {
+  filter: drop-shadow(0 0 22px rgb(34 183 255 / 90%));
+}
+
+.wallpaper-experience.mode-idle .boot-scan {
+  opacity: 0.72;
 }
 
 .command-console.is-hidden {
@@ -193,30 +443,62 @@
 }
 
 @keyframes decode-wallpaper {
-  0% { clip-path: inset(0 0 100% 0); filter: brightness(2.3) saturate(1.2); }
-  8% { filter: brightness(1.4) saturate(1.1); }
-  100% { clip-path: inset(0); filter: brightness(0.72) saturate(0.9); }
+  from { clip-path: inset(0 0 100% 0); filter: brightness(1.5) saturate(1.12); }
+  28% { filter: brightness(0.86) saturate(1); }
+  to { clip-path: inset(0); filter: brightness(0.72) saturate(0.9); }
 }
 
 @keyframes scan-wallpaper {
-  0% { top: 0; opacity: 0; }
-  8% { opacity: 1; }
+  from { top: -170px; opacity: 0; }
+  5% { opacity: 1; }
   92% { opacity: 1; }
-  100% { top: 100%; opacity: 0; }
-}
-
-@keyframes line-arrive {
-  from { opacity: 0; transform: translateX(-0.4rem); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes boot-fade {
-  to { opacity: 0; visibility: hidden; }
+  to { top: calc(100% - 170px); opacity: 0; }
 }
 
 @keyframes cursor-blink {
   0%, 48% { opacity: 1; }
   49%, 100% { opacity: 0; }
+}
+
+@keyframes widget-arrive {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (max-height: 620px) {
+  .boot-log {
+    max-height: 92vh;
+    padding-block: 0.3rem;
+  }
+
+  .boot-prompt,
+  .boot-ready,
+  .boot-phase-title,
+  .boot-line,
+  .boot-progress-row {
+    line-height: 1.22;
+  }
+}
+
+@media (max-width: 700px) {
+  .system-widgets {
+    top: 0.65rem;
+    right: 0.65rem;
+    width: min(14rem, calc(100vw - 1.3rem));
+    max-height: 45vh;
+  }
+
+  .system-widget {
+    padding: 0.55rem 0.65rem;
+  }
+
+  .system-widget header {
+    margin-bottom: 0.4rem;
+  }
+
+  .system-widget p {
+    font-size: 0.58rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

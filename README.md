@@ -11,17 +11,29 @@ Project Elucidator is a full-screen, SAO-inspired wallpaper launcher. A short sy
 
 The boot sequence runs on each app launch and when a different wallpaper is selected. If no wallpaper has been selected yet, the system boots to black and waits for a file selection.
 
-## Wallpaper commands
+## System console
 
 Click the terminal line, enter a command, and press Enter (or use the return button):
 
 | Command | Action |
 | --- | --- |
-| `wallpaper select` | Open the system file picker and choose an image |
-| `wallpaper` | Alias for `wallpaper select` |
-| `help` | Show the available commands |
+| `sys status` | Show system, wallpaper cache, session uptime, and mode status |
+| `sys wallpaper` / `sys wallpaper current` | Show the active wallpaper |
+| `sys wallpaper select` | Open the system file picker and choose an image |
+| `sys wallpaper list` | List wallpapers saved through the app |
+| `sys wallpaper next` / `previous` | Switch between saved wallpapers |
+| `sys wallpaper scan` | Replay the coordinated wallpaper reveal and scan |
+| `sys time` | Show local date/time and session uptime |
+| `sys mode` | List modes; use `sys mode normal`, `stealth`, `combat`, `idle`, or `diagnostic` to switch |
+| `sys hardware` | Show browser-accessible estimates and explain unavailable sensor readings |
+| `sys audio` | Report player integration status |
+| `sys widgets` | List widget IDs and which displays are active |
+| `sys widget 1 on` / `sys widget 1 off` | Enable or disable a widget (IDs 1–4); `enable` / `disable` also work |
+| `sys help` / `help` | Show the command index |
 
-The selected image is stored in IndexedDB in the browser profile and restored on the next launch. The page cannot scan arbitrary folders directly; the file picker is the browser-approved way to choose a saved image. If the browser blocks persistent storage, the selected image still works for the current session.
+Hardware, clock, system status, and audio commands also open their matching digital widget on the right. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state is saved in the browser.
+
+The active image and images selected through the app are stored in IndexedDB in the browser profile and restored on the next launch. The page cannot scan arbitrary folders directly; the file picker is the browser-approved way to add a saved image. If the browser blocks persistent storage, the selected image still works for the current session. Browser JavaScript cannot reliably read CPU/GPU utilization or temperature, and audio controls need a supported player integration; those commands report these limitations instead of inventing values.
 
 ## Development
 
