@@ -30,6 +30,30 @@ type HardwareFeed = { status: HardwareFeedStatus; readings: LivelySystemInfo | n
 type NowPlayingTrack = { title: string; artist: string; album: string; artwork: string | null; playbackType: string }
 type NowPlayingStatus = 'waiting' | 'browser' | 'none' | 'track' | 'invalid'
 
+const WIDGET_IDS = [1, 2, 3, 4, 5] as const
+const WIDGET_SCALES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const
+type WidgetScale = (typeof WIDGET_SCALES)[number]
+type WidgetScales = Partial<Record<number, WidgetScale>>
+const WIDGET_TITLES: Record<number, string> = {
+  1: 'HARDWARE TELEMETRY',
+  2: 'WORLD CLOCK',
+  3: 'SESSION MONITOR',
+  4: 'AUDIO LINK',
+  5: 'ANIME STATUS',
+}
+const THEME_STATUS: Record<ThemeId, { title: string; state: string; metric: string; value: string }> = {
+  sao: { title: 'AINCRAD SYSTEM', state: 'SYSTEM LINK STABLE', metric: 'LINK STATE', value: 'NOMINAL' },
+  arise: { title: 'SHADOW MONARCH', state: 'SHADOW AUTHORITY ONLINE', metric: 'MONARCH SYNC', value: 'ACTIVE' },
+  grimoire: { title: 'FIVE-LEAF GRIMOIRE', state: 'ANTI-MAGIC RESONANCE', metric: 'GRIMOIRE SYNC', value: 'RESONANT' },
+  'anti-magic': { title: 'ANTI-MAGIC RELEASE', state: 'NULLIFIER FIELD ACTIVE', metric: 'NULLIFIER', value: 'ACTIVE' },
+  'domain-expansion': { title: 'CURSED ENERGY', state: 'DOMAIN FIELD DEPLOYED', metric: 'FIELD STATE', value: 'STABLE' },
+  limitless: { title: 'LIMITLESS', state: 'INFINITY FIELD ACTIVE', metric: 'CURSED TECHNIQUE', value: 'INFINITY' },
+  'breathing-water': { title: 'WATER BREATHING', state: 'FLOW STATE SYNCHRONIZED', metric: 'BREATH FORM', value: 'FLOWING' },
+  'breathing-sun': { title: 'HINOKAMI KAGURA', state: 'SOLAR BREATH IGNITED', metric: 'FLAME STATE', value: 'IGNITED' },
+  'demon-mode': { title: 'DRAGON SIN', state: 'DEMON POWER RELEASED', metric: 'MAGIC POWER', value: 'UNRESTRICTED' },
+  dragon: { title: 'NIGHT FURY', state: 'PLASMA CORE CHARGING', metric: 'PLASMA CORE', value: 'CHARGING' },
+}
+
 function parseNowPlaying(data: unknown): NowPlayingTrack | null | undefined {
   let value = data
   if (typeof value === 'string') {
@@ -59,6 +83,7 @@ const STORE = 'selection'
 const KEY = 'active'
 const WIDGET_PREF_KEY = 'project-elucidator-widgets'
 const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
+const WIDGET_SCALE_KEY = 'project-elucidator-widget-scales'
 const WIDGET_LAYOUT_KEY = 'project-elucidator-widget-layout'
 const CONSOLE_FRAME_KEY = 'project-elucidator-console-frame'
 const LAYOUT_PRESETS_KEY = 'project-elucidator-layout-presets'
@@ -235,10 +260,11 @@ const COMMAND_COMPLETIONS = [
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
   'sys wallpaper next', 'sys wallpaper previous', 'sys wallpaper scan', 'sys hardware', 'sys time', 'sys audio',
   'sys mode', 'sys mode normal', 'sys mode stealth', 'sys mode combat', 'sys mode idle', 'sys mode diagnostic',
+  'sys session', 'sys anime',
   'sys widgets', 'sys widgets all on', 'sys widgets all off',
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
-  'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off',
-  'sys widget move 1 50 20', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
+  'sys widget move 1 50 20', 'sys widget size 1 1', 'sys widgets size 1', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys anti-magic', 'sys domain expansion', 'sys limitless',
   'sys breathing water', 'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys httyd', 'sys night fury', 'sys plasma', 'sys stealth', 'sys alpha', 'sys help', 'help',
@@ -256,13 +282,16 @@ function findCommandCompletions(value: string) {
     return ['normal', 'stealth', 'combat', 'idle', 'diagnostic'].map((mode) => `sys mode ${mode}`)
   }
   if (/^sys breathing\s+$/.test(prefix)) return ['sys breathing water', 'sys hinokami kagura']
-  if (/^sys widgets\s+$/.test(prefix)) return ['sys widgets all on', 'sys widgets all off']
+  if (/^sys widgets\s+$/.test(prefix)) return ['sys widgets all on', 'sys widgets all off', 'sys widgets size ']
+  if (/^sys widgets size\s+$/.test(prefix)) return WIDGET_SCALES.map((scale) => `sys widgets size ${scale}`)
+  if (/^sys widget size\s+$/.test(prefix)) return WIDGET_IDS.map((id) => `sys widget size ${id} `)
+  if (/^sys widget size [1-5]\s+$/.test(prefix)) return WIDGET_SCALES.map((scale) => `sys widget size ${prefix.match(/^sys widget size ([1-5])/i)?.[1]} ${scale}`)
   if (/^sys layout\s+$/.test(prefix)) return ['sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save ', 'sys layout load ', 'sys layout reset']
   if (/^sys layout (save|load)\s+$/.test(prefix)) return []
   if (/^sys widget\s+$/.test(prefix)) return [
     'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
-    'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off',
-    'sys widget move 1 50 20', 'sys widget reset',
+    'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
+    'sys widget move 1 50 20', 'sys widget size ', 'sys widget reset',
   ]
   return COMMAND_COMPLETIONS.filter((candidate) => candidate.startsWith(prefix))
 }
@@ -272,6 +301,7 @@ function App() {
   const objectUrlRef = useRef<string | null>(null)
   const finishingBootRef = useRef(false)
   const sessionStartedAt = useRef(Date.now())
+  const wallpaperStartedAt = useRef(Date.now())
   const commandHistoryRef = useRef<string[]>([])
   const historyIndexRef = useRef(0)
   const commandDraftRef = useRef('')
@@ -308,7 +338,7 @@ function App() {
     }
   })
   const [specialEffect, setSpecialEffect] = useState<SpecialEffect | null>(null)
-  const [stealthUntil, setStealthUntil] = useState(0)
+  const [nightStealth, setNightStealth] = useState(false)
   const [nightFuryAlpha, setNightFuryAlpha] = useState(false)
   const [hardwareFeed, setHardwareFeed] = useState<HardwareFeed>({ status: 'waiting', readings: null, updatedAt: null })
   const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(null)
@@ -318,6 +348,17 @@ function App() {
   const [renderedWidgets, setRenderedWidgets] = useState<number[]>([])
   const [leavingWidgetIds, setLeavingWidgetIds] = useState<number[]>([])
   const [widgetPositions, setWidgetPositions] = useState<WidgetPositions>({})
+  const [widgetScales, setWidgetScales] = useState<WidgetScales>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(WIDGET_SCALE_KEY) ?? '{}') as unknown
+      if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {}
+      return Object.fromEntries(Object.entries(stored).flatMap(([id, scale]) =>
+        WIDGET_IDS.includes(Number(id) as typeof WIDGET_IDS[number]) && WIDGET_SCALES.includes(scale as WidgetScale)
+          ? [[Number(id), scale as WidgetScale]]
+          : [],
+      )) as WidgetScales
+    } catch { return {} }
+  })
   const [widgetLayout, setWidgetLayout] = useState<WidgetLayout>(() => {
     try {
       const saved = localStorage.getItem(WIDGET_LAYOUT_KEY) as WidgetLayout | null
@@ -336,6 +377,16 @@ function App() {
   const timeline = createBootTimeline(Boolean(wallpaperUrl))
   const progress = Math.min(1, bootElapsed / timeline.duration)
   const progressPercent = Math.round(progress * 100)
+  const clockSeconds = clockNow.getSeconds()
+  const clockMinutes = clockNow.getMinutes() + clockSeconds / 60
+  const clockHours = (clockNow.getHours() % 12) + clockMinutes / 60
+  const clockStyle = {
+    '--clock-hour-angle': `${clockHours * 30}deg`,
+    '--clock-minute-angle': `${clockMinutes * 6}deg`,
+    '--clock-second-angle': `${clockSeconds * 6}deg`,
+  } as CSSProperties
+  const clockZone = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop()?.replaceAll('_', ' ') ?? 'LOCAL TIME'
+  const animeStatus = THEME_STATUS[theme]
 
   useEffect(() => {
     let cancelled = false
@@ -348,6 +399,7 @@ function App() {
         if (saved?.blob) {
           const url = URL.createObjectURL(saved.blob)
           objectUrlRef.current = url
+          wallpaperStartedAt.current = Date.now()
           setWallpaperUrl(url)
           setWallpaperName(saved.name)
           setStatus(`WALLPAPER RESTORED · ${saved.name.toUpperCase()}`)
@@ -395,7 +447,7 @@ function App() {
     try {
       const stored = JSON.parse(localStorage.getItem(WIDGET_PREF_KEY) ?? '[]') as unknown
       if (Array.isArray(stored)) {
-        const ids = stored.filter((id): id is number => Number.isInteger(id) && id >= 1 && id <= 4)
+        const ids = stored.filter((id): id is number => Number.isInteger(id) && WIDGET_IDS.includes(id as typeof WIDGET_IDS[number]))
         setEnabledWidgets(ids)
         setRenderedWidgets(ids)
       }
@@ -414,7 +466,7 @@ function App() {
       if (stored && typeof stored === 'object') {
         const valid = Object.fromEntries(Object.entries(stored).flatMap(([id, value]) => {
           const position = value as WidgetPosition
-          return Number(id) >= 1 && Number(id) <= 4 && Number.isFinite(position?.x) && Number.isFinite(position?.y)
+          return WIDGET_IDS.includes(Number(id) as typeof WIDGET_IDS[number]) && Number.isFinite(position?.x) && Number.isFinite(position?.y)
             ? [[Number(id), { x: Math.min(100, Math.max(0, position.x)), y: Math.min(100, Math.max(0, position.y)) }]]
             : []
         })) as WidgetPositions
@@ -426,6 +478,10 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem(WIDGET_POSITION_KEY, JSON.stringify(widgetPositions)) } catch { /* Preferences are optional. */ }
   }, [widgetPositions])
+
+  useEffect(() => {
+    try { localStorage.setItem(WIDGET_SCALE_KEY, JSON.stringify(widgetScales)) } catch { /* Preferences are optional. */ }
+  }, [widgetScales])
 
   useEffect(() => {
     try { localStorage.setItem(WIDGET_LAYOUT_KEY, widgetLayout) } catch { /* Preferences are optional. */ }
@@ -532,12 +588,6 @@ function App() {
   }, [specialEffect])
 
   useEffect(() => {
-    if (!stealthUntil) return
-    const timer = window.setTimeout(() => setStealthUntil(0), Math.max(0, stealthUntil - Date.now()))
-    return () => window.clearTimeout(timer)
-  }, [stealthUntil])
-
-  useEffect(() => {
     try {
       if (consoleFrame) localStorage.setItem(CONSOLE_FRAME_KEY, JSON.stringify(consoleFrame))
     } catch { /* The default position remains usable without storage. */ }
@@ -597,6 +647,7 @@ function App() {
 
   const report = (lines: string[]) => setConsoleLines(lines)
   const openWidget = (id: number) => {
+    if (id === 2 || id === 3) setClockNow(new Date())
     const timer = widgetExitTimersRef.current.get(id)
     if (timer !== undefined) window.clearTimeout(timer)
     widgetExitTimersRef.current.delete(id)
@@ -631,6 +682,7 @@ function App() {
       if (persistSelection) await saveWallpaper(selection, false)
       const previousUrl = objectUrlRef.current
       objectUrlRef.current = nextUrl
+      wallpaperStartedAt.current = Date.now()
       setWallpaperUrl(nextUrl)
       setWallpaperName(selection.name)
       setBootElapsed(0)
@@ -677,49 +729,56 @@ function App() {
         setStatus('VISUAL COMMAND ERROR')
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS WIDGETS', 'SYS LAYOUT [LIST|CINEMA|COMPACT|CENTER|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
       setNightFuryAlpha(false)
-      setStealthUntil(0)
+      setNightStealth(false)
       report(['NIGHT FURY', 'ELUCIDATOR // TOOTHLESS PROTOCOL', 'ONLINE', 'PLASMA CORE // STANDBY', 'NIGHT FURY SIGNATURE DETECTED'])
       setStatus('NIGHT FURY PROTOCOL ACTIVATED')
     } else if (domain === 'plasma' && args.length === 1) {
       setTheme('dragon')
       setNightFuryAlpha(false)
-      setStealthUntil(0)
+      setNightStealth(false)
       setSpecialEffect({ kind: 'plasma-charge', id: ++effectIdRef.current })
       report(['PLASMA CORE // CHARGING', 'NIGHT FURY SIGNATURE DETECTED', 'PLASMA OUTPUT .......... 78%'])
       setStatus('PLASMA CORE CHARGED · 78%')
     } else if (domain === 'stealth' && args.length === 1) {
       setTheme('dragon')
       setNightFuryAlpha(false)
-      setStealthUntil(Date.now() + 8000)
-      report(['NIGHT FURY STEALTH', 'SIGNATURE .............. SUPPRESSED', 'LOW-LIGHT PROFILE ...... ACTIVE · 8 SEC'])
-      setStatus('TEMPORARY STEALTH ENGAGED')
+      const activate = !nightStealth
+      setNightStealth(activate)
+      report(activate
+        ? ['NIGHT FURY STEALTH', 'SIGNATURE .............. SUPPRESSED', 'LOW-LIGHT PROFILE ...... ACTIVE', 'WIDGET ARRAY ........... HIDDEN · CLICK COMMAND INPUT TO RESTORE']
+        : ['NIGHT FURY STEALTH', 'SIGNATURE .............. RESTORED', 'WIDGET ARRAY ........... ONLINE'])
+      setStatus(activate ? 'NIGHT FURY STEALTH ENGAGED' : 'NIGHT FURY STEALTH DISENGAGED')
     } else if (domain === 'alpha' && args.length === 1) {
       setTheme('dragon')
-      setStealthUntil(0)
+      setNightStealth(false)
       setNightFuryAlpha(true)
       setSpecialEffect({ kind: 'alpha', id: ++effectIdRef.current })
       report(['ALPHA PROTOCOL // TOOTHLESS', 'PLASMA CORE ............ FULL POWER', 'NIGHT FURY SIGNATURE ... MAXIMUM'])
       setStatus('NIGHT FURY ALPHA · FULL POWER')
     } else if (domain === 'grimoire' && args.length === 1) {
+      setNightStealth(false)
       setTheme('grimoire')
       report(['FIVE-LEAF GRIMOIRE DETECTED', 'CRIMSON SYSTEM .......... ONLINE', 'ANTI-MAGIC SEAL ........ STANDBY'])
       setStatus('GRIMOIRE PROTOCOL ACTIVATED')
     } else if (domain === 'anti-magic' && args.length === 1) {
+      setNightStealth(false)
       setTheme('anti-magic')
       setSpecialEffect({ kind: 'anti-magic', id: ++effectIdRef.current })
       report(['ANTI-MAGIC RELEASE', 'DARK ENERGY PULSE ........ DISCHARGED', 'WALLPAPER FIELD .......... STABLE'])
       setStatus('ANTI-MAGIC PULSE RELEASED')
     } else if (domain === 'domain' && action === 'expansion' && args.length === 2) {
+      setNightStealth(false)
       setTheme('domain-expansion')
       setSpecialEffect({ kind: 'domain', id: ++effectIdRef.current })
       report(['CURSED ENERGY OUTPUT: UNRESTRICTED', 'DOMAIN EXPANSION ........ DEPLOYED', 'SPATIAL FIELD ........... STABLE'])
       setStatus('DOMAIN EXPANSION DEPLOYED')
     } else if (domain === 'limitless' && args.length === 1) {
+      setNightStealth(false)
       setTheme('limitless')
       setSpecialEffect({ kind: 'limitless', id: ++effectIdRef.current })
       report(['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ....... ACTIVE', 'INFINITY FIELD .......... STABLE'])
@@ -728,6 +787,7 @@ function App() {
       || (domain === 'hinokami' && action === 'kagura' && args.length === 2)
       || (domain === 'breathing' && action === 'sun' && args.length === 2)) {
       const sun = domain === 'hinokami' || action === 'sun'
+      setNightStealth(false)
       setTheme(sun ? 'breathing-sun' : 'breathing-water')
       setSpecialEffect({ kind: sun ? 'breathing-sun' : 'breathing-water', id: ++effectIdRef.current })
       report(sun
@@ -735,6 +795,7 @@ function App() {
         : ['WATER BREATHING', 'FLOW STATE .............. SYNCHRONIZED', 'SYSTEM COLOR ............ DEEP WATER BLUE'])
       setStatus(`${sun ? 'SUN' : 'WATER'} BREATHING ACTIVATED`)
     } else if (domain === 'demon' && action === 'mode' && args.length === 2) {
+      setNightStealth(false)
       setTheme('demon-mode')
       setSpecialEffect({ kind: 'demon', id: ++effectIdRef.current })
       report(['DEMON MARK: DETECTED', 'MAGIC POWER: UNRESTRICTED', 'SYSTEM COLOR: GOLD / PURPLE', 'MELIODAS PROTOCOL // ACTIVATED'])
@@ -744,6 +805,7 @@ function App() {
       report(['FULL COUNTER', 'INCOMING SCAN ........... REFLECTED', 'RETURN WAVE ............. RELEASED'])
       setStatus('FULL COUNTER RELEASED')
     } else if (domain === 'arise' && args.length === 1) {
+      setNightStealth(false)
       setTheme('arise')
       setSpecialEffect({ kind: 'arise', id: ++effectIdRef.current })
       report(['SHADOW PROTOCOL // ARISE', 'PURPLE INTERFACE ........ ACTIVE', 'THEME SAVED TO LOCAL SYSTEM.'])
@@ -751,12 +813,11 @@ function App() {
     } else if (domain === 'link' && action === 'start' && args.length === 2) {
       setTheme('sao')
       setSpecialEffect({ kind: 'link-start', id: ++effectIdRef.current })
-      setStealthUntil(0)
+      setNightStealth(false)
       setNightFuryAlpha(false)
       report(['ELUCIDATOR // MAINFRAME', 'SYSTEM LINK ............ ESTABLISHED', 'STANDARD CYAN INTERFACE .. RESTORED'])
       setStatus('SYSTEM LINK STARTED · CYAN THEME RESTORED')
     } else if (domain === 'status' && args.length === 1) {
-      openWidget(3)
       report([
         'ELUCIDATOR // SYSTEM CONSOLE',
         `SYSTEM VERSION ......... ${SYSTEM_VERSION}`,
@@ -826,6 +887,15 @@ function App() {
       const now = new Date()
       report(['WORLD CLOCK', `LOCAL TIME ............. ${new Intl.DateTimeFormat(undefined, { dateStyle: 'full', timeStyle: 'medium' }).format(now)}`, `SESSION UPTIME ......... ${formatUptime((Date.now() - sessionStartedAt.current) / 1000)}`, `AINCRAD CLOCK .......... DAY ${Math.floor((Date.now() - sessionStartedAt.current) / 86_400_000) + 1} · ${now.toLocaleTimeString()}`])
       setStatus('WORLD CLOCK SYNCHRONIZED')
+    } else if (domain === 'session' && args.length === 1) {
+      openWidget(3)
+      report(['SESSION MONITOR', `SYSTEM UPTIME .......... ${formatUptime((Date.now() - sessionStartedAt.current) / 1000)}`, `WALLPAPER ACTIVE ....... ${wallpaperUrl ? formatUptime((Date.now() - wallpaperStartedAt.current) / 1000) : 'NO WALLPAPER'}`, `ACTIVE IMAGE ........... ${wallpaperUrl ? wallpaperName.toUpperCase() : 'NONE'}`])
+      setStatus('SESSION MONITOR ONLINE')
+    } else if (domain === 'anime' && args.length === 1) {
+      openWidget(5)
+      const readout = THEME_STATUS[theme]
+      report([readout.title, readout.state, `${readout.metric} ............ ${readout.value}`, `ACTIVE THEME ........... ${theme.toUpperCase()}`])
+      setStatus(`ANIME STATUS · ${theme.toUpperCase()}`)
     } else if (domain === 'mode') {
       const modes: SystemMode[] = ['NORMAL', 'STEALTH', 'COMBAT', 'IDLE', 'DIAGNOSTIC']
       const requested = action?.toUpperCase() as SystemMode | undefined
@@ -864,13 +934,22 @@ function App() {
       setStatus('MAINFRAME STANDBY · READY')
     } else if (domain === 'widgets' && args[1] === 'all' && ['on', 'off'].includes(args[2])) {
       const enable = args[2] === 'on'
-      if (enable) [1, 2, 3, 4].forEach(openWidget)
-      else [1, 2, 3, 4].forEach(closeWidget)
-      report(['DIGITAL WIDGET ARRAY', `ALL DISPLAYS ........... ${enable ? 'ONLINE' : 'OFFLINE'}`, `WIDGETS ACTIVE ......... ${enable ? '04 / 04' : '00 / 04'}`])
+      if (enable) WIDGET_IDS.forEach(openWidget)
+      else WIDGET_IDS.forEach(closeWidget)
+      report(['DIGITAL WIDGET ARRAY', `ALL DISPLAYS ........... ${enable ? '05 / 05' : '00 / 05'}`])
       setStatus(`ALL WIDGETS ${enable ? 'ENABLED' : 'DISABLED'}`)
+    } else if (domain === 'widgets' && action === 'size' && args.length === 3) {
+      const scale = Number(args[2])
+      if (!WIDGET_SCALES.includes(scale as WidgetScale)) {
+        report(['WIDGET SCALE ERROR', 'USAGE · SYS WIDGETS SIZE <0.5|0.75|1|1.25|1.5|1.75|2>'])
+        setStatus('INVALID WIDGET SCALE')
+      } else {
+        setWidgetScales(Object.fromEntries(WIDGET_IDS.map((id) => [id, scale])) as WidgetScales)
+        report(['WIDGET SCALE APPLIED', `ALL WIDGETS ............ ${scale}X`, 'SCALE SAVED TO LOCAL SYSTEM.'])
+        setStatus(`ALL WIDGETS SCALED · ${scale}X`)
+      }
     } else if (domain === 'widgets' && args.length === 1) {
-      const titles = ['HARDWARE TELEMETRY', 'WORLD CLOCK', 'SYSTEM STATUS', 'AUDIO LINK']
-      report(['DIGITAL WIDGETS · 1–4', ...titles.map((title, index) => `${enabledWidgets.includes(index + 1) ? 'ONLINE ' : 'OFFLINE'} · ${index + 1} · ${title}`), 'CONTROL · SYS WIDGET <1–4> ON|OFF'])
+      report(['DIGITAL WIDGETS · 1–5', ...WIDGET_IDS.map((id) => `${enabledWidgets.includes(id) ? 'ONLINE ' : 'OFFLINE'} · ${id} · ${WIDGET_TITLES[id]}`), 'CONTROL · SYS WIDGET <1–5> ON|OFF'])
       setStatus(`${enabledWidgets.length} WIDGET${enabledWidgets.length === 1 ? '' : 'S'} ACTIVE`)
     } else if (domain === 'layout') {
       if (!action || action === 'list') {
@@ -878,7 +957,7 @@ function App() {
         setStatus('LAYOUT PRESETS READY')
       } else if (['left', 'right', 'top', 'bottom'].includes(action) && args.length === 2) {
         setWidgetLayout(action as WidgetLayout)
-        report(['WIDGET LAYOUT APPLIED', `ARRANGEMENT ............ ${action.toUpperCase()}`, `ACTIVE WIDGETS ......... ${renderedWidgets.length} / 4`, 'COMMAND CONSOLE POSITION UNCHANGED.'])
+        report(['WIDGET LAYOUT APPLIED', `ARRANGEMENT ............ ${action.toUpperCase()}`, `ACTIVE WIDGETS ......... ${renderedWidgets.length} / ${WIDGET_IDS.length}`, 'COMMAND CONSOLE POSITION UNCHANGED.'])
         setStatus(`LAYOUT · ${action.toUpperCase()}`)
       } else if (action === 'save' && args.length === 3) {
         const name = args[2].toLowerCase()
@@ -910,12 +989,23 @@ function App() {
       } else {
         report(['LAYOUT COMMAND ERROR', 'USAGE · SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE <NAME>|LOAD <NAME>|RESET]'])
       }
+    } else if (domain === 'widget' && action === 'size' && args.length === 4) {
+      const id = Number(args[2])
+      const scale = Number(args[3])
+      if (!WIDGET_IDS.includes(id as typeof WIDGET_IDS[number]) || !WIDGET_SCALES.includes(scale as WidgetScale)) {
+        report(['WIDGET SCALE ERROR', 'USAGE · SYS WIDGET SIZE <1–5> <0.5|0.75|1|1.25|1.5|1.75|2>'])
+        setStatus('INVALID WIDGET SCALE')
+      } else {
+        setWidgetScales((current) => ({ ...current, [id]: scale as WidgetScale }))
+        report([`WIDGET ${String(id).padStart(2, '0')} SCALE`, `${WIDGET_TITLES[id]} ........ ${scale}X`, 'SCALE SAVED TO LOCAL SYSTEM.'])
+        setStatus(`WIDGET ${id} SCALED · ${scale}X`)
+      }
     } else if (domain === 'widget' && action === 'move' && args.length === 5) {
       const id = Number(args[2])
       const x = Number(args[3])
       const y = Number(args[4])
-      if (!Number.isInteger(id) || id < 1 || id > 4 || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 100 || y < 0 || y > 100) {
-        report(['WIDGET POSITION ERROR', 'USAGE · SYS WIDGET MOVE <1–4> <X% 0–100> <Y% 0–100>'])
+      if (!WIDGET_IDS.includes(id as typeof WIDGET_IDS[number]) || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 100 || y < 0 || y > 100) {
+        report(['WIDGET POSITION ERROR', 'USAGE · SYS WIDGET MOVE <1–5> <X% 0–100> <Y% 0–100>'])
       } else {
         setWidgetLayout('free')
         setWidgetPositions((current) => ({ ...current, [id]: { x, y } }))
@@ -931,14 +1021,13 @@ function App() {
     } else if (domain === 'widget' && args.length === 3) {
       const id = Number(action)
       const setting = args[2]
-      const titles = ['HARDWARE TELEMETRY', 'WORLD CLOCK', 'SYSTEM STATUS', 'AUDIO LINK']
-      if (!Number.isInteger(id) || id < 1 || id > 4 || !['on', 'off', 'enable', 'disable'].includes(setting)) {
-        report(['WIDGET COMMAND ERROR', 'USAGE · SYS WIDGET <1–4> ON|OFF'])
+      if (!WIDGET_IDS.includes(id as typeof WIDGET_IDS[number]) || !['on', 'off', 'enable', 'disable'].includes(setting)) {
+        report(['WIDGET COMMAND ERROR', 'USAGE · SYS WIDGET <1–5> ON|OFF'])
       } else {
         const enable = setting === 'on' || setting === 'enable'
         if (enable) openWidget(id)
         else closeWidget(id)
-        report([`WIDGET ${String(id).padStart(2, '0')} · ${titles[id - 1]}`, `DISPLAY ............... ${enable ? 'ENABLED' : 'DISABLED'}`, `ACTIVE WIDGETS ........ ${enable ? 'UPDATED' : 'UPDATED'}`])
+        report([`WIDGET ${String(id).padStart(2, '0')} · ${WIDGET_TITLES[id]}`, `DISPLAY ............... ${enable ? 'ENABLED' : 'DISABLED'}`, `ACTIVE WIDGETS ........ ${enable ? 'UPDATED' : 'UPDATED'}`])
         setStatus(`WIDGET ${id} ${enable ? 'ENABLED' : 'DISABLED'}`)
       }
     } else if (['wallpaper', 'wallpaper select', 'select wallpaper', 'wallpaper.load'].includes(normalized)) {
@@ -1013,7 +1102,7 @@ function App() {
     if (widgetLayout !== 'free') {
       const visiblePositions = Object.fromEntries(
         Array.from(document.querySelectorAll<HTMLElement>('.system-widget:not(.widget-leaving)')).flatMap((widget) => {
-          const widgetClass = Array.from(widget.classList).find((name) => /^widget-[1-4]$/.test(name))
+          const widgetClass = Array.from(widget.classList).find((name) => /^widget-[1-5]$/.test(name))
           if (!widgetClass) return []
           const widgetId = Number(widgetClass.slice('widget-'.length))
           const rect = widget.getBoundingClientRect()
@@ -1033,8 +1122,9 @@ function App() {
     if (!drag) return
     const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
     if (!card) return
-    const left = Math.max(0, Math.min(window.innerWidth - card.offsetWidth, event.clientX - drag.offsetX))
-    const top = Math.max(0, Math.min(window.innerHeight - card.offsetHeight, event.clientY - drag.offsetY))
+    const bounds = card.getBoundingClientRect()
+    const left = Math.max(0, Math.min(window.innerWidth - bounds.width, event.clientX - drag.offsetX))
+    const top = Math.max(0, Math.min(window.innerHeight - bounds.height, event.clientY - drag.offsetY))
     setWidgetPositions((current) => ({
       ...current,
       [drag.id]: { x: left / window.innerWidth * 100, y: top / window.innerHeight * 100 },
@@ -1042,18 +1132,20 @@ function App() {
   }
 
   const positionWidget = (id: number) => {
-    if (widgetLayout !== 'free') return undefined
+    const scale = widgetScales[id] ?? 1
+    if (widgetLayout !== 'free') return scale === 1 ? undefined : { zoom: scale }
     const position = widgetPositions[id]
-    if (!position) return undefined
-    const cardWidth = window.innerWidth <= 700
+    if (!position) return scale === 1 ? undefined : { zoom: scale }
+    const cardWidth = (window.innerWidth <= 700
       ? Math.min(224, window.innerWidth - 20.8)
-      : Math.min(288, window.innerWidth - 32)
+      : Math.min(288, window.innerWidth - 32)) * scale
     const maxX = Math.max(0, (window.innerWidth - cardWidth) / window.innerWidth * 100)
-    const maxY = Math.max(0, (window.innerHeight - 120) / window.innerHeight * 100)
+    const maxY = Math.max(0, (window.innerHeight - 120 * scale) / window.innerHeight * 100)
     return {
       left: `${Math.min(position.x, maxX)}%`,
       top: `${Math.min(position.y, maxY)}%`,
       right: 'auto',
+      zoom: scale,
     }
   }
 
@@ -1096,6 +1188,7 @@ function App() {
       }
       const previousUrl = objectUrlRef.current
       objectUrlRef.current = nextUrl
+      wallpaperStartedAt.current = Date.now()
       setWallpaperUrl(nextUrl)
       setWallpaperName(file.name)
       setBootElapsed(0)
@@ -1118,7 +1211,7 @@ function App() {
   }
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${stealthUntil > 0 ? ' night-stealth-active' : ''}${nightFuryAlpha ? ' night-fury-alpha' : ''}`}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${nightFuryAlpha ? ' night-fury-alpha' : ''}`}>
       {wallpaperUrl && (
         <img
           key={bootToken}
@@ -1213,18 +1306,29 @@ function App() {
         {renderedWidgets.includes(2) && (
           <article className={`system-widget widget-2${leavingWidgetIds.includes(2) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(2)} style={positionWidget(2)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 2)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>02 / WORLD CLOCK</span><i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close world clock widget">×</button></header>
-            <strong className="widget-clock">{clockNow.toLocaleTimeString()}</strong>
-            <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
-            <p>SESSION <b>{formatUptime((clockNow.getTime() - sessionStartedAt.current) / 1000)}</b></p>
+            <div className="clock-widget-display">
+              <div className="clock-face" style={clockStyle} aria-hidden="true">
+                <span className="clock-hand clock-hand-hour" />
+                <span className="clock-hand clock-hand-minute" />
+                <span className="clock-hand clock-hand-second" />
+                <span className="clock-pin" />
+              </div>
+              <div className="clock-widget-copy">
+                <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong>
+                <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
+                <small>LOCAL CHRONOMETER · {clockZone.toUpperCase()}</small>
+              </div>
+            </div>
           </article>
         )}
         {renderedWidgets.includes(3) && (
           <article className={`system-widget widget-3${leavingWidgetIds.includes(3) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(3)} style={positionWidget(3)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>03 / SYSTEM</span><i>NOMINAL</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close system status widget">×</button></header>
-            <strong>ELUCIDATOR v{SYSTEM_VERSION}</strong>
-            <p>WALLPAPER <b>{wallpaperUrl ? 'ONLINE' : 'EMPTY'}</b></p>
-            <p>MODE <b>{mode}</b></p>
-            <p>SESSION <b>{formatUptime((clockNow.getTime() - sessionStartedAt.current) / 1000)}</b></p>
+            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>03 / SESSION MONITOR</span><i>LIVE</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close session monitor widget">×</button></header>
+            <div className="session-metrics">
+              <div><small>BOOT UPTIME</small><strong>{formatUptime((clockNow.getTime() - sessionStartedAt.current) / 1000)}</strong></div>
+              <div><small>WALLPAPER ACTIVE</small><strong>{wallpaperUrl ? formatUptime((clockNow.getTime() - wallpaperStartedAt.current) / 1000) : 'NO WALLPAPER'}</strong></div>
+            </div>
+            <p className="session-wallpaper-name">ACTIVE IMAGE <b>{wallpaperUrl ? wallpaperName.toUpperCase() : 'NONE'}</b></p>
           </article>
         )}
         {renderedWidgets.includes(4) && (
@@ -1249,6 +1353,18 @@ function App() {
               </>
             )}
             <small className="audio-controls-note">READ-ONLY · PLAYBACK KEYS ARE NOT EXPOSED BY LIVELY</small>
+          </article>
+        )}
+        {renderedWidgets.includes(5) && (
+          <article className={`system-widget widget-5${leavingWidgetIds.includes(5) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(5)} style={positionWidget(5)}>
+            <header onPointerDown={(event) => startWidgetDrag(event, 5)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>05 / ANIME STATUS</span><i>THEME LINKED</i><button className="widget-close" onClick={() => closeWidget(5)} aria-label="Close anime status widget">×</button></header>
+            <div className="anime-status-heading">
+              <span className="anime-status-orb" aria-hidden="true" />
+              <div><small>{theme.replaceAll('-', ' ').toUpperCase()} PROTOCOL</small><strong>{animeStatus.title}</strong></div>
+            </div>
+            <p className="anime-status-state">{animeStatus.state}</p>
+            <div className="anime-signal" aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <i key={index} />)}</div>
+            <p className="anime-status-metric"><span>{animeStatus.metric}</span><b>{animeStatus.value}</b></p>
           </article>
         )}
       </aside>
@@ -1277,6 +1393,12 @@ function App() {
               if (historyIndexRef.current === commandHistoryRef.current.length) commandDraftRef.current = event.target.value
             }}
             onKeyDown={handleCommandKeyDown}
+            onClick={() => {
+              if (!nightStealth) return
+              setNightStealth(false)
+              report(['NIGHT FURY STEALTH', 'COMMAND INPUT CONFIRMED', 'WIDGET ARRAY ........... RESTORED'])
+              setStatus('NIGHT FURY STEALTH DISENGAGED')
+            }}
             placeholder="sys status"
           />
           <button type="submit" aria-label="Run command">↵</button>

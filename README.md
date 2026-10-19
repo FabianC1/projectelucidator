@@ -27,13 +27,17 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys wallpaper scan` | Replay the coordinated wallpaper reveal and scan |
 | `sys wallpaper fit` | Show the current image fit mode |
 | `sys wallpaper fit cover` / `contain` / `stretch` / `span` | Choose crop-to-fill, show-entire-image, distortion-to-fill, or panoramic fit |
-| `sys time` | Show local date/time and session uptime |
+| `sys time` | Open the analog/digital local clock and show local date/time |
+| `sys session` | Open the monitor for app uptime and time on the active wallpaper |
+| `sys anime` | Open a theme-aware status panel for the active anime interface |
 | `sys mode` | List modes; use `sys mode normal`, `stealth`, `combat`, `idle`, or `diagnostic` to switch |
 | `sys hardware` | Show live CPU, GPU 3D, RAM and network metrics when Lively provides them; otherwise report browser/unavailable state |
 | `sys audio` | Open the Audio Link widget and show the active Windows media session when Lively provides it |
 | `sys widgets` | List widget IDs and which displays are active |
-| `sys widgets all on` / `sys widgets all off` | Enable or disable all four widgets at once |
-| `sys widget 1 on` / `sys widget 1 off` | Enable or disable a widget (IDs 1–4); `enable` / `disable` also work |
+| `sys widgets all on` / `sys widgets all off` | Enable or disable all five widgets at once |
+| `sys widget <ID> on` / `sys widget <ID> off` | Enable or disable any widget; `enable` / `disable` also work |
+| `sys widgets size <SCALE>` | Set all widget sizes to `0.5`, `0.75`, `1`, `1.25`, `1.5`, `1.75`, or `2` |
+| `sys widget size <ID> <SCALE>` | Set one widget to one of the supported size scales |
 | `sys widget move 1 70 20` | Place widget 1 at 70% from the left and 20% from the top |
 | `sys widget reset` | Restore the default widget positions |
 | `sys layout list` | List the four widget arrangements and saved layouts |
@@ -50,7 +54,7 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys demon mode` | Activate Seven Deadly Sins gold and purple theme |
 | `sys httyd` / `sys night fury` | Activate the Toothless Night Fury theme: black `#080B10`, plasma cyan `#70E8FF`, Night Fury blue `#5265D8`, and steel grey `#A8B2C1` |
 | `sys plasma` | Trigger a plasma-core charge ripple |
-| `sys stealth` | Dim the Night Fury interface and suppress its glow for eight seconds |
+| `sys stealth` | Toggle persistent Night Fury stealth; clicking the command input restores the widgets and interface |
 | `sys alpha` | Trigger the Night Fury full-power flare |
 | `sys full counter` | Send a purple scan wave back across the wallpaper |
 | `visual list` / `visual status` | List visual overlays or show the active one |
@@ -58,7 +62,36 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `visual particles` / `visual vignette` / `visual off` | Activate a restrained overlay or disable visual effects |
 | `sys help` / `help` | Show the command index |
 
-Hardware, clock, system status, and audio commands also open their matching digital widget. The Audio Link widget displays track, artist, album, and artwork from Lively's Windows now-playing feed when an active player exposes a Windows media session. It is read-only because Lively's documented feed does not provide playback controls. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header or drag the console heading to move it. `sys layout` applies a widget arrangement without moving the console, and named layouts save the current arrangement. The console no longer has mouse resize handles; use its saved position or drag its heading to move it. The hardware display uses dials for CPU, GPU 3D, and RAM readings. CPU/GPU temperatures and FPS remain unavailable unless the wallpaper host supplies those sensors.
+### Theme palettes
+
+The primary color drives the console and widget structure, the secondary color highlights status and hardware dial arcs, and the tertiary color adds panel depth and glow. Theme changes transition across these elements together.
+
+| Theme command | Primary | Secondary | Depth accent |
+| --- | --- | --- | --- |
+| `sys link start` | SAO cyan `#00D8FF` | Ice `#EAFCFF` | Blue `#286BFF` |
+| `sys arise` | Solo Leveling purple `#9B5DE5` | Pale violet `#E0C2FF` | Deep purple `#5A189A` |
+| `sys grimoire` | Crimson `#E63946` | Pale red `#FFB4B8` | Burgundy `#7F1D2D` |
+| `sys anti-magic` | Red `#F43F5E` | Violet `#C4B5FD` | Dark crimson `#4C0519` |
+| `sys domain expansion` | Violet `#9B7AFF` | Electric blue `#67C7FF` | Indigo `#312E81` |
+| `sys limitless` | Electric blue `#60A5FA` | Pale violet `#C4B5FD` | Cobalt `#1D4ED8` |
+| `sys breathing water` | Water blue `#3478F6` | Aqua `#70E1F5` | Deep blue `#123D83` |
+| `sys hinokami kagura` | Sun orange `#F47B20` | Tanjiro blue `#5DA8FF` | Burnt orange `#9A3412` |
+| `sys demon mode` | Gold `#E7C65A` | Purple `#A879FF` | Deep violet `#51317E` |
+| `sys httyd` / `sys night fury` | Plasma cyan `#70E8FF` | Night Fury blue `#5265D8` | Steel `#A8B2C1` |
+
+### Widgets
+
+| ID | Widget | What it shows |
+| --- | --- | --- |
+| 1 | Hardware | CPU, GPU, and RAM dials plus network activity |
+| 2 | World clock | Analog dial, digital time, date, and local timezone |
+| 3 | Session monitor | Time since Elucidator started and time on the active wallpaper |
+| 4 | Audio Link | Current Windows media session when Lively provides one |
+| 5 | Anime status | Theme-specific readout that updates with the active system theme |
+
+Use `sys widget <ID> on` / `off` to control an individual widget. `sys widgets all on` enables all five. Scale every widget with `sys widgets size 1.25`, or one widget with `sys widget size 3 1.5`; supported scales range from `0.5` to `2` in quarter-step increments. Scale preferences persist across restarts. `sys layout left`, `right`, `top`, and `bottom` arrange every active widget. `sys stealth` hides widgets without changing which ones are enabled; clicking the command input fades them back in and exits stealth.
+
+Hardware, clock, session, anime status, and audio commands open their matching digital widgets. The Audio Link widget displays track, artist, album, and artwork from Lively's Windows now-playing feed when an active player exposes a Windows media session. It is read-only because Lively's documented feed does not provide playback controls. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header or drag the console heading to move it. `sys layout` applies a widget arrangement without moving the console, and named layouts save the current arrangement. The console no longer has mouse resize handles; use its saved position or drag its heading to move it. The hardware display uses dials for CPU, GPU 3D, and RAM readings. CPU/GPU temperatures and FPS remain unavailable unless the wallpaper host supplies those sensors.
 
 ### Built-in widget layouts
 
