@@ -8,6 +8,7 @@ export type BrightnessMonitor = {
 
 type MonitorResponse = { monitors: BrightnessMonitor[] }
 type ChangeResponse = MonitorResponse & { ok: boolean; message: string }
+type LockResponse = { ok: boolean; message: string }
 
 const HELPER_URL = 'http://127.0.0.1:17384'
 export const BRIGHTNESS_TOKEN_KEY = 'project-elucidator-brightness-token'
@@ -37,7 +38,7 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
       cache: 'no-store',
     })
   } catch {
-    throw new Error('BRIGHTNESS HELPER OFFLINE · INSTALL OR START THE WINDOWS HELPER')
+    throw new Error('WINDOWS HELPER OFFLINE · INSTALL OR START THE ELUCIDATOR HELPER')
   }
 
   const result = await response.json() as T & { message?: string }
@@ -53,5 +54,12 @@ export async function changeBrightness(token: string, brightness: number, monito
   return request<ChangeResponse>('/api/brightness', token, {
     method: 'POST',
     body: JSON.stringify({ brightness, monitorId }),
+  })
+}
+
+export async function lockWindowsSession(token: string) {
+  return request<LockResponse>('/api/lock', token, {
+    method: 'POST',
+    body: '{}',
   })
 }
