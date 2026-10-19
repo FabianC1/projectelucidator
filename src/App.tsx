@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
 import './App.css'
 
@@ -12,10 +12,12 @@ type SavedWallpaper = { blob: Blob; name: string }
 type SystemMode = 'NORMAL' | 'STEALTH' | 'COMBAT' | 'IDLE' | 'DIAGNOSTIC'
 type ThemeId = 'sao' | 'arise' | 'grimoire' | 'anti-magic' | 'domain-expansion' | 'limitless' | 'breathing-water' | 'breathing-sun' | 'demon-mode' | 'dragon'
 type VisualTheme = 'off' | 'haze' | 'rain' | 'lightning' | 'particles' | 'vignette'
+type WallpaperFit = 'cover' | 'contain' | 'stretch' | 'span'
 type SpecialEffect = { kind: string; id: number }
 type WidgetPosition = { x: number; y: number }
 type WidgetPositions = Record<number, WidgetPosition>
 type ConsoleFrame = { x: number; y: number; width: number; height: number }
+type LayoutSnapshot = { consoleFrame: ConsoleFrame | null; widgetPositions: WidgetPositions }
 type BootMessage = { text: string; result: string; pause?: number }
 type BootPhase = { id: string; title: string; messages: BootMessage[] }
 type TimedMessage = BootMessage & { start: number; duration: number; end: number }
@@ -30,8 +32,11 @@ const KEY = 'active'
 const WIDGET_PREF_KEY = 'project-elucidator-widgets'
 const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
 const CONSOLE_FRAME_KEY = 'project-elucidator-console-frame'
+const LAYOUT_PRESETS_KEY = 'project-elucidator-layout-presets'
 const THEME_PREF_KEY = 'project-elucidator-theme'
 const VISUAL_THEME_PREF_KEY = 'project-elucidator-visual-theme'
+const WALLPAPER_FIT_PREF_KEY = 'project-elucidator-wallpaper-fit'
+const WALLPAPER_FITS: WallpaperFit[] = ['cover', 'contain', 'stretch', 'span']
 const VISUAL_THEMES: VisualTheme[] = ['off', 'haze', 'rain', 'lightning', 'particles', 'vignette']
 const TYPE_RATE = 185
 const LINE_GAP = 0.035
@@ -184,6 +189,19 @@ function hardwareStatusLabel(status: HardwareFeedStatus) {
   return 'WAITING FOR LIVELY'
 }
 
+function HardwareGauge({ label, percent, value, detail }: { label: string; percent: number | null; value: string; detail?: string }) {
+  const style = { '--gauge-value': `${Math.max(0, Math.min(100, percent ?? 0))}%` } as CSSProperties
+  return (
+    <div className={`hardware-gauge${percent === null ? ' is-unavailable' : ''}`}>
+      <div className="hardware-gauge-ring" style={style}>
+        <span>{value}</span>
+      </div>
+      <b>{label}</b>
+      {detail && <small>{detail}</small>}
+    </div>
+  )
+}
+
 const COMMAND_COMPLETIONS = [
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
   'sys wallpaper next', 'sys wallpaper previous', 'sys wallpaper scan', 'sys hardware', 'sys time', 'sys audio',
@@ -191,7 +209,8 @@ const COMMAND_COMPLETIONS = [
   'sys widgets', 'sys widgets all on', 'sys widgets all off',
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off',
-  'sys widget move 1 50 20', 'sys widget reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys widget move 1 50 20', 'sys widget reset', 'sys layout list', 'sys layout cinema', 'sys layout compact', 'sys layout center', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys anti-magic', 'sys domain expansion', 'sys limitless',
   'sys breathing water', 'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys httyd', 'sys night fury', 'sys plasma', 'sys stealth', 'sys alpha', 'sys help', 'help',
   'visual list', 'visual haze', 'visual rain', 'visual lightning', 'visual particles', 'visual vignette', 'visual off', 'visual status',
@@ -201,13 +220,16 @@ function findCommandCompletions(value: string) {
   const prefix = value.toLowerCase().replace(/\s+/g, ' ')
   if (/^visual\s+$/.test(prefix)) return COMMAND_COMPLETIONS.filter((candidate) => candidate.startsWith('visual '))
   if (/^sys wallpaper\s+$/.test(prefix)) {
-    return ['current', 'select', 'list', 'next', 'previous', 'scan'].map((action) => `sys wallpaper ${action}`)
+    return ['current', 'select', 'list', 'next', 'previous', 'scan', 'fit'].map((action) => `sys wallpaper ${action}`)
   }
+  if (/^sys wallpaper fit\s+$/.test(prefix)) return WALLPAPER_FITS.map((fit) => `sys wallpaper fit ${fit}`)
   if (/^sys mode\s+$/.test(prefix)) {
     return ['normal', 'stealth', 'combat', 'idle', 'diagnostic'].map((mode) => `sys mode ${mode}`)
   }
   if (/^sys breathing\s+$/.test(prefix)) return ['sys breathing water', 'sys hinokami kagura']
   if (/^sys widgets\s+$/.test(prefix)) return ['sys widgets all on', 'sys widgets all off']
+  if (/^sys layout\s+$/.test(prefix)) return ['sys layout list', 'sys layout cinema', 'sys layout compact', 'sys layout center', 'sys layout save ', 'sys layout load ', 'sys layout reset']
+  if (/^sys layout (save|load)\s+$/.test(prefix)) return []
   if (/^sys widget\s+$/.test(prefix)) return [
     'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
     'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off',
@@ -227,7 +249,6 @@ function App() {
   const completionRef = useRef<{ lastValue: string; candidates: string[]; index: number } | null>(null)
   const draggingWidgetRef = useRef<{ id: number; offsetX: number; offsetY: number } | null>(null)
   const widgetExitTimersRef = useRef<Map<number, number>>(new Map())
-  const resizingConsoleRef = useRef<{ edge: string; startX: number; startY: number; frame: ConsoleFrame } | null>(null)
   const draggingConsoleRef = useRef<{ offsetX: number; offsetY: number; frame: ConsoleFrame } | null>(null)
   const effectIdRef = useRef(0)
   const hardwareLastPublishedRef = useRef(0)
@@ -243,6 +264,12 @@ function App() {
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
   const [mode, setMode] = useState<SystemMode>('NORMAL')
   const [theme, setTheme] = useState<ThemeId>('sao')
+  const [wallpaperFit, setWallpaperFit] = useState<WallpaperFit>(() => {
+    try {
+      const saved = localStorage.getItem(WALLPAPER_FIT_PREF_KEY) as WallpaperFit | null
+      return saved && WALLPAPER_FITS.includes(saved) ? saved : 'cover'
+    } catch { return 'cover' }
+  })
   const [visualTheme, setVisualTheme] = useState<VisualTheme>(() => {
     try {
       const saved = localStorage.getItem(VISUAL_THEME_PREF_KEY) as VisualTheme | null
@@ -261,6 +288,12 @@ function App() {
   const [leavingWidgetIds, setLeavingWidgetIds] = useState<number[]>([])
   const [widgetPositions, setWidgetPositions] = useState<WidgetPositions>({})
   const [consoleFrame, setConsoleFrame] = useState<ConsoleFrame | null>(null)
+  const [layoutPresets, setLayoutPresets] = useState<Record<string, LayoutSnapshot>>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(LAYOUT_PRESETS_KEY) ?? '{}') as unknown
+      return stored && typeof stored === 'object' && !Array.isArray(stored) ? stored as Record<string, LayoutSnapshot> : {}
+    } catch { return {} }
+  })
   const [clockNow, setClockNow] = useState(() => new Date())
   const [consoleLines, setConsoleLines] = useState<string[]>(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
   const timeline = createBootTimeline(Boolean(wallpaperUrl))
@@ -345,6 +378,10 @@ function App() {
   }, [])
 
   useEffect(() => {
+    try { localStorage.setItem(LAYOUT_PRESETS_KEY, JSON.stringify(layoutPresets)) } catch { /* Saved layouts are optional. */ }
+  }, [layoutPresets])
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem(THEME_PREF_KEY) as ThemeId | null
       const available: ThemeId[] = ['sao', 'arise', 'grimoire', 'anti-magic', 'domain-expansion', 'limitless', 'breathing-water', 'breathing-sun', 'demon-mode', 'dragon']
@@ -413,6 +450,10 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem(VISUAL_THEME_PREF_KEY, visualTheme) } catch { /* Visual preference is optional. */ }
   }, [visualTheme])
+
+  useEffect(() => {
+    try { localStorage.setItem(WALLPAPER_FIT_PREF_KEY, wallpaperFit) } catch { /* Wallpaper fit preference is optional. */ }
+  }, [wallpaperFit])
 
   useEffect(() => {
     if (!specialEffect) return
@@ -566,7 +607,7 @@ function App() {
         setStatus('VISUAL COMMAND ERROR')
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS WIDGETS', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS WIDGETS', 'SYS LAYOUT [LIST|CINEMA|COMPACT|CENTER|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
@@ -634,11 +675,12 @@ function App() {
       setStatus('FULL COUNTER RELEASED')
     } else if (domain === 'arise' && args.length === 1) {
       setTheme('arise')
+      setSpecialEffect({ kind: 'arise', id: ++effectIdRef.current })
       report(['SHADOW PROTOCOL // ARISE', 'PURPLE INTERFACE ........ ACTIVE', 'THEME SAVED TO LOCAL SYSTEM.'])
       setStatus('ARISE THEME ACTIVATED')
     } else if (domain === 'link' && action === 'start' && args.length === 2) {
       setTheme('sao')
-      setSpecialEffect(null)
+      setSpecialEffect({ kind: 'link-start', id: ++effectIdRef.current })
       setStealthUntil(0)
       setNightFuryAlpha(false)
       report(['ELUCIDATOR // MAINFRAME', 'SYSTEM LINK ............ ESTABLISHED', 'STANDARD CYAN INTERFACE .. RESTORED'])
@@ -660,7 +702,19 @@ function App() {
       ])
       setStatus('SYSTEM STATUS: NOMINAL')
     } else if (domain === 'wallpaper') {
-      if (action === 'scan') {
+      if (action === 'fit' && args.length === 2) {
+        report(['WALLPAPER FIT', `ACTIVE ................ ${wallpaperFit.toUpperCase()}`, 'OPTIONS ............... COVER · CONTAIN · STRETCH · SPAN'])
+        setStatus(`WALLPAPER FIT · ${wallpaperFit.toUpperCase()}`)
+      } else if (action === 'fit' && args.length === 3) {
+        const requested = args[2] === 'panoramic' ? 'span' : args[2]
+        if (!WALLPAPER_FITS.includes(requested as WallpaperFit)) {
+          report(['WALLPAPER FIT ERROR', 'USE SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]'])
+        } else {
+          setWallpaperFit(requested as WallpaperFit)
+          report(['WALLPAPER FIT UPDATED', `MODE .................. ${requested === 'span' ? 'SPAN / PANORAMIC' : requested.toUpperCase()}`, requested === 'span' ? 'FULL IMAGE FITS THE COMBINED SPAN VIEWPORT.' : 'APPLIES TO THE ACTIVE AND FUTURE WALLPAPERS.'])
+          setStatus(`WALLPAPER FIT · ${requested.toUpperCase()}`)
+        }
+      } else if (action === 'scan') {
         if (!wallpaperUrl) {
           report(['WALLPAPER SCAN', 'NO ACTIVE WALLPAPER · USE SYS WALLPAPER SELECT'])
           setStatus('SCAN UNAVAILABLE · NO WALLPAPER SELECTED')
@@ -692,10 +746,10 @@ function App() {
           await activateWallpaper(target.wallpaper)
         }
       } else if (!action || action === 'current' || action === 'show') {
-        report(['WALLPAPER STATUS', `ACTIVE ................. ${wallpaperUrl ? wallpaperName.toUpperCase() : 'NONE'}`, `CACHE ................. ${wallpaperUrl ? 'READY' : 'EMPTY'}`])
+        report(['WALLPAPER STATUS', `ACTIVE ................. ${wallpaperUrl ? wallpaperName.toUpperCase() : 'NONE'}`, `FIT MODE ............... ${wallpaperFit.toUpperCase()}`, `CACHE ................. ${wallpaperUrl ? 'READY' : 'EMPTY'}`])
         setStatus(wallpaperUrl ? `ACTIVE WALLPAPER · ${wallpaperName.toUpperCase()}` : 'NO WALLPAPER SELECTED')
       } else {
-        report(['WALLPAPER COMMAND ERROR', 'USAGE · SYS WALLPAPER [CURRENT|SELECT|LIST|NEXT|PREVIOUS|SCAN]'])
+        report(['WALLPAPER COMMAND ERROR', 'USAGE · SYS WALLPAPER [CURRENT|SELECT|LIST|NEXT|PREVIOUS|SCAN|FIT]'])
       }
     } else if (domain === 'time' && args.length === 1) {
       openWidget(2)
@@ -745,6 +799,55 @@ function App() {
       const titles = ['HARDWARE TELEMETRY', 'WORLD CLOCK', 'SYSTEM STATUS', 'AUDIO LINK']
       report(['DIGITAL WIDGETS · 1–4', ...titles.map((title, index) => `${enabledWidgets.includes(index + 1) ? 'ONLINE ' : 'OFFLINE'} · ${index + 1} · ${title}`), 'CONTROL · SYS WIDGET <1–4> ON|OFF'])
       setStatus(`${enabledWidgets.length} WIDGET${enabledWidgets.length === 1 ? '' : 'S'} ACTIVE`)
+    } else if (domain === 'layout') {
+      const builtInNames = ['cinema', 'compact', 'center']
+      if (!action || action === 'list') {
+        report(['LAYOUT PRESETS', ...builtInNames.map((name) => `BUILT-IN · ${name.toUpperCase()}`), ...Object.keys(layoutPresets).map((name) => `SAVED · ${name.toUpperCase()}`), 'USE SYS LAYOUT <PRESET> · SAVE/LOAD <NAME> · RESET'])
+        setStatus('LAYOUT PRESETS READY')
+      } else if (builtInNames.includes(action) && args.length === 2) {
+        const width = window.innerWidth
+        const height = window.innerHeight
+        const consoleWidth = Math.min(action === 'compact' ? 410 : 540, width - 32)
+        const consoleHeight = action === 'compact' ? 112 : 136
+        const x = action === 'center' ? Math.round((width - consoleWidth) / 2) : 24
+        const y = Math.max(8, height - consoleHeight - (action === 'cinema' ? 28 : 18))
+        const widgetWidth = width <= 700 ? Math.min(224, width - 21) : Math.min(288, width - 32)
+        const rightX = Math.max(2, Math.min(78, (width - widgetWidth - 24) / width * 100))
+        const leftX = 2
+        const stackX = action === 'center' ? leftX : rightX
+        const stackY = action === 'cinema' ? [3, 27, 51, 75] : action === 'compact' ? [3, 23, 43, 63] : [3, 26, 49, 72]
+        setConsoleFrame({ x, y, width: consoleWidth, height: consoleHeight })
+        setWidgetPositions(Object.fromEntries(stackY.map((widgetY, index) => [index + 1, { x: stackX, y: widgetY }])) as WidgetPositions)
+        report(['LAYOUT PRESET APPLIED', `PRESET ................. ${action.toUpperCase()}`, `CONSOLE ................ ${action === 'center' ? 'BOTTOM-CENTRE' : 'BOTTOM-LEFT'}`, `WIDGET ARRAY ........... ${action === 'center' ? 'LEFT' : 'RIGHT'} COLUMN`, 'DRAG OR RESIZE ANY DISPLAY TO CUSTOMIZE.'])
+        setStatus(`LAYOUT · ${action.toUpperCase()}`)
+      } else if (action === 'save' && args.length === 3) {
+        const name = args[2].toLowerCase()
+        if (!/^[a-z0-9_-]{1,18}$/.test(name)) {
+          report(['LAYOUT SAVE ERROR', 'NAME MUST BE 1–18 LETTERS, NUMBERS, _ OR -.'])
+        } else {
+          setLayoutPresets((current) => ({ ...current, [name]: { consoleFrame, widgetPositions } }))
+          report(['LAYOUT SAVED', `PRESET ................ ${name.toUpperCase()}`, 'CONSOLE AND WIDGET POSITIONS STORED.'])
+          setStatus(`LAYOUT SAVED · ${name.toUpperCase()}`)
+        }
+      } else if (action === 'load' && args.length === 3) {
+        const name = args[2].toLowerCase()
+        const preset = layoutPresets[name]
+        if (!preset) report(['LAYOUT NOT FOUND', `NO SAVED PRESET NAMED ${name.toUpperCase()}.`, 'USE SYS LAYOUT LIST TO VIEW PRESETS.'])
+        else {
+          setConsoleFrame(preset.consoleFrame)
+          setWidgetPositions(preset.widgetPositions)
+          report(['LAYOUT LOADED', `PRESET ................ ${name.toUpperCase()}`, 'CONSOLE AND WIDGET POSITIONS RESTORED.'])
+          setStatus(`LAYOUT LOADED · ${name.toUpperCase()}`)
+        }
+      } else if (action === 'reset' && args.length === 2) {
+        setConsoleFrame(null)
+        setWidgetPositions({})
+        try { localStorage.removeItem(CONSOLE_FRAME_KEY) } catch { /* Reset remains applied for this session. */ }
+        report(['LAYOUT RESET', 'CONSOLE AND WIDGETS RETURNED TO DEFAULT POSITIONS.'])
+        setStatus('DEFAULT LAYOUT RESTORED')
+      } else {
+        report(['LAYOUT COMMAND ERROR', 'USAGE · SYS LAYOUT [LIST|CINEMA|COMPACT|CENTER|SAVE <NAME>|LOAD <NAME>|RESET]'])
+      }
     } else if (domain === 'widget' && action === 'move' && args.length === 5) {
       const id = Number(args[2])
       const x = Number(args[3])
@@ -876,49 +979,6 @@ function App() {
     }
   }
 
-  const startConsoleResize = (event: ReactPointerEvent<HTMLDivElement>, edge: string) => {
-    const bounds = event.currentTarget.parentElement?.getBoundingClientRect()
-    if (!bounds) return
-    resizingConsoleRef.current = {
-      edge,
-      startX: event.clientX,
-      startY: event.clientY,
-      frame: { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height },
-    }
-    event.currentTarget.setPointerCapture(event.pointerId)
-    event.preventDefault()
-    event.stopPropagation()
-  }
-
-  const moveConsoleResize = (event: ReactPointerEvent<HTMLElement>) => {
-    const resize = resizingConsoleRef.current
-    if (!resize) return
-    const dx = event.clientX - resize.startX
-    const dy = event.clientY - resize.startY
-    const { edge, frame } = resize
-    const minWidth = Math.min(260, window.innerWidth)
-    const minHeight = Math.min(96, window.innerHeight)
-    let left = frame.x
-    let top = frame.y
-    let width = frame.width
-    let height = frame.height
-    if (edge.includes('e')) width = Math.max(minWidth, frame.width + dx)
-    if (edge.includes('s')) height = Math.max(minHeight, frame.height + dy)
-    if (edge.includes('w')) {
-      width = Math.max(minWidth, frame.width - dx)
-      left = frame.x + frame.width - width
-    }
-    if (edge.includes('n')) {
-      height = Math.max(minHeight, frame.height - dy)
-      top = frame.y + frame.height - height
-    }
-    width = Math.min(width, window.innerWidth)
-    height = Math.min(height, window.innerHeight)
-    left = Math.max(0, Math.min(window.innerWidth - width, left))
-    top = Math.max(0, Math.min(window.innerHeight - height, top))
-    setConsoleFrame({ x: left, y: top, width, height })
-  }
-
   const startConsoleDrag = (event: ReactPointerEvent<HTMLParagraphElement>) => {
     if ((event.target as HTMLElement).closest('button')) return
     const bounds = event.currentTarget.closest('.command-console')?.getBoundingClientRect()
@@ -984,7 +1044,7 @@ function App() {
       {wallpaperUrl && (
         <img
           key={bootToken}
-          className={`wallpaper-backdrop${!ready ? ' is-loading' : booting ? ' is-booting' : ' is-ready'}`}
+          className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready ? ' is-loading' : booting ? ' is-booting' : ' is-ready'}`}
           src={wallpaperUrl}
           alt={wallpaperName}
           onAnimationEnd={handleWallpaperAnimationEnd}
@@ -1046,12 +1106,30 @@ function App() {
         {renderedWidgets.includes(1) && (
           <article className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>01 / HARDWARE</span><i>{hardwareStatusLabel(hardwareFeed.status)}</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
-            <strong>{hardwareFeed.readings?.cpuName ?? 'HOST TELEMETRY'}</strong>
-            <p>CPU LOAD <b>{displayPercent(hardwareFeed.readings?.cpuPercent ?? null)}</b></p>
-            <p>{hardwareFeed.readings?.gpuName ?? 'GPU 3D'} <b>{displayPercent(hardwareFeed.readings?.gpu3dPercent ?? null)}</b></p>
-            <p>RAM USED <b>{hardwareFeed.readings?.ramTotalMb != null && hardwareFeed.readings.ramAvailableMb != null ? Math.round(hardwareFeed.readings.ramTotalMb - hardwareFeed.readings.ramAvailableMb) + ' / ' + Math.round(hardwareFeed.readings.ramTotalMb) + ' MB' : 'UNAVAILABLE'}</b></p>
+            <strong className="hardware-host">{hardwareFeed.readings?.cpuName ?? 'HOST TELEMETRY'} · {hardwareFeed.readings?.gpuName ?? 'GPU'} </strong>
+            {(() => {
+              const readings = hardwareFeed.readings
+              const ramPercent = readings?.ramTotalMb != null && readings.ramTotalMb > 0 && readings.ramAvailableMb != null
+                ? Math.max(0, Math.min(100, (readings.ramTotalMb - readings.ramAvailableMb) / readings.ramTotalMb * 100))
+                : null
+              const ramUsed = readings?.ramTotalMb != null && readings.ramAvailableMb != null
+                ? Math.round(readings.ramTotalMb - readings.ramAvailableMb)
+                : null
+              const cpu = readings?.cpuPercent ?? null
+              const gpu = readings?.gpu3dPercent ?? null
+              return (
+                <div className="hardware-gauge-grid">
+                  <HardwareGauge label="CPU LOAD" percent={cpu} value={cpu === null ? '—' : `${Math.round(cpu)}%`} />
+                  <HardwareGauge label="GPU 3D" percent={gpu} value={gpu === null ? '—' : `${Math.round(gpu)}%`} />
+                  <HardwareGauge label="RAM USED" percent={ramPercent} value={ramPercent === null ? '—' : `${Math.round(ramPercent)}%`} detail={ramUsed === null ? 'NO DATA' : `${ramUsed} MB`} />
+                  <HardwareGauge label="CPU TEMP" percent={null} value="—" detail="NO SENSOR" />
+                  <HardwareGauge label="GPU TEMP" percent={null} value="—" detail="NO SENSOR" />
+                  <HardwareGauge label="FRAME RATE" percent={null} value="—" detail="NO FEED" />
+                </div>
+              )
+            })()}
             <p>NET DOWN / UP <b>{displayMegabytesPerSecond(hardwareFeed.readings?.networkDownBytesPerSecond ?? null)} / {displayMegabytesPerSecond(hardwareFeed.readings?.networkUpBytesPerSecond ?? null)}</b></p>
-            <small>{hardwareFeed.updatedAt ? 'UPDATED ' + new Date(hardwareFeed.updatedAt).toLocaleTimeString() : 'WAITING FOR LIVELY SYSTEM DATA'}</small>
+            <small>{hardwareFeed.updatedAt ? 'UPDATED ' + new Date(hardwareFeed.updatedAt).toLocaleTimeString() : 'WAITING FOR LIVELY SYSTEM DATA'} · TEMPERATURE / FPS NEED A SENSOR FEED</small>
           </article>
         )}
         {renderedWidgets.includes(2) && (
@@ -1085,9 +1163,9 @@ function App() {
         className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}`}
         aria-label="Elucidator system console"
         style={consoleFrame ? { left: consoleFrame.x, top: 'auto', bottom: window.innerHeight - consoleFrame.y - consoleFrame.height, width: consoleFrame.width, minHeight: consoleFrame.height } : undefined}
-        onPointerMove={(event) => { moveConsoleResize(event); moveConsole(event) }}
-        onPointerUp={() => { resizingConsoleRef.current = null; draggingConsoleRef.current = null }}
-        onPointerCancel={() => { resizingConsoleRef.current = null; draggingConsoleRef.current = null }}
+        onPointerMove={moveConsole}
+        onPointerUp={() => { draggingConsoleRef.current = null }}
+        onPointerCancel={() => { draggingConsoleRef.current = null }}
       >
         <div className="console-output" aria-live="polite">
           {consoleLines.map((line, index) => <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''} onPointerDown={index === 0 ? startConsoleDrag : undefined}>{line}</p>)}
@@ -1110,14 +1188,6 @@ function App() {
           <button type="submit" aria-label="Run command">↵</button>
         </form>
         <p className="console-status" aria-live="polite">{status}</p>
-        {['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map((edge) => (
-          <div
-            key={edge}
-            className={`console-resize-handle resize-${edge}`}
-            aria-hidden="true"
-            onPointerDown={(event) => startConsoleResize(event, edge)}
-          />
-        ))}
       </section>
 
       <input

@@ -25,6 +25,8 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys wallpaper list` | List wallpapers saved through the app |
 | `sys wallpaper next` / `previous` | Switch between saved wallpapers |
 | `sys wallpaper scan` | Replay the coordinated wallpaper reveal and scan |
+| `sys wallpaper fit` | Show the current image fit mode |
+| `sys wallpaper fit cover` / `contain` / `stretch` / `span` | Choose crop-to-fill, show-entire-image, distortion-to-fill, or panoramic fit |
 | `sys time` | Show local date/time and session uptime |
 | `sys mode` | List modes; use `sys mode normal`, `stealth`, `combat`, `idle`, or `diagnostic` to switch |
 | `sys hardware` | Show live CPU, GPU 3D, RAM and network metrics when Lively provides them; otherwise report browser/unavailable state |
@@ -34,6 +36,10 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys widget 1 on` / `sys widget 1 off` | Enable or disable a widget (IDs 1–4); `enable` / `disable` also work |
 | `sys widget move 1 70 20` | Place widget 1 at 70% from the left and 20% from the top |
 | `sys widget reset` | Restore the default widget positions |
+| `sys layout list` | List the built-in and saved console/widget layouts |
+| `sys layout cinema` / `compact` / `center` | Apply a coordinated console and widget position preset |
+| `sys layout save desk` / `sys layout load desk` | Save or restore the current console and widget positions under a name |
+| `sys layout reset` | Restore the default console and widget positions |
 | `sys standby` | Return the console output to the `ELUCIDATOR // MAINFRAME` home screen |
 | `sys arise` | Activate the persistent Solo Leveling purple interface |
 | `sys link start` | Restore the standard cyan interface |
@@ -52,9 +58,9 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `visual particles` / `visual vignette` / `visual off` | Activate a restrained overlay or disable visual effects |
 | `sys help` / `help` | Show the command index |
 
-Hardware, clock, system status, and audio commands also open their matching digital widget on the right. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header to adjust its position with the pointer. The console can be resized from any edge or corner; its size and position are saved locally.
+Hardware, clock, system status, and audio commands also open their matching digital widget. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header or drag the console heading to move it. `sys layout` applies coordinated console/widget presets, and named layouts save the current arrangement. The console no longer has mouse resize handles; choose a different preset to change its size and placement. The hardware display uses dials for CPU, GPU 3D, and RAM readings. CPU/GPU temperatures and FPS remain unavailable unless the wallpaper host supplies those sensors.
 
-The active image and images selected through the app are stored in IndexedDB in the browser profile and restored on the next launch. The page cannot scan arbitrary folders directly; the file picker is the browser-approved way to add a saved image. If the browser blocks persistent storage, the selected image still works for the current session. In a regular browser, `sys hardware` reports BROWSER MODE and unavailable values. Lively's system-information feed supplies CPU usage, GPU 3D usage, RAM total/available, and network adapter throughput; it does not provide temperatures or frame rate. Audio controls still need a supported player integration.
+The active image and images selected through the app are stored in IndexedDB in the browser profile and restored on the next launch. The wallpaper fit mode is saved separately in local storage and applies to all imported images. `span` uses the full combined viewport supplied by Lively when its display placement is set to Span across screens, and fits the entire source image within that viewport. A source image that is not wide enough may leave black space; the mode cannot create missing artwork. `cover` fills the combined viewport but may crop the image. The page cannot scan arbitrary folders directly; the file picker is the browser-approved way to add a saved image. If the browser blocks persistent storage, the selected image still works for the current session. In a regular browser, `sys hardware` reports BROWSER MODE and unavailable values. Lively's system-information feed supplies CPU usage, GPU 3D usage, RAM total/available, and network adapter throughput; it does not provide temperatures or frame rate. Audio controls still need a supported player integration.
 
 ### Lively Wallpaper
 
