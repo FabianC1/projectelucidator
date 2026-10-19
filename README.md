@@ -42,6 +42,10 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys breathing water` | Activate Tanjiro-inspired deep blue Water Breathing |
 | `sys hinokami kagura` | Activate the orange Sun Breathing theme |
 | `sys demon mode` | Activate Seven Deadly Sins gold and purple theme |
+| `sys httyd` / `sys night fury` | Activate the Toothless Night Fury theme: black `#080B10`, plasma cyan `#70E8FF`, Night Fury blue `#5265D8`, and steel grey `#A8B2C1` |
+| `sys plasma` | Trigger a plasma-core charge ripple |
+| `sys stealth` | Dim the Night Fury interface and suppress its glow for eight seconds |
+| `sys alpha` | Trigger the Night Fury full-power flare |
 | `sys full counter` | Send a purple scan wave back across the wallpaper |
 | `sys help` / `help` | Show the command index |
 

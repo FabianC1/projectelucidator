@@ -3,7 +3,7 @@ import './App.css'
 
 type SavedWallpaper = { blob: Blob; name: string }
 type SystemMode = 'NORMAL' | 'STEALTH' | 'COMBAT' | 'IDLE' | 'DIAGNOSTIC'
-type ThemeId = 'sao' | 'arise' | 'grimoire' | 'anti-magic' | 'domain-expansion' | 'limitless' | 'breathing-water' | 'breathing-sun' | 'demon-mode'
+type ThemeId = 'sao' | 'arise' | 'grimoire' | 'anti-magic' | 'domain-expansion' | 'limitless' | 'breathing-water' | 'breathing-sun' | 'demon-mode' | 'dragon'
 type SpecialEffect = { kind: string; id: number }
 type WidgetPosition = { x: number; y: number }
 type WidgetPositions = Record<number, WidgetPosition>
@@ -165,7 +165,7 @@ const COMMAND_COMPLETIONS = [
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off',
   'sys widget move 1 50 20', 'sys widget reset', 'sys standby', 'sys arise', 'sys link start',
   'sys grimoire', 'sys anti-magic', 'sys domain expansion', 'sys limitless',
-  'sys breathing water', 'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys help', 'help',
+  'sys breathing water', 'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys httyd', 'sys night fury', 'sys plasma', 'sys stealth', 'sys alpha', 'sys help', 'help',
 ]
 
 function findCommandCompletions(value: string) {
@@ -213,6 +213,8 @@ function App() {
   const [mode, setMode] = useState<SystemMode>('NORMAL')
   const [theme, setTheme] = useState<ThemeId>('sao')
   const [specialEffect, setSpecialEffect] = useState<SpecialEffect | null>(null)
+  const [stealthUntil, setStealthUntil] = useState(0)
+  const [nightFuryAlpha, setNightFuryAlpha] = useState(false)
   const [wallpaperLibrary, setWallpaperLibrary] = useState<Array<{ id: string; wallpaper: SavedWallpaper }>>([])
   const [enabledWidgets, setEnabledWidgets] = useState<number[]>([])
   const [renderedWidgets, setRenderedWidgets] = useState<number[]>([])
@@ -305,7 +307,7 @@ function App() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(THEME_PREF_KEY) as ThemeId | null
-      const available: ThemeId[] = ['sao', 'arise', 'grimoire', 'anti-magic', 'domain-expansion', 'limitless', 'breathing-water', 'breathing-sun', 'demon-mode']
+      const available: ThemeId[] = ['sao', 'arise', 'grimoire', 'anti-magic', 'domain-expansion', 'limitless', 'breathing-water', 'breathing-sun', 'demon-mode', 'dragon']
       if (saved && available.includes(saved)) setTheme(saved)
     } catch { /* Keep the default cyan theme if preferences are unavailable. */ }
   }, [])
@@ -319,6 +321,12 @@ function App() {
     const timer = window.setTimeout(() => setSpecialEffect(null), 1700)
     return () => window.clearTimeout(timer)
   }, [specialEffect])
+
+  useEffect(() => {
+    if (!stealthUntil) return
+    const timer = window.setTimeout(() => setStealthUntil(0), Math.max(0, stealthUntil - Date.now()))
+    return () => window.clearTimeout(timer)
+  }, [stealthUntil])
 
   useEffect(() => {
     try {
@@ -442,8 +450,34 @@ function App() {
     const [domain, action] = args
 
     if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS WIDGETS', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS LINK START · RESTORE CYAN'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS WIDGETS', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
+    } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
+      setTheme('dragon')
+      setNightFuryAlpha(false)
+      setStealthUntil(0)
+      report(['NIGHT FURY', 'ELUCIDATOR // TOOTHLESS PROTOCOL', 'ONLINE', 'PLASMA CORE // STANDBY', 'NIGHT FURY SIGNATURE DETECTED'])
+      setStatus('NIGHT FURY PROTOCOL ACTIVATED')
+    } else if (domain === 'plasma' && args.length === 1) {
+      setTheme('dragon')
+      setNightFuryAlpha(false)
+      setStealthUntil(0)
+      setSpecialEffect({ kind: 'plasma-charge', id: ++effectIdRef.current })
+      report(['PLASMA CORE // CHARGING', 'NIGHT FURY SIGNATURE DETECTED', 'PLASMA OUTPUT .......... 78%'])
+      setStatus('PLASMA CORE CHARGED · 78%')
+    } else if (domain === 'stealth' && args.length === 1) {
+      setTheme('dragon')
+      setNightFuryAlpha(false)
+      setStealthUntil(Date.now() + 8000)
+      report(['NIGHT FURY STEALTH', 'SIGNATURE .............. SUPPRESSED', 'LOW-LIGHT PROFILE ...... ACTIVE · 8 SEC'])
+      setStatus('TEMPORARY STEALTH ENGAGED')
+    } else if (domain === 'alpha' && args.length === 1) {
+      setTheme('dragon')
+      setStealthUntil(0)
+      setNightFuryAlpha(true)
+      setSpecialEffect({ kind: 'alpha', id: ++effectIdRef.current })
+      report(['ALPHA PROTOCOL // TOOTHLESS', 'PLASMA CORE ............ FULL POWER', 'NIGHT FURY SIGNATURE ... MAXIMUM'])
+      setStatus('NIGHT FURY ALPHA · FULL POWER')
     } else if (domain === 'grimoire' && args.length === 1) {
       setTheme('grimoire')
       report(['FIVE-LEAF GRIMOIRE DETECTED', 'CRIMSON SYSTEM .......... ONLINE', 'ANTI-MAGIC SEAL ........ STANDBY'])
@@ -489,6 +523,8 @@ function App() {
     } else if (domain === 'link' && action === 'start' && args.length === 2) {
       setTheme('sao')
       setSpecialEffect(null)
+      setStealthUntil(0)
+      setNightFuryAlpha(false)
       report(['ELUCIDATOR // MAINFRAME', 'SYSTEM LINK ............ ESTABLISHED', 'STANDARD CYAN INTERFACE .. RESTORED'])
       setStatus('SYSTEM LINK STARTED · CYAN THEME RESTORED')
     } else if (domain === 'status' && args.length === 1) {
@@ -816,7 +852,7 @@ function App() {
   }
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}`}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${stealthUntil > 0 ? ' night-stealth-active' : ''}${nightFuryAlpha ? ' night-fury-alpha' : ''}`}>
       {wallpaperUrl && (
         <img
           key={bootToken}
