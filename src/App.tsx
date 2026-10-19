@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import './App.css'
 
 type SavedWallpaper = { blob: Blob; name: string }
 type SystemMode = 'NORMAL' | 'STEALTH' | 'COMBAT' | 'IDLE' | 'DIAGNOSTIC'
+type WidgetPosition = { x: number; y: number }
+type WidgetPositions = Record<number, WidgetPosition>
+type ConsoleFrame = { x: number; y: number; width: number; height: number }
 type BootMessage = { text: string; result: string; pause?: number }
 type BootPhase = { id: string; title: string; messages: BootMessage[] }
 type TimedMessage = BootMessage & { start: number; duration: number; end: number }
@@ -13,6 +16,9 @@ const DATABASE = 'project-elucidator-wallpaper'
 const STORE = 'selection'
 const KEY = 'active'
 const WIDGET_PREF_KEY = 'project-elucidator-widgets'
+const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
+const CONSOLE_FRAME_KEY = 'project-elucidator-console-frame'
+const THEME_PREF_KEY = 'project-elucidator-theme'
 const TYPE_RATE = 185
 const LINE_GAP = 0.035
 const PHASE_PAUSE = 0.2
@@ -156,6 +162,9 @@ function App() {
   const commandHistoryRef = useRef<string[]>([])
   const historyIndexRef = useRef(0)
   const commandDraftRef = useRef('')
+  const draggingWidgetRef = useRef<{ id: number; offsetX: number; offsetY: number } | null>(null)
+  const resizingConsoleRef = useRef<{ edge: string; startX: number; startY: number; frame: ConsoleFrame } | null>(null)
+  const draggingConsoleRef = useRef<{ offsetX: number; offsetY: number; frame: ConsoleFrame } | null>(null)
   const [wallpaperUrl, setWallpaperUrl] = useState('')
   const [wallpaperName, setWallpaperName] = useState('NO WALLPAPER SELECTED')
   const [ready, setReady] = useState(false)
@@ -167,10 +176,13 @@ function App() {
   const [command, setCommand] = useState('')
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
   const [mode, setMode] = useState<SystemMode>('NORMAL')
+  const [theme, setTheme] = useState<'sao' | 'arise'>('sao')
   const [wallpaperLibrary, setWallpaperLibrary] = useState<Array<{ id: string; wallpaper: SavedWallpaper }>>([])
   const [enabledWidgets, setEnabledWidgets] = useState<number[]>([])
+  const [widgetPositions, setWidgetPositions] = useState<WidgetPositions>({})
+  const [consoleFrame, setConsoleFrame] = useState<ConsoleFrame | null>(null)
   const [clockNow, setClockNow] = useState(() => new Date())
-  const [consoleLines, setConsoleLines] = useState<string[]>(['ELUCIDATOR // SYSTEM CONSOLE', 'ONLINE', 'Type SYS HELP for commands.'])
+  const [consoleLines, setConsoleLines] = useState<string[]>(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
   const timeline = createBootTimeline(Boolean(wallpaperUrl))
   const progress = Math.min(1, bootElapsed / timeline.duration)
   const progressPercent = Math.round(progress * 100)
@@ -212,6 +224,57 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem(WIDGET_PREF_KEY, JSON.stringify(enabledWidgets)) } catch { /* Preferences are optional. */ }
   }, [enabledWidgets])
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(WIDGET_POSITION_KEY) ?? '{}') as unknown
+      if (stored && typeof stored === 'object') {
+        const valid = Object.fromEntries(Object.entries(stored).flatMap(([id, value]) => {
+          const position = value as WidgetPosition
+          return Number(id) >= 1 && Number(id) <= 4 && Number.isFinite(position?.x) && Number.isFinite(position?.y)
+            ? [[Number(id), { x: Math.min(100, Math.max(0, position.x)), y: Math.min(100, Math.max(0, position.y)) }]]
+            : []
+        })) as WidgetPositions
+        setWidgetPositions(valid)
+      }
+    } catch { /* Default positions are used if preferences are unavailable. */ }
+  }, [])
+
+  useEffect(() => {
+    try { localStorage.setItem(WIDGET_POSITION_KEY, JSON.stringify(widgetPositions)) } catch { /* Preferences are optional. */ }
+  }, [widgetPositions])
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(CONSOLE_FRAME_KEY) ?? 'null') as ConsoleFrame | null
+      if (stored && [stored.x, stored.y, stored.width, stored.height].every(Number.isFinite)) {
+        const width = Math.min(window.innerWidth, Math.max(260, stored.width))
+        const height = Math.min(window.innerHeight, Math.max(96, stored.height))
+        setConsoleFrame({
+          x: Math.max(0, Math.min(window.innerWidth - width, stored.x)),
+          y: Math.max(0, Math.min(window.innerHeight - height, stored.y)),
+          width,
+          height,
+        })
+      }
+    } catch { /* Use the default console dimensions if preferences are unavailable. */ }
+  }, [])
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(THEME_PREF_KEY) === 'arise') setTheme('arise')
+    } catch { /* Keep the default cyan theme if preferences are unavailable. */ }
+  }, [])
+
+  useEffect(() => {
+    try { localStorage.setItem(THEME_PREF_KEY, theme) } catch { /* Theme preference is optional. */ }
+  }, [theme])
+
+  useEffect(() => {
+    try {
+      if (consoleFrame) localStorage.setItem(CONSOLE_FRAME_KEY, JSON.stringify(consoleFrame))
+    } catch { /* The default position remains usable without storage. */ }
+  }, [consoleFrame])
 
   useEffect(() => {
     if (!enabledWidgets.some((id) => id === 2 || id === 3)) return
@@ -304,8 +367,16 @@ function App() {
     const [domain, action] = args
 
     if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // SYSTEM CONSOLE', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN]', 'SYS TIME · SYS MODE [NORMAL|STEALTH|COMBAT|IDLE|DIAGNOSTIC]', 'SYS HARDWARE · SYS AUDIO · SYS WIDGETS · HELP'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN]', 'SYS TIME · SYS MODE [NORMAL|STEALTH|COMBAT|IDLE|DIAGNOSTIC]', 'SYS HARDWARE · SYS AUDIO · SYS WIDGETS [ALL ON|ALL OFF]', 'SYS WIDGET MOVE <ID> <X%> <Y%> · SYS WIDGET RESET · SYS STANDBY', 'SYS ARISE · PURPLE THEME · SYS LINK START · RESTORE CYAN'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
+    } else if (domain === 'arise' && args.length === 1) {
+      setTheme('arise')
+      report(['SHADOW PROTOCOL // ARISE', 'PURPLE INTERFACE ........ ACTIVE', 'THEME SAVED TO LOCAL SYSTEM.'])
+      setStatus('ARISE THEME ACTIVATED')
+    } else if (domain === 'link' && action === 'start' && args.length === 2) {
+      setTheme('sao')
+      report(['ELUCIDATOR // MAINFRAME', 'SYSTEM LINK ............ ESTABLISHED', 'STANDARD CYAN INTERFACE .. RESTORED'])
+      setStatus('SYSTEM LINK STARTED · CYAN THEME RESTORED')
     } else if (domain === 'status' && args.length === 1) {
       setEnabledWidgets((current) => [...new Set([...current, 3])])
       report([
@@ -383,10 +454,34 @@ function App() {
       setEnabledWidgets((current) => [...new Set([...current, 4])])
       report(['AUDIO CONTROL', 'NO PLAYER INTEGRATION CONNECTED.', 'TRACK METADATA AND PLAYBACK CONTROL REQUIRE A SUPPORTED PLAYER API.'])
       setStatus('AUDIO INTEGRATION · OFFLINE')
+    } else if (domain === 'standby' && args.length === 1) {
+      report(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
+      setStatus('MAINFRAME STANDBY · READY')
+    } else if (domain === 'widgets' && args[1] === 'all' && ['on', 'off'].includes(args[2])) {
+      const enable = args[2] === 'on'
+      setEnabledWidgets(enable ? [1, 2, 3, 4] : [])
+      report(['DIGITAL WIDGET ARRAY', `ALL DISPLAYS ........... ${enable ? 'ONLINE' : 'OFFLINE'}`, `WIDGETS ACTIVE ......... ${enable ? '04 / 04' : '00 / 04'}`])
+      setStatus(`ALL WIDGETS ${enable ? 'ENABLED' : 'DISABLED'}`)
     } else if (domain === 'widgets' && args.length === 1) {
       const titles = ['HARDWARE TELEMETRY', 'WORLD CLOCK', 'SYSTEM STATUS', 'AUDIO LINK']
       report(['DIGITAL WIDGETS · 1–4', ...titles.map((title, index) => `${enabledWidgets.includes(index + 1) ? 'ONLINE ' : 'OFFLINE'} · ${index + 1} · ${title}`), 'CONTROL · SYS WIDGET <1–4> ON|OFF'])
       setStatus(`${enabledWidgets.length} WIDGET${enabledWidgets.length === 1 ? '' : 'S'} ACTIVE`)
+    } else if (domain === 'widget' && action === 'move' && args.length === 5) {
+      const id = Number(args[2])
+      const x = Number(args[3])
+      const y = Number(args[4])
+      if (!Number.isInteger(id) || id < 1 || id > 4 || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 100 || y < 0 || y > 100) {
+        report(['WIDGET POSITION ERROR', 'USAGE · SYS WIDGET MOVE <1–4> <X% 0–100> <Y% 0–100>'])
+      } else {
+        setWidgetPositions((current) => ({ ...current, [id]: { x, y } }))
+        setEnabledWidgets((current) => [...new Set([...current, id])])
+        report([`WIDGET ${String(id).padStart(2, '0')} POSITION`, `HORIZONTAL ............ ${x}%`, `VERTICAL .............. ${y}%`, 'POSITION SAVED.'])
+        setStatus(`WIDGET ${id} POSITION UPDATED`)
+      }
+    } else if (domain === 'widget' && action === 'reset' && args.length === 2) {
+      setWidgetPositions({})
+      report(['WIDGET LAYOUT', 'CUSTOM POSITIONS CLEARED.', 'DEFAULT RIGHT-SIDE LAYOUT RESTORED.'])
+      setStatus('WIDGET LAYOUT RESET')
     } else if (domain === 'widget' && args.length === 3) {
       const id = Number(action)
       const setting = args[2]
@@ -426,6 +521,108 @@ function App() {
         ? commandDraftRef.current
         : history[historyIndexRef.current])
     }
+  }
+
+  const startWidgetDrag = (event: ReactPointerEvent<HTMLElement>, id: number) => {
+    if ((event.target as HTMLElement).closest('button')) return
+    const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
+    if (!card) return
+    const bounds = card.getBoundingClientRect()
+    draggingWidgetRef.current = { id, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    event.preventDefault()
+  }
+
+  const moveWidgetDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    const drag = draggingWidgetRef.current
+    if (!drag) return
+    const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
+    if (!card) return
+    const left = Math.max(0, Math.min(window.innerWidth - card.offsetWidth, event.clientX - drag.offsetX))
+    const top = Math.max(0, Math.min(window.innerHeight - card.offsetHeight, event.clientY - drag.offsetY))
+    setWidgetPositions((current) => ({
+      ...current,
+      [drag.id]: { x: left / window.innerWidth * 100, y: top / window.innerHeight * 100 },
+    }))
+  }
+
+  const positionWidget = (id: number) => {
+    const position = widgetPositions[id]
+    if (!position) return undefined
+    const cardWidth = window.innerWidth <= 700
+      ? Math.min(224, window.innerWidth - 20.8)
+      : Math.min(288, window.innerWidth - 32)
+    const maxX = Math.max(0, (window.innerWidth - cardWidth) / window.innerWidth * 100)
+    const maxY = Math.max(0, (window.innerHeight - 120) / window.innerHeight * 100)
+    return {
+      left: `${Math.min(position.x, maxX)}%`,
+      top: `${Math.min(position.y, maxY)}%`,
+      right: 'auto',
+    }
+  }
+
+  const startConsoleResize = (event: ReactPointerEvent<HTMLDivElement>, edge: string) => {
+    const bounds = event.currentTarget.parentElement?.getBoundingClientRect()
+    if (!bounds) return
+    resizingConsoleRef.current = {
+      edge,
+      startX: event.clientX,
+      startY: event.clientY,
+      frame: { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height },
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  const moveConsoleResize = (event: ReactPointerEvent<HTMLElement>) => {
+    const resize = resizingConsoleRef.current
+    if (!resize) return
+    const dx = event.clientX - resize.startX
+    const dy = event.clientY - resize.startY
+    const { edge, frame } = resize
+    const minWidth = Math.min(260, window.innerWidth)
+    const minHeight = Math.min(96, window.innerHeight)
+    let left = frame.x
+    let top = frame.y
+    let width = frame.width
+    let height = frame.height
+    if (edge.includes('e')) width = Math.max(minWidth, frame.width + dx)
+    if (edge.includes('s')) height = Math.max(minHeight, frame.height + dy)
+    if (edge.includes('w')) {
+      width = Math.max(minWidth, frame.width - dx)
+      left = frame.x + frame.width - width
+    }
+    if (edge.includes('n')) {
+      height = Math.max(minHeight, frame.height - dy)
+      top = frame.y + frame.height - height
+    }
+    width = Math.min(width, window.innerWidth)
+    height = Math.min(height, window.innerHeight)
+    left = Math.max(0, Math.min(window.innerWidth - width, left))
+    top = Math.max(0, Math.min(window.innerHeight - height, top))
+    setConsoleFrame({ x: left, y: top, width, height })
+  }
+
+  const startConsoleDrag = (event: ReactPointerEvent<HTMLParagraphElement>) => {
+    if ((event.target as HTMLElement).closest('button')) return
+    const bounds = event.currentTarget.closest('.command-console')?.getBoundingClientRect()
+    if (!bounds) return
+    draggingConsoleRef.current = {
+      offsetX: event.clientX - bounds.left,
+      offsetY: event.clientY - bounds.top,
+      frame: { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height },
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    event.preventDefault()
+  }
+
+  const moveConsole = (event: ReactPointerEvent<HTMLElement>) => {
+    const drag = draggingConsoleRef.current
+    if (!drag) return
+    const x = Math.max(0, Math.min(window.innerWidth - drag.frame.width, event.clientX - drag.offsetX))
+    const y = Math.max(0, Math.min(window.innerHeight - drag.frame.height, event.clientY - drag.offsetY))
+    setConsoleFrame({ ...drag.frame, x, y })
   }
 
   const chooseWallpaper = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -468,7 +665,7 @@ function App() {
   }
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()}`}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}`}>
       {wallpaperUrl && (
         <img
           key={bootToken}
@@ -523,8 +720,8 @@ function App() {
 
       <aside className="system-widgets" aria-label="System widgets">
         {enabledWidgets.includes(1) && (
-          <article className="system-widget">
-            <header><span>01 / HARDWARE</span><i>TELEMETRY</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
+          <article className="system-widget widget-1" style={positionWidget(1)}>
+            <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>01 / HARDWARE</span><i>TELEMETRY</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
             <strong>HOST INTERFACE</strong>
             <p>CPU CORES <b>{navigator.hardwareConcurrency || 'N/A'}</b></p>
             <p>RAM ESTIMATE <b>{'deviceMemory' in navigator ? `${(navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 'N/A'} GB` : 'N/A'}</b></p>
@@ -533,16 +730,16 @@ function App() {
           </article>
         )}
         {enabledWidgets.includes(2) && (
-          <article className="system-widget">
-            <header><span>02 / WORLD CLOCK</span><i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close world clock widget">×</button></header>
+          <article className="system-widget widget-2" style={positionWidget(2)}>
+            <header onPointerDown={(event) => startWidgetDrag(event, 2)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>02 / WORLD CLOCK</span><i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close world clock widget">×</button></header>
             <strong className="widget-clock">{clockNow.toLocaleTimeString()}</strong>
             <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
             <p>SESSION <b>{formatUptime((clockNow.getTime() - sessionStartedAt.current) / 1000)}</b></p>
           </article>
         )}
         {enabledWidgets.includes(3) && (
-          <article className="system-widget">
-            <header><span>03 / SYSTEM</span><i>NOMINAL</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close system status widget">×</button></header>
+          <article className="system-widget widget-3" style={positionWidget(3)}>
+            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>03 / SYSTEM</span><i>NOMINAL</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close system status widget">×</button></header>
             <strong>ELUCIDATOR v{SYSTEM_VERSION}</strong>
             <p>WALLPAPER <b>{wallpaperUrl ? 'ONLINE' : 'EMPTY'}</b></p>
             <p>MODE <b>{mode}</b></p>
@@ -550,8 +747,8 @@ function App() {
           </article>
         )}
         {enabledWidgets.includes(4) && (
-          <article className="system-widget">
-            <header><span>04 / AUDIO LINK</span><i>STANDBY</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close audio widget">×</button></header>
+          <article className="system-widget widget-4" style={positionWidget(4)}>
+            <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>04 / AUDIO LINK</span><i>STANDBY</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close audio widget">×</button></header>
             <strong>NO PLAYER LINKED</strong>
             <p>TRACK DATA <b>OFFLINE</b></p>
             <small>PLAYER INTEGRATION REQUIRED</small>
@@ -559,9 +756,16 @@ function App() {
         )}
       </aside>
 
-      <section className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}`} aria-label="Elucidator system console">
+      <section
+        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}`}
+        aria-label="Elucidator system console"
+        style={consoleFrame ? { left: consoleFrame.x, top: 'auto', bottom: window.innerHeight - consoleFrame.y - consoleFrame.height, width: consoleFrame.width, minHeight: consoleFrame.height } : undefined}
+        onPointerMove={(event) => { moveConsoleResize(event); moveConsole(event) }}
+        onPointerUp={() => { resizingConsoleRef.current = null; draggingConsoleRef.current = null }}
+        onPointerCancel={() => { resizingConsoleRef.current = null; draggingConsoleRef.current = null }}
+      >
         <div className="console-output" aria-live="polite">
-          {consoleLines.map((line, index) => <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''}>{line}</p>)}
+          {consoleLines.map((line, index) => <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''} onPointerDown={index === 0 ? startConsoleDrag : undefined}>{line}</p>)}
         </div>
         <form className="command-line" onSubmit={submitCommand}>
           <span className="command-prefix">C:\ELUCIDATOR\SYSTEM&gt;</span>
@@ -580,6 +784,14 @@ function App() {
           <button type="submit" aria-label="Run command">↵</button>
         </form>
         <p className="console-status" aria-live="polite">{status}</p>
+        {['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map((edge) => (
+          <div
+            key={edge}
+            className={`console-resize-handle resize-${edge}`}
+            aria-hidden="true"
+            onPointerDown={(event) => startConsoleResize(event, edge)}
+          />
+        ))}
       </section>
 
       <input

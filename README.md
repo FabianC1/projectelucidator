@@ -28,10 +28,16 @@ Click the terminal line, enter a command, and press Enter (or use the return but
 | `sys hardware` | Show browser-accessible estimates and explain unavailable sensor readings |
 | `sys audio` | Report player integration status |
 | `sys widgets` | List widget IDs and which displays are active |
+| `sys widgets all on` / `sys widgets all off` | Enable or disable all four widgets at once |
 | `sys widget 1 on` / `sys widget 1 off` | Enable or disable a widget (IDs 1–4); `enable` / `disable` also work |
+| `sys widget move 1 70 20` | Place widget 1 at 70% from the left and 20% from the top |
+| `sys widget reset` | Restore the default widget positions |
+| `sys standby` | Return the console output to the `ELUCIDATOR // MAINFRAME` home screen |
+| `sys arise` | Activate the persistent Solo Leveling purple interface |
+| `sys link start` | Restore the standard cyan interface |
 | `sys help` / `help` | Show the command index |
 
-Hardware, clock, system status, and audio commands also open their matching digital widget on the right. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state is saved in the browser.
+Hardware, clock, system status, and audio commands also open their matching digital widget on the right. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header to adjust its position with the pointer. The console can be resized from any edge or corner; its size and position are saved locally.
 
 The active image and images selected through the app are stored in IndexedDB in the browser profile and restored on the next launch. The page cannot scan arbitrary folders directly; the file picker is the browser-approved way to add a saved image. If the browser blocks persistent storage, the selected image still works for the current session. Browser JavaScript cannot reliably read CPU/GPU utilization or temperature, and audio controls need a supported player integration; those commands report these limitations instead of inventing values.
 
