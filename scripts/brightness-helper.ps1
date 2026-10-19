@@ -55,6 +55,10 @@ namespace ElucidatorBrightness {
     private static extern bool SetMonitorBrightness(IntPtr monitor, uint brightness);
     [DllImport("dxva2.dll", SetLastError = true)]
     private static extern bool DestroyPhysicalMonitor(IntPtr monitor);
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool LockWorkStation();
+
+    public static bool LockWindowsSession() { return LockWorkStation(); }
 
     private static List<Entry> OpenMonitors() {
       List<Entry> entries = new List<Entry>();
@@ -255,6 +259,12 @@ function Handle-Client {
     $authorization = $request.Headers['Authorization']
     if ($authorization -cne "Bearer $script:BrightnessToken") {
       Write-HttpResponse $stream 401 '{"message":"NOT PAIRED · USE SYS BRIGHTNESS PAIR <TOKEN>"}' $origin
+      return
+    }
+    if ($request.Method -eq 'POST' -and $request.Path -eq '/api/lock') {
+      Write-HttpResponse $stream 200 '{"ok":true,"message":"WINDOWS WORKSTATION LOCK REQUEST ACCEPTED"}' $origin
+      Start-Sleep -Milliseconds 500
+      [void][ElucidatorBrightness.MonitorControl]::LockWindowsSession()
       return
     }
     if ($request.Method -eq 'GET' -and $request.Path -eq '/api/monitors') {

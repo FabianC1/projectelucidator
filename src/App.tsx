@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
-import { changeBrightness, getBrightnessToken, readBrightnessMonitors, saveBrightnessToken, type BrightnessMonitor } from './brightnessBridge'
+import { changeBrightness, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, saveBrightnessToken, type BrightnessMonitor } from './brightnessBridge'
 import './App.css'
 
 declare global {
@@ -267,7 +267,7 @@ const COMMAND_COMPLETIONS = [
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
   'sys widget move 1 50 20', 'sys widget size 1 1', 'sys widgets size 1', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
-  'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair',
+  'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys anti-magic', 'sys domain expansion', 'sys limitless',
   'sys breathing water', 'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys httyd', 'sys night fury', 'sys plasma', 'sys stealth', 'sys alpha', 'sys help', 'help',
@@ -737,7 +737,22 @@ function App() {
     const args = normalized.replace(/^sys\s*/, '').split(' ').filter(Boolean)
     const [domain, action] = args
 
-    if (domain === 'brightness') {
+    if (domain === 'lock' && args.length === 1) {
+      if (!brightnessToken) {
+        report(['WINDOWS LOCK UNAVAILABLE', 'INSTALL THE WINDOWS HELPER', 'THEN PAIR · SYS BRIGHTNESS PAIR <TOKEN>'])
+        setStatus('WINDOWS HELPER NEEDS PAIRING')
+      } else {
+        try {
+          const result = await lockWindowsSession(brightnessToken)
+          report(['ELUCIDATOR // SECURITY', result.message, 'WORKSTATION LOCK REQUEST SENT'])
+          setStatus('WINDOWS SESSION LOCKING')
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'WINDOWS LOCK REQUEST FAILED'
+          report(['WINDOWS LOCK FAILED', message.toUpperCase()])
+          setStatus('WINDOWS LOCK FAILED')
+        }
+      }
+    } else if (domain === 'brightness') {
       const listMonitors = (monitors: BrightnessMonitor[]) => monitors.length
         ? monitors.map((monitor) => `DISPLAY ${monitor.id} · ${monitor.name.toUpperCase()} · ${monitor.supported && monitor.brightness !== null ? `${monitor.brightness}%` : 'DDC/CI UNAVAILABLE'}`)
         : ['NO DDC/CI MONITORS DETECTED']
@@ -822,7 +837,7 @@ function App() {
         setStatus('VISUAL COMMAND ERROR')
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
