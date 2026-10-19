@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
 import './App.css'
+
+declare global {
+  interface Window {
+    livelySystemInformation?: (data: unknown) => void
+  }
+}
 
 type SavedWallpaper = { blob: Blob; name: string }
 type SystemMode = 'NORMAL' | 'STEALTH' | 'COMBAT' | 'IDLE' | 'DIAGNOSTIC'
 type ThemeId = 'sao' | 'arise' | 'grimoire' | 'anti-magic' | 'domain-expansion' | 'limitless' | 'breathing-water' | 'breathing-sun' | 'demon-mode' | 'dragon'
+type VisualTheme = 'off' | 'haze' | 'rain' | 'lightning' | 'particles' | 'vignette'
 type SpecialEffect = { kind: string; id: number }
 type WidgetPosition = { x: number; y: number }
 type WidgetPositions = Record<number, WidgetPosition>
@@ -13,6 +21,8 @@ type BootPhase = { id: string; title: string; messages: BootMessage[] }
 type TimedMessage = BootMessage & { start: number; duration: number; end: number }
 type TimedPhase = { id: string; title: string; start: number; messages: TimedMessage[] }
 type BootTimeline = { phases: TimedPhase[]; duration: number }
+type HardwareFeedStatus = 'waiting' | 'live' | 'browser' | 'stale' | 'invalid'
+type HardwareFeed = { status: HardwareFeedStatus; readings: LivelySystemInfo | null; updatedAt: number | null }
 
 const DATABASE = 'project-elucidator-wallpaper'
 const STORE = 'selection'
@@ -21,6 +31,8 @@ const WIDGET_PREF_KEY = 'project-elucidator-widgets'
 const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
 const CONSOLE_FRAME_KEY = 'project-elucidator-console-frame'
 const THEME_PREF_KEY = 'project-elucidator-theme'
+const VISUAL_THEME_PREF_KEY = 'project-elucidator-visual-theme'
+const VISUAL_THEMES: VisualTheme[] = ['off', 'haze', 'rain', 'lightning', 'particles', 'vignette']
 const TYPE_RATE = 185
 const LINE_GAP = 0.035
 const PHASE_PAUSE = 0.2
@@ -156,6 +168,22 @@ function decodeImage(url: string) {
   })
 }
 
+function displayPercent(value: number | null) {
+  return value === null ? 'UNAVAILABLE' : value.toFixed(1) + '%'
+}
+
+function displayMegabytesPerSecond(value: number | null) {
+  return value === null ? 'UNAVAILABLE' : (value / (1024 * 1024)).toFixed(2) + ' MB/S'
+}
+
+function hardwareStatusLabel(status: HardwareFeedStatus) {
+  if (status === 'live') return 'LIVE'
+  if (status === 'stale') return 'STALE'
+  if (status === 'browser') return 'BROWSER MODE'
+  if (status === 'invalid') return 'INVALID DATA'
+  return 'WAITING FOR LIVELY'
+}
+
 const COMMAND_COMPLETIONS = [
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
   'sys wallpaper next', 'sys wallpaper previous', 'sys wallpaper scan', 'sys hardware', 'sys time', 'sys audio',
@@ -166,10 +194,12 @@ const COMMAND_COMPLETIONS = [
   'sys widget move 1 50 20', 'sys widget reset', 'sys standby', 'sys arise', 'sys link start',
   'sys grimoire', 'sys anti-magic', 'sys domain expansion', 'sys limitless',
   'sys breathing water', 'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys httyd', 'sys night fury', 'sys plasma', 'sys stealth', 'sys alpha', 'sys help', 'help',
+  'visual list', 'visual haze', 'visual rain', 'visual lightning', 'visual particles', 'visual vignette', 'visual off', 'visual status',
 ]
 
 function findCommandCompletions(value: string) {
   const prefix = value.toLowerCase().replace(/\s+/g, ' ')
+  if (/^visual\s+$/.test(prefix)) return COMMAND_COMPLETIONS.filter((candidate) => candidate.startsWith('visual '))
   if (/^sys wallpaper\s+$/.test(prefix)) {
     return ['current', 'select', 'list', 'next', 'previous', 'scan'].map((action) => `sys wallpaper ${action}`)
   }
@@ -200,6 +230,7 @@ function App() {
   const resizingConsoleRef = useRef<{ edge: string; startX: number; startY: number; frame: ConsoleFrame } | null>(null)
   const draggingConsoleRef = useRef<{ offsetX: number; offsetY: number; frame: ConsoleFrame } | null>(null)
   const effectIdRef = useRef(0)
+  const hardwareLastPublishedRef = useRef(0)
   const [wallpaperUrl, setWallpaperUrl] = useState('')
   const [wallpaperName, setWallpaperName] = useState('NO WALLPAPER SELECTED')
   const [ready, setReady] = useState(false)
@@ -212,9 +243,18 @@ function App() {
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
   const [mode, setMode] = useState<SystemMode>('NORMAL')
   const [theme, setTheme] = useState<ThemeId>('sao')
+  const [visualTheme, setVisualTheme] = useState<VisualTheme>(() => {
+    try {
+      const saved = localStorage.getItem(VISUAL_THEME_PREF_KEY) as VisualTheme | null
+      return saved && VISUAL_THEMES.includes(saved) ? saved : 'off'
+    } catch {
+      return 'off'
+    }
+  })
   const [specialEffect, setSpecialEffect] = useState<SpecialEffect | null>(null)
   const [stealthUntil, setStealthUntil] = useState(0)
   const [nightFuryAlpha, setNightFuryAlpha] = useState(false)
+  const [hardwareFeed, setHardwareFeed] = useState<HardwareFeed>({ status: 'waiting', readings: null, updatedAt: null })
   const [wallpaperLibrary, setWallpaperLibrary] = useState<Array<{ id: string; wallpaper: SavedWallpaper }>>([])
   const [enabledWidgets, setEnabledWidgets] = useState<number[]>([])
   const [renderedWidgets, setRenderedWidgets] = useState<number[]>([])
@@ -315,6 +355,64 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem(THEME_PREF_KEY, theme) } catch { /* Theme preference is optional. */ }
   }, [theme])
+
+  useEffect(() => {
+    let receivedValidData = false
+    let staleTimer = 0
+    let publishTimer = 0
+    let latestReadings: LivelySystemInfo | null = null
+    const browserTimer = window.setTimeout(() => {
+      if (!receivedValidData) setHardwareFeed((current) => current.status === 'waiting' ? { ...current, status: 'browser' } : current)
+    }, 5000)
+
+    const publish = () => {
+      publishTimer = 0
+      if (!latestReadings) return
+      const now = Date.now()
+      hardwareLastPublishedRef.current = now
+      setHardwareFeed({ status: 'live', readings: latestReadings, updatedAt: now })
+    }
+
+    const listener = (data: unknown) => {
+      const readings = parseLivelySystemInfo(data)
+      if (!readings) {
+        if (!receivedValidData) setHardwareFeed((current) => current.status === 'waiting' ? { ...current, status: 'invalid' } : current)
+        return
+      }
+
+      receivedValidData = true
+      window.clearTimeout(browserTimer)
+      latestReadings = readings
+      window.clearTimeout(staleTimer)
+      staleTimer = window.setTimeout(() => {
+        setHardwareFeed((current) => current.status === 'live' ? { ...current, status: 'stale' } : current)
+      }, 6000)
+
+      const delay = 1000 - (Date.now() - hardwareLastPublishedRef.current)
+      if (delay <= 0) {
+        window.clearTimeout(publishTimer)
+        publishTimer = 0
+        publish()
+      }
+      else if (!publishTimer) publishTimer = window.setTimeout(publish, delay)
+    }
+
+    const previousListener = window.livelySystemInformation
+    window.livelySystemInformation = listener
+    return () => {
+      window.clearTimeout(browserTimer)
+      window.clearTimeout(staleTimer)
+      window.clearTimeout(publishTimer)
+      if (window.livelySystemInformation === listener) {
+        if (previousListener) window.livelySystemInformation = previousListener
+        else delete window.livelySystemInformation
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    try { localStorage.setItem(VISUAL_THEME_PREF_KEY, visualTheme) } catch { /* Visual preference is optional. */ }
+  }, [visualTheme])
 
   useEffect(() => {
     if (!specialEffect) return
@@ -449,7 +547,25 @@ function App() {
     const args = normalized.replace(/^sys\s*/, '').split(' ').filter(Boolean)
     const [domain, action] = args
 
-    if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
+    if (domain === 'visual') {
+      if (!action || action === 'list') {
+        report(['VISUAL THEMES', ...VISUAL_THEMES.map((item) => (item === visualTheme ? 'ACTIVE ' : 'AVAILABLE') + ' Â· VISUAL ' + item.toUpperCase()), 'SELECT ONE Â· VISUAL <THEME>'])
+        setStatus('VISUAL THEMES Â· ' + visualTheme.toUpperCase() + ' ACTIVE')
+      } else if (action === 'status' && args.length === 2) {
+        report(['VISUAL THEME STATUS', 'ACTIVE ................. ' + visualTheme.toUpperCase(), 'INDEPENDENT OF WALLPAPER AND SYSTEM THEME'])
+        setStatus('VISUAL THEME Â· ' + visualTheme.toUpperCase())
+      } else if (VISUAL_THEMES.includes(action as VisualTheme) && args.length === 2) {
+        const selected = action as VisualTheme
+        setVisualTheme(selected)
+        report(selected === 'off'
+          ? ['VISUAL EFFECTS', 'ALL ATMOSPHERIC LAYERS .... OFF']
+          : ['VISUAL EFFECT UPDATED', 'ACTIVE ................. ' + selected.toUpperCase(), 'WALLPAPER AND SYSTEM THEME .. UNCHANGED'])
+        setStatus('VISUAL THEME Â· ' + selected.toUpperCase())
+      } else {
+        report(['VISUAL COMMAND ERROR', 'USAGE Â· VISUAL [LIST|STATUS|HAZE|RAIN|LIGHTNING|PARTICLES|VIGNETTE|OFF]'])
+        setStatus('VISUAL COMMAND ERROR')
+      }
+    } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
       report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS WIDGETS', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
@@ -539,6 +655,7 @@ function App() {
         'MEMORY CACHE ........... ' + (wallpaperUrl ? 'READY' : 'EMPTY · AWAITING IMAGE'),
         `USER SESSION ........... ACTIVE · ${formatUptime((Date.now() - sessionStartedAt.current) / 1000)}`,
         `OPERATING MODE ......... ${mode}`,
+        'HARDWARE TELEMETRY ...... ' + hardwareStatusLabel(hardwareFeed.status),
         'ALL SYSTEMS OPERATIONAL.',
       ])
       setStatus('SYSTEM STATUS: NOMINAL')
@@ -596,10 +713,21 @@ function App() {
       } else report(['MODE ERROR', `UNKNOWN MODE · ${action?.toUpperCase()}`, 'AVAILABLE · NORMAL / STEALTH / COMBAT / IDLE / DIAGNOSTIC'])
     } else if (domain === 'hardware' && args.length === 1) {
       openWidget(1)
-      const cores = navigator.hardwareConcurrency || 'UNKNOWN'
-      const memory = 'deviceMemory' in navigator ? `${(navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 'UNKNOWN'} GB (BROWSER ESTIMATE)` : 'UNAVAILABLE'
-      report(['HARDWARE DIAGNOSTICS', `LOGICAL CPU CORES ...... ${cores}`, `RAM ................... ${memory}`, 'CPU/GPU LOAD ........... BROWSER CANNOT READ', 'TEMPERATURE SENSORS .... UNAVAILABLE', 'FRAME RATE ............ NOT MEASURED', 'LIVE SENSOR DATA REQUIRES A NATIVE HOST INTEGRATION.'])
-      setStatus('HARDWARE REPORT · BROWSER CAPABILITIES')
+      const readings = hardwareFeed.readings
+      const ramUsed = readings?.ramTotalMb != null && readings.ramAvailableMb != null
+        ? Math.max(0, readings.ramTotalMb - readings.ramAvailableMb)
+        : null
+      report([
+        'HARDWARE DIAGNOSTICS · ' + hardwareStatusLabel(hardwareFeed.status),
+        'CPU · ' + (readings?.cpuName ?? 'UNAVAILABLE') + ' · ' + displayPercent(readings?.cpuPercent ?? null),
+        'GPU 3D · ' + (readings?.gpuName ?? 'UNAVAILABLE') + ' · ' + displayPercent(readings?.gpu3dPercent ?? null),
+        'RAM USED · ' + (ramUsed === null ? 'UNAVAILABLE' : Math.round(ramUsed) + ' MB') + ' / ' + (readings?.ramTotalMb == null ? 'UNAVAILABLE' : Math.round(readings.ramTotalMb) + ' MB'),
+        'NETWORK DOWN · ' + displayMegabytesPerSecond(readings?.networkDownBytesPerSecond ?? null),
+        'NETWORK UP · ' + displayMegabytesPerSecond(readings?.networkUpBytesPerSecond ?? null),
+        'TEMPERATURE · NOT PROVIDED BY LIVELY',
+        'FRAME RATE · NOT PROVIDED BY LIVELY',
+      ])
+      setStatus('HARDWARE REPORT · ' + hardwareStatusLabel(hardwareFeed.status))
     } else if (domain === 'audio' && args.length === 1) {
       openWidget(4)
       report(['AUDIO CONTROL', 'NO PLAYER INTEGRATION CONNECTED.', 'TRACK METADATA AND PLAYBACK CONTROL REQUIRE A SUPPORTED PLAYER API.'])
@@ -907,15 +1035,23 @@ function App() {
         </section>
       )}
 
+      {visualTheme !== 'off' && (
+        <div className={'visual-effects visual-' + visualTheme} aria-hidden="true">
+          {visualTheme === 'rain' && Array.from({ length: 8 }, (_, index) => <i className="visual-rain-streak" key={index} />)}
+          {visualTheme === 'particles' && Array.from({ length: 8 }, (_, index) => <i className="visual-particle" key={index} />)}
+        </div>
+      )}
+
       <aside className="system-widgets" aria-label="System widgets">
         {renderedWidgets.includes(1) && (
           <article className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>01 / HARDWARE</span><i>TELEMETRY</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
-            <strong>HOST INTERFACE</strong>
-            <p>CPU CORES <b>{navigator.hardwareConcurrency || 'N/A'}</b></p>
-            <p>RAM ESTIMATE <b>{'deviceMemory' in navigator ? `${(navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 'N/A'} GB` : 'N/A'}</b></p>
-            <p>CPU / GPU LOAD <b>LOCKED</b></p>
-            <small>BROWSER SENSOR ACCESS LIMITED</small>
+            <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>01 / HARDWARE</span><i>{hardwareStatusLabel(hardwareFeed.status)}</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
+            <strong>{hardwareFeed.readings?.cpuName ?? 'HOST TELEMETRY'}</strong>
+            <p>CPU LOAD <b>{displayPercent(hardwareFeed.readings?.cpuPercent ?? null)}</b></p>
+            <p>{hardwareFeed.readings?.gpuName ?? 'GPU 3D'} <b>{displayPercent(hardwareFeed.readings?.gpu3dPercent ?? null)}</b></p>
+            <p>RAM USED <b>{hardwareFeed.readings?.ramTotalMb != null && hardwareFeed.readings.ramAvailableMb != null ? Math.round(hardwareFeed.readings.ramTotalMb - hardwareFeed.readings.ramAvailableMb) + ' / ' + Math.round(hardwareFeed.readings.ramTotalMb) + ' MB' : 'UNAVAILABLE'}</b></p>
+            <p>NET DOWN / UP <b>{displayMegabytesPerSecond(hardwareFeed.readings?.networkDownBytesPerSecond ?? null)} / {displayMegabytesPerSecond(hardwareFeed.readings?.networkUpBytesPerSecond ?? null)}</b></p>
+            <small>{hardwareFeed.updatedAt ? 'UPDATED ' + new Date(hardwareFeed.updatedAt).toLocaleTimeString() : 'WAITING FOR LIVELY SYSTEM DATA'}</small>
           </article>
         )}
         {renderedWidgets.includes(2) && (

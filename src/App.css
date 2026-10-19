@@ -854,6 +854,97 @@
   box-shadow: inset 0 0 20px rgb(82 101 216 / 12%), 0 0 22px rgb(112 232 255 / 14%);
 }
 
+.visual-effects {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.visual-vignette {
+  background: radial-gradient(ellipse at center, transparent 48%, rgb(0 0 0 / 22%) 78%, rgb(0 0 0 / 48%) 100%);
+}
+
+.visual-haze::before,
+.visual-haze::after {
+  position: absolute;
+  width: 44vw;
+  height: 34vh;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(116 196 220 / 11%) 0%, rgb(91 154 184 / 6%) 38%, transparent 72%);
+  content: '';
+  opacity: .72;
+}
+
+.visual-haze::before {
+  left: -9vw;
+  top: 28vh;
+  animation: visual-haze-drift-a 28s ease-in-out infinite alternate;
+}
+
+.visual-haze::after {
+  right: -11vw;
+  bottom: 8vh;
+  background: radial-gradient(ellipse, rgb(157 177 207 / 9%) 0%, rgb(82 101 216 / 5%) 42%, transparent 72%);
+  animation: visual-haze-drift-b 34s ease-in-out infinite alternate;
+}
+
+.visual-rain-streak {
+  position: absolute;
+  top: -20vh;
+  left: var(--rain-x);
+  width: 1px;
+  height: 15vh;
+  background: linear-gradient(to bottom, transparent, rgb(112 210 240 / 28%), transparent);
+  opacity: .42;
+  transform: rotate(12deg);
+  animation: visual-rain-fall var(--rain-duration) linear var(--rain-delay) infinite;
+}
+
+.visual-rain-streak:nth-child(1) { --rain-x: 8%; --rain-duration: 7.5s; --rain-delay: -4.2s; }
+.visual-rain-streak:nth-child(2) { --rain-x: 21%; --rain-duration: 9.2s; --rain-delay: -1.5s; }
+.visual-rain-streak:nth-child(3) { --rain-x: 37%; --rain-duration: 8.4s; --rain-delay: -6.1s; }
+.visual-rain-streak:nth-child(4) { --rain-x: 53%; --rain-duration: 10s; --rain-delay: -2.6s; }
+.visual-rain-streak:nth-child(5) { --rain-x: 68%; --rain-duration: 8.8s; --rain-delay: -5.4s; }
+.visual-rain-streak:nth-child(6) { --rain-x: 79%; --rain-duration: 9.7s; --rain-delay: -3.7s; }
+.visual-rain-streak:nth-child(7) { --rain-x: 91%; --rain-duration: 8.1s; --rain-delay: -7s; }
+.visual-rain-streak:nth-child(8) { --rain-x: 97%; --rain-duration: 10.5s; --rain-delay: -2s; }
+
+.visual-particle {
+  position: absolute;
+  left: var(--particle-x);
+  top: var(--particle-y);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgb(184 226 241 / 70%);
+  box-shadow: 0 0 5px rgb(112 210 240 / 28%);
+  opacity: .32;
+  animation: visual-particle-drift var(--particle-duration) ease-in-out var(--particle-delay) infinite alternate;
+}
+
+.visual-particle:nth-child(1) { --particle-x: 11%; --particle-y: 24%; --particle-duration: 7s; --particle-delay: -2s; }
+.visual-particle:nth-child(2) { --particle-x: 24%; --particle-y: 72%; --particle-duration: 9s; --particle-delay: -6s; }
+.visual-particle:nth-child(3) { --particle-x: 39%; --particle-y: 17%; --particle-duration: 8s; --particle-delay: -4s; }
+.visual-particle:nth-child(4) { --particle-x: 58%; --particle-y: 81%; --particle-duration: 10s; --particle-delay: -7s; }
+.visual-particle:nth-child(5) { --particle-x: 73%; --particle-y: 31%; --particle-duration: 8.5s; --particle-delay: -3s; }
+.visual-particle:nth-child(6) { --particle-x: 86%; --particle-y: 66%; --particle-duration: 9.5s; --particle-delay: -5s; }
+.visual-particle:nth-child(7) { --particle-x: 94%; --particle-y: 14%; --particle-duration: 7.8s; --particle-delay: -1s; }
+.visual-particle:nth-child(8) { --particle-x: 5%; --particle-y: 88%; --particle-duration: 11s; --particle-delay: -8s; }
+
+.visual-lightning::before {
+  position: absolute;
+  top: 0;
+  left: 56%;
+  width: 22vw;
+  height: 68vh;
+  background: linear-gradient(90deg, transparent 44%, rgb(178 228 255 / 72%) 49%, rgb(112 210 255 / 18%) 54%, transparent 64%);
+  clip-path: polygon(51% 0, 63% 0, 48% 33%, 65% 33%, 34% 72%, 45% 44%, 30% 44%);
+  opacity: 0;
+  animation: visual-lightning-flash 9s steps(1, end) infinite;
+}
+
 .special-effect {
   position: absolute;
   z-index: 2;
@@ -1021,6 +1112,34 @@
   100% { opacity: 0; }
 }
 
+@keyframes visual-haze-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(5vw, -2vh, 0) scale(1.04); }
+}
+
+@keyframes visual-haze-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.03); }
+  to { transform: translate3d(-4vw, 2vh, 0) scale(1); }
+}
+
+@keyframes visual-rain-fall {
+  from { transform: translate3d(0, 0, 0) rotate(12deg); }
+  to { transform: translate3d(-3vw, 130vh, 0) rotate(12deg); }
+}
+
+@keyframes visual-particle-drift {
+  from { transform: translate3d(0, 0, 0); opacity: .18; }
+  to { transform: translate3d(10px, -14px, 0); opacity: .42; }
+}
+
+@keyframes visual-lightning-flash {
+  0%, 95%, 100% { opacity: 0; }
+  95.2% { opacity: .75; }
+  95.5% { opacity: .08; }
+  95.8% { opacity: .55; }
+  96.1% { opacity: 0; }
+}
+
 @media (max-height: 620px) {
   .boot-log {
     max-height: 92vh;
@@ -1069,4 +1188,16 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  .visual-rain-streak,
+  .visual-particle,
+  .visual-haze::before,
+  .visual-haze::after,
+  .visual-lightning::before {
+    animation: none !important;
+  }
+
+  .visual-lightning::before { display: none; }
+  .visual-rain-streak { opacity: .18; }
+  .visual-particle { opacity: .2; }
 }

@@ -1,0 +1,14 @@
+{
+  "AppVersion": "1.0.0.0",
+  "Title": "Project Elucidator",
+  "Thumbnail": null,
+  "Preview": null,
+  "Desc": "Interactive SAO-inspired wallpaper and system console",
+  "Author": "Project Elucidator",
+  "License": null,
+  "Contact": null,
+  "Type": 1,
+  "FileName": "index.html",
+  "Arguments": "--system-information",
+  "IsAbsolutePath": false
+}

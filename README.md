@@ -27,7 +27,7 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys wallpaper scan` | Replay the coordinated wallpaper reveal and scan |
 | `sys time` | Show local date/time and session uptime |
 | `sys mode` | List modes; use `sys mode normal`, `stealth`, `combat`, `idle`, or `diagnostic` to switch |
-| `sys hardware` | Show browser-accessible estimates and explain unavailable sensor readings |
+| `sys hardware` | Show live CPU, GPU 3D, RAM and network metrics when Lively provides them; otherwise report browser/unavailable state |
 | `sys audio` | Report player integration status |
 | `sys widgets` | List widget IDs and which displays are active |
 | `sys widgets all on` / `sys widgets all off` | Enable or disable all four widgets at once |
@@ -47,11 +47,18 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys stealth` | Dim the Night Fury interface and suppress its glow for eight seconds |
 | `sys alpha` | Trigger the Night Fury full-power flare |
 | `sys full counter` | Send a purple scan wave back across the wallpaper |
+| `visual list` / `visual status` | List visual overlays or show the active one |
+| `visual haze` / `visual rain` / `visual lightning` | Activate one lightweight atmospheric overlay |
+| `visual particles` / `visual vignette` / `visual off` | Activate a restrained overlay or disable visual effects |
 | `sys help` / `help` | Show the command index |
 
 Hardware, clock, system status, and audio commands also open their matching digital widget on the right. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header to adjust its position with the pointer. The console can be resized from any edge or corner; its size and position are saved locally.
 
-The active image and images selected through the app are stored in IndexedDB in the browser profile and restored on the next launch. The page cannot scan arbitrary folders directly; the file picker is the browser-approved way to add a saved image. If the browser blocks persistent storage, the selected image still works for the current session. Browser JavaScript cannot reliably read CPU/GPU utilization or temperature, and audio controls need a supported player integration; those commands report these limitations instead of inventing values.
+The active image and images selected through the app are stored in IndexedDB in the browser profile and restored on the next launch. The page cannot scan arbitrary folders directly; the file picker is the browser-approved way to add a saved image. If the browser blocks persistent storage, the selected image still works for the current session. In a regular browser, `sys hardware` reports BROWSER MODE and unavailable values. Lively's system-information feed supplies CPU usage, GPU 3D usage, RAM total/available, and network adapter throughput; it does not provide temperatures or frame rate. Audio controls still need a supported player integration.
+
+### Lively Wallpaper
+
+The project includes `public/LivelyInfo.json`, which Vite copies into `dist` and configures with Lively's `--system-information` argument. Build the project, then import the complete `dist` folder in Lively as a web wallpaper (or package its contents with `LivelyInfo.json` at the archive root). The hardware widget and `sys hardware` show live readings when Lively calls the documented `livelySystemInformation(data)` callback. In a normal browser, no callback arrives, so the interface reports browser mode instead of inventing readings.
 
 ## Development
 
