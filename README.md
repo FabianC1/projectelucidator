@@ -15,6 +15,8 @@ The boot sequence runs on each app launch and when a different wallpaper is sele
 
 Click the terminal line, enter a command, and press Enter (or use the return button):
 
+Press Tab to complete a command. When a prefix has multiple matches, press Tab repeatedly to cycle through them; subcommands such as wallpaper actions and modes are suggested after a space.
+
 | Command | Action |
 | --- | --- |
 | `sys status` | Show system, wallpaper cache, session uptime, and mode status |
@@ -35,6 +37,12 @@ Click the terminal line, enter a command, and press Enter (or use the return but
 | `sys standby` | Return the console output to the `ELUCIDATOR // MAINFRAME` home screen |
 | `sys arise` | Activate the persistent Solo Leveling purple interface |
 | `sys link start` | Restore the standard cyan interface |
+| `sys grimoire` / `sys anti-magic` | Activate Black Clover crimson themes; anti-magic also pulses across the screen |
+| `sys domain expansion` / `sys limitless` | Activate Jujutsu Kaisen violet-blue themes and spatial ripple effects |
+| `sys breathing water` | Activate Tanjiro-inspired deep blue Water Breathing |
+| `sys hinokami kagura` | Activate the orange Sun Breathing theme |
+| `sys demon mode` | Activate Seven Deadly Sins gold and purple theme |
+| `sys full counter` | Send a purple scan wave back across the wallpaper |
 | `sys help` / `help` | Show the command index |
 
 Hardware, clock, system status, and audio commands also open their matching digital widget on the right. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header to adjust its position with the pointer. The console can be resized from any edge or corner; its size and position are saved locally.

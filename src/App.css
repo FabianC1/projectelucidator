@@ -207,7 +207,7 @@
   background: rgb(0 8 13 / 58%);
   box-shadow: 0 0 26px rgb(33 172 204 / 7%);
   opacity: 1;
-  transition: opacity 450ms ease, border-color 200ms ease, background 200ms ease;
+  transition: opacity 450ms ease, border-color 650ms ease, background 650ms ease, color 650ms ease, box-shadow 650ms ease;
   backdrop-filter: blur(4px);
 }
 
@@ -269,6 +269,7 @@
   letter-spacing: 0.035em;
   color: rgb(183 226 234 / 78%);
   text-shadow: 0 0 8px rgb(79 208 255 / 20%);
+  transition: color 650ms ease, text-shadow 650ms ease;
 }
 
 .console-output p {
@@ -306,6 +307,18 @@
   color: #a9f4ff;
 }
 
+.command-line,
+.command-line input,
+.command-line button,
+.console-output .console-heading,
+.boot-prompt,
+.boot-phase-title,
+.boot-line,
+.boot-ready,
+.boot-scan {
+  transition: color 650ms ease, text-shadow 650ms ease, background 650ms ease, filter 650ms ease;
+}
+
 .system-widgets {
   position: absolute;
   z-index: 3;
@@ -329,8 +342,14 @@
   color: #a9dce9;
   font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
   text-shadow: 0 0 9px rgb(51 190 236 / 24%);
-  animation: widget-arrive 260ms ease-out both;
+  animation: widget-arrive 420ms cubic-bezier(.18,.68,.25,1) both;
   pointer-events: auto;
+  transition: border-color 650ms ease, background 650ms ease, color 650ms ease, box-shadow 650ms ease, text-shadow 650ms ease;
+}
+
+.system-widget.widget-leaving {
+  pointer-events: none;
+  animation: widget-depart 260ms cubic-bezier(.55,0,.8,.35) both;
 }
 
 .widget-1 { top: clamp(1rem, 4vh, 3rem); }
@@ -531,8 +550,13 @@
 }
 
 @keyframes widget-arrive {
-  from { opacity: 0; transform: translateX(10px); }
+  from { opacity: 0; transform: translateX(18px) scale(.985); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes widget-depart {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to { opacity: 0; transform: translateX(18px) scale(.985); }
 }
 
 .theme-arise .command-console {
@@ -613,6 +637,254 @@
 .theme-arise .boot-progress-track > span {
   background: #c28aff;
   box-shadow: 0 0 9px #a95cff;
+}
+
+.theme-grimoire .command-console,
+.theme-anti-magic .command-console {
+  border-color: rgb(244 64 74 / 44%);
+  background: rgb(20 3 7 / 78%);
+  box-shadow: 0 0 28px rgb(206 20 37 / 18%);
+}
+
+.theme-grimoire .console-output,
+.theme-grimoire .command-line,
+.theme-anti-magic .console-output,
+.theme-anti-magic .command-line {
+  color: #ff9ca3;
+  text-shadow: 0 0 10px rgb(255 45 60 / 45%);
+}
+
+.theme-grimoire .console-heading,
+.theme-grimoire .command-prefix,
+.theme-anti-magic .console-heading,
+.theme-anti-magic .command-prefix {
+  color: #ff5365;
+}
+
+.theme-grimoire .system-widget,
+.theme-anti-magic .system-widget {
+  border-color: rgb(225 52 68 / 43%);
+  border-left-color: #fb344d;
+  background: linear-gradient(110deg, rgb(54 8 16 / 88%), rgb(20 4 9 / 84%) 76%);
+  box-shadow: inset 0 0 20px rgb(214 21 39 / 12%), 0 0 18px rgb(206 20 37 / 14%);
+}
+
+.theme-grimoire .system-widget header,
+.theme-grimoire .system-widget p b,
+.theme-anti-magic .system-widget header,
+.theme-anti-magic .system-widget p b {
+  color: #ff8790;
+}
+
+.theme-grimoire .boot-scan,
+.theme-anti-magic .boot-scan {
+  background: linear-gradient(to bottom, transparent, rgb(180 0 18 / 4%) 55%, rgb(255 29 46 / 18%) 88%, rgb(255 104 115 / 82%));
+  filter: drop-shadow(0 0 16px rgb(234 24 44 / 76%));
+}
+
+.theme-domain-expansion .command-console,
+.theme-limitless .command-console {
+  border-color: rgb(157 113 255 / 48%);
+  background: rgb(8 5 27 / 78%);
+  box-shadow: 0 0 28px rgb(60 90 255 / 20%);
+}
+
+.theme-domain-expansion .console-output,
+.theme-domain-expansion .command-line,
+.theme-limitless .console-output,
+.theme-limitless .command-line {
+  color: #c5c5ff;
+  text-shadow: 0 0 10px rgb(105 101 255 / 48%);
+}
+
+.theme-domain-expansion .system-widget,
+.theme-limitless .system-widget {
+  border-color: rgb(129 132 255 / 46%);
+  border-left-color: #9c7aff;
+  background: linear-gradient(110deg, rgb(22 21 65 / 88%), rgb(8 8 31 / 84%) 76%);
+  box-shadow: inset 0 0 20px rgb(86 95 255 / 14%), 0 0 18px rgb(80 98 255 / 15%);
+}
+
+.theme-domain-expansion .boot-scan,
+.theme-limitless .boot-scan {
+  background: linear-gradient(to bottom, transparent, rgb(50 40 184 / 5%) 55%, rgb(103 88 255 / 18%) 88%, rgb(215 218 255 / 88%));
+  filter: drop-shadow(0 0 16px rgb(95 94 255 / 82%));
+}
+
+.theme-breathing-water .command-console,
+.theme-breathing-water .system-widget {
+  border-color: rgb(67 132 255 / 54%);
+  background: linear-gradient(110deg, rgb(6 24 68 / 90%), rgb(3 9 30 / 86%) 76%), rgb(2 8 26 / 92%);
+  box-shadow: 0 0 24px rgb(31 92 223 / 24%);
+}
+
+.theme-breathing-water .console-output,
+.theme-breathing-water .command-line,
+.theme-breathing-water .system-widget header,
+.theme-breathing-water .system-widget p b {
+  color: #8db9ff;
+  text-shadow: 0 0 10px rgb(47 113 255 / 44%);
+}
+
+.theme-breathing-water .boot-scan {
+  background: linear-gradient(to bottom, transparent, rgb(20 71 195 / 5%) 55%, rgb(49 119 255 / 22%) 88%, rgb(210 229 255 / 91%));
+  filter: drop-shadow(0 0 16px rgb(41 102 255 / 82%));
+}
+
+.theme-breathing-sun .command-console,
+.theme-breathing-sun .system-widget {
+  border-color: rgb(255 145 54 / 56%);
+  background: linear-gradient(110deg, rgb(62 24 6 / 90%), rgb(27 10 3 / 87%) 76%), rgb(22 8 2 / 92%);
+  box-shadow: 0 0 25px rgb(255 112 21 / 22%);
+}
+
+.theme-breathing-sun .console-output,
+.theme-breathing-sun .command-line,
+.theme-breathing-sun .system-widget header,
+.theme-breathing-sun .system-widget p b {
+  color: #ffb05c;
+  text-shadow: 0 0 10px rgb(255 121 28 / 40%);
+}
+
+.theme-breathing-sun .boot-scan {
+  background: linear-gradient(to bottom, transparent, rgb(224 76 7 / 5%) 55%, rgb(255 130 30 / 23%) 88%, rgb(255 232 181 / 92%));
+  filter: drop-shadow(0 0 17px rgb(255 121 27 / 82%));
+}
+
+.theme-demon-mode .command-console {
+  border-color: rgb(231 198 90 / 54%);
+  background: rgb(18 11 25 / 82%);
+  box-shadow: 0 0 27px rgb(139 92 246 / 20%);
+}
+
+.theme-demon-mode .console-output,
+.theme-demon-mode .command-line {
+  color: #e7c65a;
+  text-shadow: 0 0 10px rgb(231 198 90 / 36%);
+}
+
+.theme-demon-mode .console-heading,
+.theme-demon-mode .command-prefix,
+.theme-demon-mode .system-widget header i {
+  color: #c49bff;
+}
+
+.theme-demon-mode .system-widget {
+  border-color: rgb(231 198 90 / 48%);
+  border-left-color: #e7c65a;
+  background: linear-gradient(110deg, rgb(38 24 48 / 91%), rgb(13 8 20 / 88%) 76%);
+  box-shadow: inset 0 0 20px rgb(139 92 246 / 13%), 0 0 18px rgb(231 198 90 / 12%);
+}
+
+.theme-demon-mode .system-widget header,
+.theme-demon-mode .system-widget p b,
+.theme-demon-mode .system-widget strong {
+  color: #f2d877;
+}
+
+.theme-demon-mode .boot-scan {
+  background: linear-gradient(to bottom, transparent, rgb(115 68 181 / 5%) 55%, rgb(139 92 246 / 18%) 85%, rgb(255 224 144 / 92%));
+  filter: drop-shadow(0 0 16px rgb(231 198 90 / 72%));
+}
+
+.special-effect {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.effect-anti-magic {
+  background: radial-gradient(ellipse at center, rgb(178 0 23 / 38%), rgb(54 0 8 / 24%) 34%, transparent 72%);
+  animation: anti-magic-pulse 1.55s ease-out both;
+}
+
+.effect-domain::before,
+.effect-domain::after,
+.effect-limitless::before,
+.effect-limitless::after,
+.effect-demon::before,
+.effect-demon::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10vmin;
+  height: 10vmin;
+  border: 1px solid rgb(190 177 255 / 85%);
+  border-radius: 50%;
+  box-shadow: 0 0 18px rgb(121 117 255 / 58%), inset 0 0 16px rgb(121 117 255 / 20%);
+  content: '';
+  transform: translate(-50%, -50%);
+  animation: domain-ripple 1.55s cubic-bezier(.14,.64,.28,1) both;
+}
+
+.effect-domain::after,
+.effect-limitless::after,
+.effect-demon::after { animation-delay: 180ms; }
+
+.effect-limitless::before,
+.effect-limitless::after {
+  border-color: rgb(123 203 255 / 92%);
+  border-radius: 43%;
+  filter: hue-rotate(25deg);
+}
+
+.effect-demon::before,
+.effect-demon::after {
+  border-color: rgb(231 198 90 / 92%);
+  box-shadow: 0 0 22px rgb(231 198 90 / 54%), inset 0 0 18px rgb(139 92 246 / 28%);
+}
+
+.effect-breathing-water {
+  background: linear-gradient(115deg, transparent 18%, rgb(58 226 239 / 20%) 36%, rgb(116 250 255 / 48%) 40%, transparent 58%);
+  animation: breathing-flow 1.5s ease-in-out both;
+}
+
+.effect-breathing-sun {
+  background: radial-gradient(ellipse at 50% 56%, rgb(255 153 41 / 36%), rgb(255 91 15 / 17%) 28%, transparent 64%);
+  animation: sun-breath 1.55s ease-out both;
+}
+
+.effect-full-counter::before {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 18vh;
+  background: linear-gradient(to bottom, transparent, rgb(140 88 255 / 12%) 58%, rgb(231 211 255 / 88%));
+  filter: drop-shadow(0 0 18px rgb(163 105 255 / 82%));
+  content: '';
+  animation: counter-return 1.45s cubic-bezier(.35,.04,.55,.94) both;
+}
+
+@keyframes anti-magic-pulse {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes domain-ripple {
+  from { width: 8vmin; height: 8vmin; opacity: 0.95; }
+  to { width: 145vmax; height: 145vmax; opacity: 0; }
+}
+
+@keyframes breathing-flow {
+  from { opacity: 0; transform: translateX(-65%) skewX(-8deg); }
+  28% { opacity: 1; }
+  to { opacity: 0; transform: translateX(65%) skewX(-8deg); }
+}
+
+@keyframes sun-breath {
+  0% { opacity: 0; transform: scale(.65); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+@keyframes counter-return {
+  from { top: 100%; opacity: 0; }
+  15% { opacity: 1; }
+  to { top: -20vh; opacity: 0; }
 }
 
 @media (max-height: 620px) {

@@ -3,6 +3,8 @@ import './App.css'
 
 type SavedWallpaper = { blob: Blob; name: string }
 type SystemMode = 'NORMAL' | 'STEALTH' | 'COMBAT' | 'IDLE' | 'DIAGNOSTIC'
+type ThemeId = 'sao' | 'arise' | 'grimoire' | 'anti-magic' | 'domain-expansion' | 'limitless' | 'breathing-water' | 'breathing-sun' | 'demon-mode'
+type SpecialEffect = { kind: string; id: number }
 type WidgetPosition = { x: number; y: number }
 type WidgetPositions = Record<number, WidgetPosition>
 type ConsoleFrame = { x: number; y: number; width: number; height: number }
@@ -154,6 +156,36 @@ function decodeImage(url: string) {
   })
 }
 
+const COMMAND_COMPLETIONS = [
+  'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
+  'sys wallpaper next', 'sys wallpaper previous', 'sys wallpaper scan', 'sys hardware', 'sys time', 'sys audio',
+  'sys mode', 'sys mode normal', 'sys mode stealth', 'sys mode combat', 'sys mode idle', 'sys mode diagnostic',
+  'sys widgets', 'sys widgets all on', 'sys widgets all off',
+  'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
+  'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off',
+  'sys widget move 1 50 20', 'sys widget reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys grimoire', 'sys anti-magic', 'sys domain expansion', 'sys limitless',
+  'sys breathing water', 'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys help', 'help',
+]
+
+function findCommandCompletions(value: string) {
+  const prefix = value.toLowerCase().replace(/\s+/g, ' ')
+  if (/^sys wallpaper\s+$/.test(prefix)) {
+    return ['current', 'select', 'list', 'next', 'previous', 'scan'].map((action) => `sys wallpaper ${action}`)
+  }
+  if (/^sys mode\s+$/.test(prefix)) {
+    return ['normal', 'stealth', 'combat', 'idle', 'diagnostic'].map((mode) => `sys mode ${mode}`)
+  }
+  if (/^sys breathing\s+$/.test(prefix)) return ['sys breathing water', 'sys hinokami kagura']
+  if (/^sys widgets\s+$/.test(prefix)) return ['sys widgets all on', 'sys widgets all off']
+  if (/^sys widget\s+$/.test(prefix)) return [
+    'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
+    'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off',
+    'sys widget move 1 50 20', 'sys widget reset',
+  ]
+  return COMMAND_COMPLETIONS.filter((candidate) => candidate.startsWith(prefix))
+}
+
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const objectUrlRef = useRef<string | null>(null)
@@ -162,9 +194,12 @@ function App() {
   const commandHistoryRef = useRef<string[]>([])
   const historyIndexRef = useRef(0)
   const commandDraftRef = useRef('')
+  const completionRef = useRef<{ lastValue: string; candidates: string[]; index: number } | null>(null)
   const draggingWidgetRef = useRef<{ id: number; offsetX: number; offsetY: number } | null>(null)
+  const widgetExitTimersRef = useRef<Map<number, number>>(new Map())
   const resizingConsoleRef = useRef<{ edge: string; startX: number; startY: number; frame: ConsoleFrame } | null>(null)
   const draggingConsoleRef = useRef<{ offsetX: number; offsetY: number; frame: ConsoleFrame } | null>(null)
+  const effectIdRef = useRef(0)
   const [wallpaperUrl, setWallpaperUrl] = useState('')
   const [wallpaperName, setWallpaperName] = useState('NO WALLPAPER SELECTED')
   const [ready, setReady] = useState(false)
@@ -176,9 +211,12 @@ function App() {
   const [command, setCommand] = useState('')
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
   const [mode, setMode] = useState<SystemMode>('NORMAL')
-  const [theme, setTheme] = useState<'sao' | 'arise'>('sao')
+  const [theme, setTheme] = useState<ThemeId>('sao')
+  const [specialEffect, setSpecialEffect] = useState<SpecialEffect | null>(null)
   const [wallpaperLibrary, setWallpaperLibrary] = useState<Array<{ id: string; wallpaper: SavedWallpaper }>>([])
   const [enabledWidgets, setEnabledWidgets] = useState<number[]>([])
+  const [renderedWidgets, setRenderedWidgets] = useState<number[]>([])
+  const [leavingWidgetIds, setLeavingWidgetIds] = useState<number[]>([])
   const [widgetPositions, setWidgetPositions] = useState<WidgetPositions>({})
   const [consoleFrame, setConsoleFrame] = useState<ConsoleFrame | null>(null)
   const [clockNow, setClockNow] = useState(() => new Date())
@@ -215,7 +253,11 @@ function App() {
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(WIDGET_PREF_KEY) ?? '[]') as unknown
-      if (Array.isArray(stored)) setEnabledWidgets(stored.filter((id): id is number => Number.isInteger(id) && id >= 1 && id <= 4))
+      if (Array.isArray(stored)) {
+        const ids = stored.filter((id): id is number => Number.isInteger(id) && id >= 1 && id <= 4)
+        setEnabledWidgets(ids)
+        setRenderedWidgets(ids)
+      }
     } catch {
       // Keep widgets closed if saved preferences are unavailable.
     }
@@ -262,13 +304,21 @@ function App() {
 
   useEffect(() => {
     try {
-      if (localStorage.getItem(THEME_PREF_KEY) === 'arise') setTheme('arise')
+      const saved = localStorage.getItem(THEME_PREF_KEY) as ThemeId | null
+      const available: ThemeId[] = ['sao', 'arise', 'grimoire', 'anti-magic', 'domain-expansion', 'limitless', 'breathing-water', 'breathing-sun', 'demon-mode']
+      if (saved && available.includes(saved)) setTheme(saved)
     } catch { /* Keep the default cyan theme if preferences are unavailable. */ }
   }, [])
 
   useEffect(() => {
     try { localStorage.setItem(THEME_PREF_KEY, theme) } catch { /* Theme preference is optional. */ }
   }, [theme])
+
+  useEffect(() => {
+    if (!specialEffect) return
+    const timer = window.setTimeout(() => setSpecialEffect(null), 1700)
+    return () => window.clearTimeout(timer)
+  }, [specialEffect])
 
   useEffect(() => {
     try {
@@ -284,6 +334,11 @@ function App() {
 
   useEffect(() => () => {
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
+  }, [])
+
+  useEffect(() => () => {
+    widgetExitTimersRef.current.forEach((timer) => window.clearTimeout(timer))
+    widgetExitTimersRef.current.clear()
   }, [])
 
   useEffect(() => {
@@ -324,7 +379,27 @@ function App() {
   }
 
   const report = (lines: string[]) => setConsoleLines(lines)
-  const closeWidget = (id: number) => setEnabledWidgets((current) => current.filter((widgetId) => widgetId !== id))
+  const openWidget = (id: number) => {
+    const timer = widgetExitTimersRef.current.get(id)
+    if (timer !== undefined) window.clearTimeout(timer)
+    widgetExitTimersRef.current.delete(id)
+    setLeavingWidgetIds((current) => current.filter((widgetId) => widgetId !== id))
+    setRenderedWidgets((current) => [...new Set([...current, id])])
+    setEnabledWidgets((current) => [...new Set([...current, id])])
+  }
+  const closeWidget = (id: number) => {
+    setEnabledWidgets((current) => current.filter((widgetId) => widgetId !== id))
+    if (!renderedWidgets.includes(id)) return
+    setLeavingWidgetIds((current) => [...new Set([...current, id])])
+    const existingTimer = widgetExitTimersRef.current.get(id)
+    if (existingTimer !== undefined) window.clearTimeout(existingTimer)
+    const timer = window.setTimeout(() => {
+      setRenderedWidgets((current) => current.filter((widgetId) => widgetId !== id))
+      setLeavingWidgetIds((current) => current.filter((widgetId) => widgetId !== id))
+      widgetExitTimersRef.current.delete(id)
+    }, 300)
+    widgetExitTimersRef.current.set(id, timer)
+  }
   const formatUptime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600).toString().padStart(2, '0')
     const minutes = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')
@@ -367,18 +442,57 @@ function App() {
     const [domain, action] = args
 
     if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN]', 'SYS TIME · SYS MODE [NORMAL|STEALTH|COMBAT|IDLE|DIAGNOSTIC]', 'SYS HARDWARE · SYS AUDIO · SYS WIDGETS [ALL ON|ALL OFF]', 'SYS WIDGET MOVE <ID> <X%> <Y%> · SYS WIDGET RESET · SYS STANDBY', 'SYS ARISE · PURPLE THEME · SYS LINK START · RESTORE CYAN'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS WIDGETS', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS LINK START · RESTORE CYAN'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
+    } else if (domain === 'grimoire' && args.length === 1) {
+      setTheme('grimoire')
+      report(['FIVE-LEAF GRIMOIRE DETECTED', 'CRIMSON SYSTEM .......... ONLINE', 'ANTI-MAGIC SEAL ........ STANDBY'])
+      setStatus('GRIMOIRE PROTOCOL ACTIVATED')
+    } else if (domain === 'anti-magic' && args.length === 1) {
+      setTheme('anti-magic')
+      setSpecialEffect({ kind: 'anti-magic', id: ++effectIdRef.current })
+      report(['ANTI-MAGIC RELEASE', 'DARK ENERGY PULSE ........ DISCHARGED', 'WALLPAPER FIELD .......... STABLE'])
+      setStatus('ANTI-MAGIC PULSE RELEASED')
+    } else if (domain === 'domain' && action === 'expansion' && args.length === 2) {
+      setTheme('domain-expansion')
+      setSpecialEffect({ kind: 'domain', id: ++effectIdRef.current })
+      report(['CURSED ENERGY OUTPUT: UNRESTRICTED', 'DOMAIN EXPANSION ........ DEPLOYED', 'SPATIAL FIELD ........... STABLE'])
+      setStatus('DOMAIN EXPANSION DEPLOYED')
+    } else if (domain === 'limitless' && args.length === 1) {
+      setTheme('limitless')
+      setSpecialEffect({ kind: 'limitless', id: ++effectIdRef.current })
+      report(['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ....... ACTIVE', 'INFINITY FIELD .......... STABLE'])
+      setStatus('LIMITLESS PROTOCOL ACTIVATED')
+    } else if ((domain === 'breathing' && action === 'water' && args.length === 2)
+      || (domain === 'hinokami' && action === 'kagura' && args.length === 2)
+      || (domain === 'breathing' && action === 'sun' && args.length === 2)) {
+      const sun = domain === 'hinokami' || action === 'sun'
+      setTheme(sun ? 'breathing-sun' : 'breathing-water')
+      setSpecialEffect({ kind: sun ? 'breathing-sun' : 'breathing-water', id: ++effectIdRef.current })
+      report(sun
+        ? ['HINOKAMI KAGURA', 'FLAME BREATHING .......... IGNITED', 'SYSTEM COLOR ............ SUNSET RED']
+        : ['WATER BREATHING', 'FLOW STATE .............. SYNCHRONIZED', 'SYSTEM COLOR ............ DEEP WATER BLUE'])
+      setStatus(`${sun ? 'SUN' : 'WATER'} BREATHING ACTIVATED`)
+    } else if (domain === 'demon' && action === 'mode' && args.length === 2) {
+      setTheme('demon-mode')
+      setSpecialEffect({ kind: 'demon', id: ++effectIdRef.current })
+      report(['DEMON MARK: DETECTED', 'MAGIC POWER: UNRESTRICTED', 'SYSTEM COLOR: GOLD / PURPLE', 'MELIODAS PROTOCOL // ACTIVATED'])
+      setStatus('DEMON MODE AWAKENED')
+    } else if (domain === 'full' && action === 'counter' && args.length === 2) {
+      setSpecialEffect({ kind: 'full-counter', id: ++effectIdRef.current })
+      report(['FULL COUNTER', 'INCOMING SCAN ........... REFLECTED', 'RETURN WAVE ............. RELEASED'])
+      setStatus('FULL COUNTER RELEASED')
     } else if (domain === 'arise' && args.length === 1) {
       setTheme('arise')
       report(['SHADOW PROTOCOL // ARISE', 'PURPLE INTERFACE ........ ACTIVE', 'THEME SAVED TO LOCAL SYSTEM.'])
       setStatus('ARISE THEME ACTIVATED')
     } else if (domain === 'link' && action === 'start' && args.length === 2) {
       setTheme('sao')
+      setSpecialEffect(null)
       report(['ELUCIDATOR // MAINFRAME', 'SYSTEM LINK ............ ESTABLISHED', 'STANDARD CYAN INTERFACE .. RESTORED'])
       setStatus('SYSTEM LINK STARTED · CYAN THEME RESTORED')
     } else if (domain === 'status' && args.length === 1) {
-      setEnabledWidgets((current) => [...new Set([...current, 3])])
+      openWidget(3)
       report([
         'ELUCIDATOR // SYSTEM CONSOLE',
         `SYSTEM VERSION ......... ${SYSTEM_VERSION}`,
@@ -431,7 +545,7 @@ function App() {
         report(['WALLPAPER COMMAND ERROR', 'USAGE · SYS WALLPAPER [CURRENT|SELECT|LIST|NEXT|PREVIOUS|SCAN]'])
       }
     } else if (domain === 'time' && args.length === 1) {
-      setEnabledWidgets((current) => [...new Set([...current, 2])])
+      openWidget(2)
       const now = new Date()
       report(['WORLD CLOCK', `LOCAL TIME ............. ${new Intl.DateTimeFormat(undefined, { dateStyle: 'full', timeStyle: 'medium' }).format(now)}`, `SESSION UPTIME ......... ${formatUptime((Date.now() - sessionStartedAt.current) / 1000)}`, `AINCRAD CLOCK .......... DAY ${Math.floor((Date.now() - sessionStartedAt.current) / 86_400_000) + 1} · ${now.toLocaleTimeString()}`])
       setStatus('WORLD CLOCK SYNCHRONIZED')
@@ -445,13 +559,13 @@ function App() {
         setStatus(`OPERATING MODE · ${requested}`)
       } else report(['MODE ERROR', `UNKNOWN MODE · ${action?.toUpperCase()}`, 'AVAILABLE · NORMAL / STEALTH / COMBAT / IDLE / DIAGNOSTIC'])
     } else if (domain === 'hardware' && args.length === 1) {
-      setEnabledWidgets((current) => [...new Set([...current, 1])])
+      openWidget(1)
       const cores = navigator.hardwareConcurrency || 'UNKNOWN'
       const memory = 'deviceMemory' in navigator ? `${(navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 'UNKNOWN'} GB (BROWSER ESTIMATE)` : 'UNAVAILABLE'
       report(['HARDWARE DIAGNOSTICS', `LOGICAL CPU CORES ...... ${cores}`, `RAM ................... ${memory}`, 'CPU/GPU LOAD ........... BROWSER CANNOT READ', 'TEMPERATURE SENSORS .... UNAVAILABLE', 'FRAME RATE ............ NOT MEASURED', 'LIVE SENSOR DATA REQUIRES A NATIVE HOST INTEGRATION.'])
       setStatus('HARDWARE REPORT · BROWSER CAPABILITIES')
     } else if (domain === 'audio' && args.length === 1) {
-      setEnabledWidgets((current) => [...new Set([...current, 4])])
+      openWidget(4)
       report(['AUDIO CONTROL', 'NO PLAYER INTEGRATION CONNECTED.', 'TRACK METADATA AND PLAYBACK CONTROL REQUIRE A SUPPORTED PLAYER API.'])
       setStatus('AUDIO INTEGRATION · OFFLINE')
     } else if (domain === 'standby' && args.length === 1) {
@@ -459,7 +573,8 @@ function App() {
       setStatus('MAINFRAME STANDBY · READY')
     } else if (domain === 'widgets' && args[1] === 'all' && ['on', 'off'].includes(args[2])) {
       const enable = args[2] === 'on'
-      setEnabledWidgets(enable ? [1, 2, 3, 4] : [])
+      if (enable) [1, 2, 3, 4].forEach(openWidget)
+      else [1, 2, 3, 4].forEach(closeWidget)
       report(['DIGITAL WIDGET ARRAY', `ALL DISPLAYS ........... ${enable ? 'ONLINE' : 'OFFLINE'}`, `WIDGETS ACTIVE ......... ${enable ? '04 / 04' : '00 / 04'}`])
       setStatus(`ALL WIDGETS ${enable ? 'ENABLED' : 'DISABLED'}`)
     } else if (domain === 'widgets' && args.length === 1) {
@@ -474,7 +589,7 @@ function App() {
         report(['WIDGET POSITION ERROR', 'USAGE · SYS WIDGET MOVE <1–4> <X% 0–100> <Y% 0–100>'])
       } else {
         setWidgetPositions((current) => ({ ...current, [id]: { x, y } }))
-        setEnabledWidgets((current) => [...new Set([...current, id])])
+        openWidget(id)
         report([`WIDGET ${String(id).padStart(2, '0')} POSITION`, `HORIZONTAL ............ ${x}%`, `VERTICAL .............. ${y}%`, 'POSITION SAVED.'])
         setStatus(`WIDGET ${id} POSITION UPDATED`)
       }
@@ -490,9 +605,8 @@ function App() {
         report(['WIDGET COMMAND ERROR', 'USAGE · SYS WIDGET <1–4> ON|OFF'])
       } else {
         const enable = setting === 'on' || setting === 'enable'
-        setEnabledWidgets((current) => enable
-          ? [...new Set([...current, id])]
-          : current.filter((widgetId) => widgetId !== id))
+        if (enable) openWidget(id)
+        else closeWidget(id)
         report([`WIDGET ${String(id).padStart(2, '0')} · ${titles[id - 1]}`, `DISPLAY ............... ${enable ? 'ENABLED' : 'DISABLED'}`, `ACTIVE WIDGETS ........ ${enable ? 'UPDATED' : 'UPDATED'}`])
         setStatus(`WIDGET ${id} ${enable ? 'ENABLED' : 'DISABLED'}`)
       }
@@ -508,14 +622,51 @@ function App() {
   }
 
   const handleCommandKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Tab' && !event.shiftKey) {
+      event.preventDefault()
+      const value = event.currentTarget.value
+      const previous = completionRef.current
+      let candidates: string[]
+      let index = 0
+      let completed: string
+
+      if (previous && value === previous.lastValue && previous.candidates.length > 1) {
+        candidates = previous.candidates
+        index = (previous.index + 1) % candidates.length
+        completed = candidates[index]
+      } else {
+        candidates = findCommandCompletions(value)
+        if (candidates.length === 0) return
+        if (candidates.length === 1) {
+          completed = candidates[0]
+        } else {
+          const common = candidates.reduce((prefix, candidate) => {
+            let length = 0
+            while (length < prefix.length && length < candidate.length && prefix[length] === candidate[length]) length += 1
+            return prefix.slice(0, length)
+          })
+          if (common.length > value.length) completed = common
+          else completed = candidates[index]
+          index = candidates.indexOf(completed)
+        }
+      }
+
+      completionRef.current = { lastValue: completed, candidates, index }
+      commandDraftRef.current = completed
+      setCommand(completed)
+      return
+    }
+
     const history = commandHistoryRef.current
     if (event.key === 'ArrowUp' && history.length > 0) {
       event.preventDefault()
+      completionRef.current = null
       if (historyIndexRef.current === history.length) commandDraftRef.current = event.currentTarget.value
       historyIndexRef.current = Math.max(0, historyIndexRef.current - 1)
       setCommand(history[historyIndexRef.current])
     } else if (event.key === 'ArrowDown' && historyIndexRef.current < history.length) {
       event.preventDefault()
+      completionRef.current = null
       historyIndexRef.current += 1
       setCommand(historyIndexRef.current === history.length
         ? commandDraftRef.current
@@ -677,6 +828,8 @@ function App() {
         />
       )}
 
+      {specialEffect && <div key={specialEffect.id} className={`special-effect effect-${specialEffect.kind}`} aria-hidden="true" />}
+
       {ready && (
         <section className={`boot-sequence${booting ? '' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
           <div className="boot-scan" aria-hidden="true" />
@@ -719,8 +872,8 @@ function App() {
       )}
 
       <aside className="system-widgets" aria-label="System widgets">
-        {enabledWidgets.includes(1) && (
-          <article className="system-widget widget-1" style={positionWidget(1)}>
+        {renderedWidgets.includes(1) && (
+          <article className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>01 / HARDWARE</span><i>TELEMETRY</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
             <strong>HOST INTERFACE</strong>
             <p>CPU CORES <b>{navigator.hardwareConcurrency || 'N/A'}</b></p>
@@ -729,16 +882,16 @@ function App() {
             <small>BROWSER SENSOR ACCESS LIMITED</small>
           </article>
         )}
-        {enabledWidgets.includes(2) && (
-          <article className="system-widget widget-2" style={positionWidget(2)}>
+        {renderedWidgets.includes(2) && (
+          <article className={`system-widget widget-2${leavingWidgetIds.includes(2) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(2)} style={positionWidget(2)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 2)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>02 / WORLD CLOCK</span><i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close world clock widget">×</button></header>
             <strong className="widget-clock">{clockNow.toLocaleTimeString()}</strong>
             <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
             <p>SESSION <b>{formatUptime((clockNow.getTime() - sessionStartedAt.current) / 1000)}</b></p>
           </article>
         )}
-        {enabledWidgets.includes(3) && (
-          <article className="system-widget widget-3" style={positionWidget(3)}>
+        {renderedWidgets.includes(3) && (
+          <article className={`system-widget widget-3${leavingWidgetIds.includes(3) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(3)} style={positionWidget(3)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>03 / SYSTEM</span><i>NOMINAL</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close system status widget">×</button></header>
             <strong>ELUCIDATOR v{SYSTEM_VERSION}</strong>
             <p>WALLPAPER <b>{wallpaperUrl ? 'ONLINE' : 'EMPTY'}</b></p>
@@ -746,8 +899,8 @@ function App() {
             <p>SESSION <b>{formatUptime((clockNow.getTime() - sessionStartedAt.current) / 1000)}</b></p>
           </article>
         )}
-        {enabledWidgets.includes(4) && (
-          <article className="system-widget widget-4" style={positionWidget(4)}>
+        {renderedWidgets.includes(4) && (
+          <article className={`system-widget widget-4${leavingWidgetIds.includes(4) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(4)} style={positionWidget(4)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>04 / AUDIO LINK</span><i>STANDBY</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close audio widget">×</button></header>
             <strong>NO PLAYER LINKED</strong>
             <p>TRACK DATA <b>OFFLINE</b></p>
@@ -776,6 +929,7 @@ function App() {
             value={command}
             onChange={(event) => {
               setCommand(event.target.value)
+              completionRef.current = null
               if (historyIndexRef.current === commandHistoryRef.current.length) commandDraftRef.current = event.target.value
             }}
             onKeyDown={handleCommandKeyDown}
