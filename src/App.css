@@ -332,6 +332,56 @@
 
 .system-widget.widget-1::-webkit-scrollbar { display: none; }
 
+.system-widgets.widget-layout-left,
+.system-widgets.widget-layout-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(0.4rem, 1.1vh, 0.85rem);
+  padding: clamp(0.65rem, 1.5vw, 1.25rem);
+}
+
+.system-widgets.widget-layout-left { align-items: flex-start; }
+.system-widgets.widget-layout-right { align-items: flex-end; }
+
+.system-widgets.widget-layout-left .system-widget,
+.system-widgets.widget-layout-right .system-widget {
+  position: relative;
+  inset: auto;
+  flex: 0 1 auto;
+  width: min(22rem, calc(100vw - 2 * clamp(0.65rem, 1.5vw, 1.25rem)));
+  max-width: 100%;
+  max-height: min(26rem, calc((100vh - 6rem) / 4));
+}
+
+.system-widgets.widget-layout-top,
+.system-widgets.widget-layout-bottom {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: clamp(0.4rem, 1vw, 1rem);
+  padding-inline: clamp(0.65rem, 1.5vw, 1.25rem);
+}
+
+.system-widgets.widget-layout-top { align-items: flex-start; padding-top: clamp(0.65rem, 1.5vh, 1.25rem); }
+.system-widgets.widget-layout-bottom { align-items: flex-end; padding-bottom: clamp(0.65rem, 1.5vh, 1.25rem); }
+
+.system-widgets.widget-layout-top .system-widget,
+.system-widgets.widget-layout-bottom .system-widget {
+  position: relative;
+  inset: auto;
+  flex: 0 1 min(22rem, calc((100vw - 6rem) / 4));
+  width: auto;
+  min-width: 0;
+  max-width: 22rem;
+  max-height: min(26rem, calc(100vh - 2rem));
+}
+
+.system-widgets.widget-layout-top .system-widget.widget-1,
+.system-widgets.widget-layout-bottom .system-widget.widget-1 {
+  width: auto;
+}
+
 .system-widget::after {
   position: absolute;
   top: 0;
@@ -491,6 +541,59 @@
 
 .hardware-gauge.is-unavailable .hardware-gauge-ring span,
 .hardware-gauge.is-unavailable b { color: #78919b; }
+
+.audio-now-playing {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  margin: 0.25rem 0 0.65rem;
+}
+
+.audio-now-playing > img,
+.audio-art-placeholder {
+  display: grid;
+  width: 3.5rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgb(101 202 225 / 35%);
+  background: linear-gradient(145deg, rgb(28 112 151 / 38%), rgb(5 15 27 / 92%));
+  box-shadow: 0 0 13px rgb(60 192 230 / 13%);
+  object-fit: cover;
+}
+
+.audio-art-placeholder {
+  color: #b8f1ff;
+  font-size: 1.8rem;
+}
+
+.audio-track-copy { min-width: 0; }
+.system-widget .audio-track-copy strong {
+  overflow: hidden;
+  margin: 0 0 0.18rem;
+  font-size: 0.73rem;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.system-widget .audio-track-copy p,
+.system-widget .audio-track-copy small {
+  display: block;
+  overflow: hidden;
+  margin: 0.16rem 0 0;
+  color: #9dcbd5;
+  font-size: 0.56rem;
+  letter-spacing: 0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.system-widget .audio-controls-note {
+  margin-top: 0.4rem;
+  font-size: 0.47rem;
+}
 
 .system-widget .widget-clock {
   font-size: 1.55rem;

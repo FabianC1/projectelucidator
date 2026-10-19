@@ -5,6 +5,7 @@ import './App.css'
 declare global {
   interface Window {
     livelySystemInformation?: (data: unknown) => void
+    livelyCurrentTrack?: (data: unknown) => void
   }
 }
 
@@ -16,8 +17,9 @@ type WallpaperFit = 'cover' | 'contain' | 'stretch' | 'span'
 type SpecialEffect = { kind: string; id: number }
 type WidgetPosition = { x: number; y: number }
 type WidgetPositions = Record<number, WidgetPosition>
+type WidgetLayout = 'free' | 'left' | 'right' | 'top' | 'bottom'
 type ConsoleFrame = { x: number; y: number; width: number; height: number }
-type LayoutSnapshot = { consoleFrame: ConsoleFrame | null; widgetPositions: WidgetPositions }
+type LayoutSnapshot = { consoleFrame: ConsoleFrame | null; widgetPositions: WidgetPositions; widgetLayout?: WidgetLayout }
 type BootMessage = { text: string; result: string; pause?: number }
 type BootPhase = { id: string; title: string; messages: BootMessage[] }
 type TimedMessage = BootMessage & { start: number; duration: number; end: number }
@@ -25,12 +27,39 @@ type TimedPhase = { id: string; title: string; start: number; messages: TimedMes
 type BootTimeline = { phases: TimedPhase[]; duration: number }
 type HardwareFeedStatus = 'waiting' | 'live' | 'browser' | 'stale' | 'invalid'
 type HardwareFeed = { status: HardwareFeedStatus; readings: LivelySystemInfo | null; updatedAt: number | null }
+type NowPlayingTrack = { title: string; artist: string; album: string; artwork: string | null; playbackType: string }
+type NowPlayingStatus = 'waiting' | 'browser' | 'none' | 'track' | 'invalid'
+
+function parseNowPlaying(data: unknown): NowPlayingTrack | null | undefined {
+  let value = data
+  if (typeof value === 'string') {
+    try { value = JSON.parse(value) as unknown } catch { return undefined }
+  }
+  if (value === null) return null
+  if (!value || typeof value !== 'object') return undefined
+  const record = value as Record<string, unknown>
+  const title = typeof record.Title === 'string' ? record.Title.trim() : ''
+  const artist = typeof record.Artist === 'string' ? record.Artist.trim() : ''
+  const album = typeof record.AlbumTitle === 'string' ? record.AlbumTitle.trim() : ''
+  const artworkData = typeof record.Thumbnail === 'string' ? record.Thumbnail.trim() : ''
+  const artwork = artworkData
+    ? artworkData.startsWith('data:') ? artworkData : `data:image/png;base64,${artworkData}`
+    : null
+  return {
+    title: title || 'UNTITLED TRACK',
+    artist: artist || 'UNKNOWN ARTIST',
+    album: album || 'ALBUM UNAVAILABLE',
+    artwork,
+    playbackType: typeof record.PlaybackType === 'string' ? record.PlaybackType : 'MEDIA',
+  }
+}
 
 const DATABASE = 'project-elucidator-wallpaper'
 const STORE = 'selection'
 const KEY = 'active'
 const WIDGET_PREF_KEY = 'project-elucidator-widgets'
 const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
+const WIDGET_LAYOUT_KEY = 'project-elucidator-widget-layout'
 const CONSOLE_FRAME_KEY = 'project-elucidator-console-frame'
 const LAYOUT_PRESETS_KEY = 'project-elucidator-layout-presets'
 const THEME_PREF_KEY = 'project-elucidator-theme'
@@ -209,7 +238,7 @@ const COMMAND_COMPLETIONS = [
   'sys widgets', 'sys widgets all on', 'sys widgets all off',
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off',
-  'sys widget move 1 50 20', 'sys widget reset', 'sys layout list', 'sys layout cinema', 'sys layout compact', 'sys layout center', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys widget move 1 50 20', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys anti-magic', 'sys domain expansion', 'sys limitless',
   'sys breathing water', 'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys httyd', 'sys night fury', 'sys plasma', 'sys stealth', 'sys alpha', 'sys help', 'help',
@@ -228,7 +257,7 @@ function findCommandCompletions(value: string) {
   }
   if (/^sys breathing\s+$/.test(prefix)) return ['sys breathing water', 'sys hinokami kagura']
   if (/^sys widgets\s+$/.test(prefix)) return ['sys widgets all on', 'sys widgets all off']
-  if (/^sys layout\s+$/.test(prefix)) return ['sys layout list', 'sys layout cinema', 'sys layout compact', 'sys layout center', 'sys layout save ', 'sys layout load ', 'sys layout reset']
+  if (/^sys layout\s+$/.test(prefix)) return ['sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save ', 'sys layout load ', 'sys layout reset']
   if (/^sys layout (save|load)\s+$/.test(prefix)) return []
   if (/^sys widget\s+$/.test(prefix)) return [
     'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
@@ -282,11 +311,19 @@ function App() {
   const [stealthUntil, setStealthUntil] = useState(0)
   const [nightFuryAlpha, setNightFuryAlpha] = useState(false)
   const [hardwareFeed, setHardwareFeed] = useState<HardwareFeed>({ status: 'waiting', readings: null, updatedAt: null })
+  const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(null)
+  const [nowPlayingStatus, setNowPlayingStatus] = useState<NowPlayingStatus>('waiting')
   const [wallpaperLibrary, setWallpaperLibrary] = useState<Array<{ id: string; wallpaper: SavedWallpaper }>>([])
   const [enabledWidgets, setEnabledWidgets] = useState<number[]>([])
   const [renderedWidgets, setRenderedWidgets] = useState<number[]>([])
   const [leavingWidgetIds, setLeavingWidgetIds] = useState<number[]>([])
   const [widgetPositions, setWidgetPositions] = useState<WidgetPositions>({})
+  const [widgetLayout, setWidgetLayout] = useState<WidgetLayout>(() => {
+    try {
+      const saved = localStorage.getItem(WIDGET_LAYOUT_KEY) as WidgetLayout | null
+      return saved && ['free', 'left', 'right', 'top', 'bottom'].includes(saved) ? saved : 'free'
+    } catch { return 'free' }
+  })
   const [consoleFrame, setConsoleFrame] = useState<ConsoleFrame | null>(null)
   const [layoutPresets, setLayoutPresets] = useState<Record<string, LayoutSnapshot>>(() => {
     try {
@@ -326,6 +363,35 @@ function App() {
   }, [])
 
   useEffect(() => {
+    const browserTimer = window.setTimeout(() => {
+      setNowPlayingStatus((current) => current === 'waiting' ? 'browser' : current)
+    }, 5000)
+    const listener = (data: unknown) => {
+      const track = parseNowPlaying(data)
+      window.clearTimeout(browserTimer)
+      if (track === undefined) {
+        setNowPlaying(null)
+        setNowPlayingStatus('invalid')
+      } else if (track === null) {
+        setNowPlaying(null)
+        setNowPlayingStatus('none')
+      } else {
+        setNowPlaying(track)
+        setNowPlayingStatus('track')
+      }
+    }
+    const previousListener = window.livelyCurrentTrack
+    window.livelyCurrentTrack = listener
+    return () => {
+      window.clearTimeout(browserTimer)
+      if (window.livelyCurrentTrack === listener) {
+        if (previousListener) window.livelyCurrentTrack = previousListener
+        else delete window.livelyCurrentTrack
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(WIDGET_PREF_KEY) ?? '[]') as unknown
       if (Array.isArray(stored)) {
@@ -360,6 +426,10 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem(WIDGET_POSITION_KEY, JSON.stringify(widgetPositions)) } catch { /* Preferences are optional. */ }
   }, [widgetPositions])
+
+  useEffect(() => {
+    try { localStorage.setItem(WIDGET_LAYOUT_KEY, widgetLayout) } catch { /* Preferences are optional. */ }
+  }, [widgetLayout])
 
   useEffect(() => {
     try {
@@ -784,8 +854,11 @@ function App() {
       setStatus('HARDWARE REPORT · ' + hardwareStatusLabel(hardwareFeed.status))
     } else if (domain === 'audio' && args.length === 1) {
       openWidget(4)
-      report(['AUDIO CONTROL', 'NO PLAYER INTEGRATION CONNECTED.', 'TRACK METADATA AND PLAYBACK CONTROL REQUIRE A SUPPORTED PLAYER API.'])
-      setStatus('AUDIO INTEGRATION · OFFLINE')
+      const audioStatus = nowPlayingStatus === 'track' && nowPlaying ? 'TRACK LINKED' : nowPlayingStatus === 'none' ? 'NO ACTIVE TRACK' : nowPlayingStatus === 'browser' ? 'LIVELY HOST REQUIRED' : nowPlayingStatus === 'invalid' ? 'INVALID MEDIA DATA' : 'WAITING FOR LIVELY'
+      report(nowPlaying
+        ? ['AUDIO LINK // NOW PLAYING', `TRACK .................. ${nowPlaying.title.toUpperCase()}`, `ARTIST ................. ${nowPlaying.artist.toUpperCase()}`, `ALBUM .................. ${nowPlaying.album.toUpperCase()}`, 'PLAYBACK CONTROLS ...... NOT EXPOSED BY LIVELY']
+        : ['AUDIO LINK // MEDIA SESSION', `STATUS ................. ${audioStatus}`, nowPlayingStatus === 'browser' ? 'LOAD THIS WALLPAPER IN LIVELY TO CONNECT.' : 'TRACK INFO APPEARS WHEN A SUPPORTED PLAYER IS ACTIVE.', 'PLAYBACK CONTROLS ...... NOT EXPOSED BY LIVELY'])
+      setStatus(`AUDIO LINK · ${audioStatus}`)
     } else if (domain === 'standby' && args.length === 1) {
       report(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
       setStatus('MAINFRAME STANDBY · READY')
@@ -800,32 +873,19 @@ function App() {
       report(['DIGITAL WIDGETS · 1–4', ...titles.map((title, index) => `${enabledWidgets.includes(index + 1) ? 'ONLINE ' : 'OFFLINE'} · ${index + 1} · ${title}`), 'CONTROL · SYS WIDGET <1–4> ON|OFF'])
       setStatus(`${enabledWidgets.length} WIDGET${enabledWidgets.length === 1 ? '' : 'S'} ACTIVE`)
     } else if (domain === 'layout') {
-      const builtInNames = ['cinema', 'compact', 'center']
       if (!action || action === 'list') {
-        report(['LAYOUT PRESETS', ...builtInNames.map((name) => `BUILT-IN · ${name.toUpperCase()}`), ...Object.keys(layoutPresets).map((name) => `SAVED · ${name.toUpperCase()}`), 'USE SYS LAYOUT <PRESET> · SAVE/LOAD <NAME> · RESET'])
+        report(['WIDGET LAYOUT PRESETS', 'LEFT · VERTICAL STACK ALONG LEFT EDGE', 'RIGHT · VERTICAL STACK ALONG RIGHT EDGE', 'TOP · EVEN HORIZONTAL ROW AT TOP', 'BOTTOM · EVEN HORIZONTAL ROW AT BOTTOM', ...Object.keys(layoutPresets).map((name) => `SAVED · ${name.toUpperCase()}`), 'WIDGET PRESETS LEAVE THE CONSOLE IN PLACE.'])
         setStatus('LAYOUT PRESETS READY')
-      } else if (builtInNames.includes(action) && args.length === 2) {
-        const width = window.innerWidth
-        const height = window.innerHeight
-        const consoleWidth = Math.min(action === 'compact' ? 410 : 540, width - 32)
-        const consoleHeight = action === 'compact' ? 112 : 136
-        const x = action === 'center' ? Math.round((width - consoleWidth) / 2) : 24
-        const y = Math.max(8, height - consoleHeight - (action === 'cinema' ? 28 : 18))
-        const widgetWidth = width <= 700 ? Math.min(224, width - 21) : Math.min(288, width - 32)
-        const rightX = Math.max(2, Math.min(78, (width - widgetWidth - 24) / width * 100))
-        const leftX = 2
-        const stackX = action === 'center' ? leftX : rightX
-        const stackY = action === 'cinema' ? [3, 27, 51, 75] : action === 'compact' ? [3, 23, 43, 63] : [3, 26, 49, 72]
-        setConsoleFrame({ x, y, width: consoleWidth, height: consoleHeight })
-        setWidgetPositions(Object.fromEntries(stackY.map((widgetY, index) => [index + 1, { x: stackX, y: widgetY }])) as WidgetPositions)
-        report(['LAYOUT PRESET APPLIED', `PRESET ................. ${action.toUpperCase()}`, `CONSOLE ................ ${action === 'center' ? 'BOTTOM-CENTRE' : 'BOTTOM-LEFT'}`, `WIDGET ARRAY ........... ${action === 'center' ? 'LEFT' : 'RIGHT'} COLUMN`, 'DRAG OR RESIZE ANY DISPLAY TO CUSTOMIZE.'])
+      } else if (['left', 'right', 'top', 'bottom'].includes(action) && args.length === 2) {
+        setWidgetLayout(action as WidgetLayout)
+        report(['WIDGET LAYOUT APPLIED', `ARRANGEMENT ............ ${action.toUpperCase()}`, `ACTIVE WIDGETS ......... ${renderedWidgets.length} / 4`, 'COMMAND CONSOLE POSITION UNCHANGED.'])
         setStatus(`LAYOUT · ${action.toUpperCase()}`)
       } else if (action === 'save' && args.length === 3) {
         const name = args[2].toLowerCase()
         if (!/^[a-z0-9_-]{1,18}$/.test(name)) {
           report(['LAYOUT SAVE ERROR', 'NAME MUST BE 1–18 LETTERS, NUMBERS, _ OR -.'])
         } else {
-          setLayoutPresets((current) => ({ ...current, [name]: { consoleFrame, widgetPositions } }))
+          setLayoutPresets((current) => ({ ...current, [name]: { consoleFrame, widgetPositions, widgetLayout } }))
           report(['LAYOUT SAVED', `PRESET ................ ${name.toUpperCase()}`, 'CONSOLE AND WIDGET POSITIONS STORED.'])
           setStatus(`LAYOUT SAVED · ${name.toUpperCase()}`)
         }
@@ -836,17 +896,19 @@ function App() {
         else {
           setConsoleFrame(preset.consoleFrame)
           setWidgetPositions(preset.widgetPositions)
+          setWidgetLayout(preset.widgetLayout ?? 'free')
           report(['LAYOUT LOADED', `PRESET ................ ${name.toUpperCase()}`, 'CONSOLE AND WIDGET POSITIONS RESTORED.'])
           setStatus(`LAYOUT LOADED · ${name.toUpperCase()}`)
         }
       } else if (action === 'reset' && args.length === 2) {
         setConsoleFrame(null)
         setWidgetPositions({})
+        setWidgetLayout('free')
         try { localStorage.removeItem(CONSOLE_FRAME_KEY) } catch { /* Reset remains applied for this session. */ }
         report(['LAYOUT RESET', 'CONSOLE AND WIDGETS RETURNED TO DEFAULT POSITIONS.'])
         setStatus('DEFAULT LAYOUT RESTORED')
       } else {
-        report(['LAYOUT COMMAND ERROR', 'USAGE · SYS LAYOUT [LIST|CINEMA|COMPACT|CENTER|SAVE <NAME>|LOAD <NAME>|RESET]'])
+        report(['LAYOUT COMMAND ERROR', 'USAGE · SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE <NAME>|LOAD <NAME>|RESET]'])
       }
     } else if (domain === 'widget' && action === 'move' && args.length === 5) {
       const id = Number(args[2])
@@ -855,6 +917,7 @@ function App() {
       if (!Number.isInteger(id) || id < 1 || id > 4 || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 100 || y < 0 || y > 100) {
         report(['WIDGET POSITION ERROR', 'USAGE · SYS WIDGET MOVE <1–4> <X% 0–100> <Y% 0–100>'])
       } else {
+        setWidgetLayout('free')
         setWidgetPositions((current) => ({ ...current, [id]: { x, y } }))
         openWidget(id)
         report([`WIDGET ${String(id).padStart(2, '0')} POSITION`, `HORIZONTAL ............ ${x}%`, `VERTICAL .............. ${y}%`, 'POSITION SAVED.'])
@@ -862,6 +925,7 @@ function App() {
       }
     } else if (domain === 'widget' && action === 'reset' && args.length === 2) {
       setWidgetPositions({})
+      setWidgetLayout('free')
       report(['WIDGET LAYOUT', 'CUSTOM POSITIONS CLEARED.', 'DEFAULT RIGHT-SIDE LAYOUT RESTORED.'])
       setStatus('WIDGET LAYOUT RESET')
     } else if (domain === 'widget' && args.length === 3) {
@@ -946,6 +1010,19 @@ function App() {
     const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
     if (!card) return
     const bounds = card.getBoundingClientRect()
+    if (widgetLayout !== 'free') {
+      const visiblePositions = Object.fromEntries(
+        Array.from(document.querySelectorAll<HTMLElement>('.system-widget:not(.widget-leaving)')).flatMap((widget) => {
+          const widgetClass = Array.from(widget.classList).find((name) => /^widget-[1-4]$/.test(name))
+          if (!widgetClass) return []
+          const widgetId = Number(widgetClass.slice('widget-'.length))
+          const rect = widget.getBoundingClientRect()
+          return [[widgetId, { x: rect.left / window.innerWidth * 100, y: rect.top / window.innerHeight * 100 }]]
+        }),
+      ) as WidgetPositions
+      setWidgetPositions((current) => ({ ...current, ...visiblePositions }))
+      setWidgetLayout('free')
+    }
     draggingWidgetRef.current = { id, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top }
     event.currentTarget.setPointerCapture(event.pointerId)
     event.preventDefault()
@@ -965,6 +1042,7 @@ function App() {
   }
 
   const positionWidget = (id: number) => {
+    if (widgetLayout !== 'free') return undefined
     const position = widgetPositions[id]
     if (!position) return undefined
     const cardWidth = window.innerWidth <= 700
@@ -1102,7 +1180,7 @@ function App() {
         </div>
       )}
 
-      <aside className="system-widgets" aria-label="System widgets">
+      <aside className={`system-widgets widget-layout-${widgetLayout}`} aria-label="System widgets">
         {renderedWidgets.includes(1) && (
           <article className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>01 / HARDWARE</span><i>{hardwareStatusLabel(hardwareFeed.status)}</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
@@ -1151,10 +1229,26 @@ function App() {
         )}
         {renderedWidgets.includes(4) && (
           <article className={`system-widget widget-4${leavingWidgetIds.includes(4) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(4)} style={positionWidget(4)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>04 / AUDIO LINK</span><i>STANDBY</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close audio widget">×</button></header>
-            <strong>NO PLAYER LINKED</strong>
-            <p>TRACK DATA <b>OFFLINE</b></p>
-            <small>PLAYER INTEGRATION REQUIRED</small>
+            <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>04 / AUDIO LINK</span><i>{nowPlayingStatus === 'track' ? 'LINKED' : nowPlayingStatus === 'none' ? 'IDLE' : nowPlayingStatus === 'browser' ? 'LIVELY ONLY' : nowPlayingStatus === 'invalid' ? 'DATA ERROR' : 'WAITING'}</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close audio widget">×</button></header>
+            {nowPlaying ? (
+              <div className="audio-now-playing">
+                {nowPlaying.artwork
+                  ? <img src={nowPlaying.artwork} alt="Album artwork" />
+                  : <div className="audio-art-placeholder" aria-hidden="true">♪</div>}
+                <div className="audio-track-copy">
+                  <strong>{nowPlaying.title}</strong>
+                  <p>{nowPlaying.artist}</p>
+                  <small>{nowPlaying.album} · {nowPlaying.playbackType.toUpperCase()}</small>
+                </div>
+              </div>
+            ) : (
+              <>
+                <strong>{nowPlayingStatus === 'browser' ? 'LIVELY HOST REQUIRED' : nowPlayingStatus === 'none' ? 'NO ACTIVE TRACK' : nowPlayingStatus === 'invalid' ? 'MEDIA DATA UNAVAILABLE' : 'SEARCHING MEDIA SESSIONS'}</strong>
+                <p>TRACK DATA <b>{nowPlayingStatus === 'browser' ? 'LIVELY ONLY' : nowPlayingStatus === 'none' ? 'IDLE' : 'WAITING'}</b></p>
+                <small>SUPPORTED WINDOWS MEDIA SESSION REQUIRED</small>
+              </>
+            )}
+            <small className="audio-controls-note">READ-ONLY · PLAYBACK KEYS ARE NOT EXPOSED BY LIVELY</small>
           </article>
         )}
       </aside>

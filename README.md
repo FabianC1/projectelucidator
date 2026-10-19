@@ -30,14 +30,14 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys time` | Show local date/time and session uptime |
 | `sys mode` | List modes; use `sys mode normal`, `stealth`, `combat`, `idle`, or `diagnostic` to switch |
 | `sys hardware` | Show live CPU, GPU 3D, RAM and network metrics when Lively provides them; otherwise report browser/unavailable state |
-| `sys audio` | Report player integration status |
+| `sys audio` | Open the Audio Link widget and show the active Windows media session when Lively provides it |
 | `sys widgets` | List widget IDs and which displays are active |
 | `sys widgets all on` / `sys widgets all off` | Enable or disable all four widgets at once |
 | `sys widget 1 on` / `sys widget 1 off` | Enable or disable a widget (IDs 1–4); `enable` / `disable` also work |
 | `sys widget move 1 70 20` | Place widget 1 at 70% from the left and 20% from the top |
 | `sys widget reset` | Restore the default widget positions |
-| `sys layout list` | List the built-in and saved console/widget layouts |
-| `sys layout cinema` / `compact` / `center` | Apply a coordinated console and widget position preset |
+| `sys layout list` | List the four widget arrangements and saved layouts |
+| `sys layout left` / `right` / `top` / `bottom` | Align active widgets into a uniform column or row; the console stays in place |
 | `sys layout save desk` / `sys layout load desk` | Save or restore the current console and widget positions under a name |
 | `sys layout reset` | Restore the default console and widget positions |
 | `sys standby` | Return the console output to the `ELUCIDATOR // MAINFRAME` home screen |
@@ -58,13 +58,23 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `visual particles` / `visual vignette` / `visual off` | Activate a restrained overlay or disable visual effects |
 | `sys help` / `help` | Show the command index |
 
-Hardware, clock, system status, and audio commands also open their matching digital widget. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header or drag the console heading to move it. `sys layout` applies coordinated console/widget presets, and named layouts save the current arrangement. The console no longer has mouse resize handles; choose a different preset to change its size and placement. The hardware display uses dials for CPU, GPU 3D, and RAM readings. CPU/GPU temperatures and FPS remain unavailable unless the wallpaper host supplies those sensors.
+Hardware, clock, system status, and audio commands also open their matching digital widget. The Audio Link widget displays track, artist, album, and artwork from Lively's Windows now-playing feed when an active player exposes a Windows media session. It is read-only because Lively's documented feed does not provide playback controls. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header or drag the console heading to move it. `sys layout` applies a widget arrangement without moving the console, and named layouts save the current arrangement. The console no longer has mouse resize handles; use its saved position or drag its heading to move it. The hardware display uses dials for CPU, GPU 3D, and RAM readings. CPU/GPU temperatures and FPS remain unavailable unless the wallpaper host supplies those sensors.
 
+### Built-in widget layouts
+
+All presets adapt to the current viewport and arrange every active widget with consistent sizing and spacing. They leave the command console where it is. The top and bottom layouts centre a horizontal row; the left and right layouts align a vertical stack to the corresponding edge.
+
+| Command | Arrangement | Alignment |
+| --- | --- | --- |
+| `sys layout left` | Vertical stack | Left edge, centred vertically |
+| `sys layout right` | Vertical stack | Right edge, centred vertically |
+| `sys layout top` | Horizontal row | Centred along the top edge |
+| `sys layout bottom` | Horizontal row | Centred along the bottom edge |
 The active image and images selected through the app are stored in IndexedDB in the browser profile and restored on the next launch. The wallpaper fit mode is saved separately in local storage and applies to all imported images. `span` uses the full combined viewport supplied by Lively when its display placement is set to Span across screens, and fits the entire source image within that viewport. A source image that is not wide enough may leave black space; the mode cannot create missing artwork. `cover` fills the combined viewport but may crop the image. The page cannot scan arbitrary folders directly; the file picker is the browser-approved way to add a saved image. If the browser blocks persistent storage, the selected image still works for the current session. In a regular browser, `sys hardware` reports BROWSER MODE and unavailable values. Lively's system-information feed supplies CPU usage, GPU 3D usage, RAM total/available, and network adapter throughput; it does not provide temperatures or frame rate. Audio controls still need a supported player integration.
 
 ### Lively Wallpaper
 
-The project includes `public/LivelyInfo.json`, which Vite copies into `dist` and configures with Lively's `--system-information` argument. Lively treats a folder containing `LivelyInfo.json` as an already packaged wallpaper, so do not add the `dist` folder through its new-project wizard. Run `npm run package:lively` to build the project and create `ProjectElucidator.Lively.zip` with `LivelyInfo.json` at the archive root, then drag that ZIP into the Lively library. The hardware widget and `sys hardware` show live readings when Lively calls the documented `livelySystemInformation(data)` callback. In a normal browser, no callback arrives, so the interface reports browser mode instead of inventing readings.
+The project includes `public/LivelyInfo.json`, which Vite copies into `dist` and configures with Lively's `--system-information --system-nowplaying` arguments. Lively treats a folder containing `LivelyInfo.json` as an already packaged wallpaper, so do not add the `dist` folder through its new-project wizard. Run `npm run package:lively` to build the project and create `ProjectElucidator.Lively.zip` with `LivelyInfo.json` at the archive root, then drag that ZIP into the Lively library. The hardware widget and `sys hardware` show live readings when Lively calls `livelySystemInformation(data)`; the Audio Link widget receives track metadata through `livelyCurrentTrack(data)`. In a normal browser, these callbacks do not arrive, so the interface reports the host requirement instead of inventing readings.
 
 ## Development
 
