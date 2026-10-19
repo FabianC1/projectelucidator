@@ -58,7 +58,7 @@ The active image and images selected through the app are stored in IndexedDB in 
 
 ### Lively Wallpaper
 
-The project includes `public/LivelyInfo.json`, which Vite copies into `dist` and configures with Lively's `--system-information` argument. Build the project, then import the complete `dist` folder in Lively as a web wallpaper (or package its contents with `LivelyInfo.json` at the archive root). The hardware widget and `sys hardware` show live readings when Lively calls the documented `livelySystemInformation(data)` callback. In a normal browser, no callback arrives, so the interface reports browser mode instead of inventing readings.
+The project includes `public/LivelyInfo.json`, which Vite copies into `dist` and configures with Lively's `--system-information` argument. Lively treats a folder containing `LivelyInfo.json` as an already packaged wallpaper, so do not add the `dist` folder through its new-project wizard. Run `npm run package:lively` to build the project and create `ProjectElucidator.Lively.zip` with `LivelyInfo.json` at the archive root, then drag that ZIP into the Lively library. The hardware widget and `sys hardware` show live readings when Lively calls the documented `livelySystemInformation(data)` callback. In a normal browser, no callback arrives, so the interface reports browser mode instead of inventing readings.
 
 ## Development
 
