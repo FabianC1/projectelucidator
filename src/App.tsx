@@ -711,7 +711,7 @@ function App() {
 
   useEffect(() => {
     if (!specialEffect) return
-    const duration = specialEffect.kind === 'grimoire' ? 2050 : specialEffect.kind === 'breathing-sun' || specialEffect.kind === 'link-start' ? 1850 : 1700
+    const duration = specialEffect.kind === 'grimoire' ? 2050 : specialEffect.kind === 'breathing-sun' || specialEffect.kind === 'link-start' || specialEffect.kind === 'tokyo-ghoul' ? 1900 : 1700
     const timer = window.setTimeout(() => setSpecialEffect(null), duration)
     return () => window.clearTimeout(timer)
   }, [specialEffect])
@@ -1648,7 +1648,23 @@ function App() {
               <div className="hinokami-activation-copy"><strong>HINOKAMI KAGURA</strong><span>SUN BREATHING // IGNITED</span></div>
             </div>
           )}
-          {['theme-activation', 'arise', 'limitless', 'night-fury-stealth', 'tokyo-ghoul'].includes(specialEffect.kind) && (
+          {specialEffect.kind === 'tokyo-ghoul' && (
+            <div className="kagune-activation">
+              <div className="kagune-activation-glow" />
+              <svg className="kagune-activation-sigil" viewBox="0 0 600 600" aria-hidden="true">
+                <circle className="kagune-sigil-ring kagune-sigil-ring-outer" cx="300" cy="300" r="260" />
+                <circle className="kagune-sigil-ring kagune-sigil-ring-inner" cx="300" cy="300" r="228" />
+                <path className="kagune-sigil-spokes" d="M300 8V96M300 504V592M8 300H96M504 300H592M94 94L156 156M444 444L506 506M506 94L444 156M156 444L94 506" />
+                <path className="kagune-sigil-cuts" d="M116 138L164 162L190 205M484 462L436 438L410 395M484 138L436 162L410 205M116 462L164 438L190 395" />
+              </svg>
+              <img className="kagune-activation-header-emblem" src="./assets/kagune/kagune-header-emblem-trimmed.png" alt="" />
+              <img className="kagune-activation-header-tendril" src="./assets/kagune/kagune-header-tendril-trimmed.png" alt="" />
+              <img className="kagune-activation-right-tendril" src="./assets/kagune/kagune-right-tendril-trimmed.png" alt="" />
+              <img className="kagune-activation-bottom-tendril" src="./assets/kagune/kagune-bottom-tendril-trimmed.png" alt="" />
+              <div className="kagune-activation-copy"><strong>TOKYO GHOUL</strong><span>ONE-EYED KING // KANEKI PROTOCOL</span></div>
+            </div>
+          )}
+          {['theme-activation', 'arise', 'limitless', 'night-fury-stealth'].includes(specialEffect.kind) && (
             <div className={`theme-emblem-activation activation-${theme}`} style={activationStyle}>
               <ThemeEmblem
                 className="theme-emblem-activation-image theme-emblem-image"
