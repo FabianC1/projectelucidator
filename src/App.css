@@ -2369,7 +2369,8 @@
 .hinokami-console .console-output .console-heading { color: #f1eadf; }
 .hinokami-output-leader { color: rgb(231 225 215 / 68%); }
 .hinokami-output-value { color: #e44935; }
-.hinokami-console .command-line { position: relative; z-index: 1; min-height: 1.9rem; margin: 0 -1rem; padding: .38rem 1rem 0; border-top: 1px solid rgb(187 183 171 / 68%); color: #ddd8ce; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; font-size: clamp(.72rem, 1.2vw, .9rem); text-shadow: none; }
+.hinokami-console .command-line { position: relative; z-index: 1; min-height: 1.9rem; margin: 0 -1rem; padding: .38rem 1rem 0; border-top: 0; color: #ddd8ce; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; font-size: clamp(.72rem, 1.2vw, .9rem); text-shadow: none; }
+.hinokami-console .command-line::before { position: absolute; top: 0; right: 1.25rem; left: 1.25rem; border-top: 1px solid rgb(187 183 171 / 68%); content: ''; pointer-events: none; }
 .hinokami-console .command-prefix,
 .hinokami-console .command-line button { color: #c83b30; }
 .hinokami-console .command-line input { color: #e4dfd5; caret-color: #dc4938; }
