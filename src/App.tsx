@@ -2046,7 +2046,6 @@ function App() {
               autoComplete="off"
               aria-label="Enter a wallpaper command"
               spellCheck={false}
-              size={Math.max(10, command.length || 10)}
               value={command}
               onChange={(event) => {
                 setCommand(event.target.value)
