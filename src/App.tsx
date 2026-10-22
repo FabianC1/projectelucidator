@@ -45,13 +45,12 @@ const WIDGET_TITLES: Record<number, string> = {
 const THEME_STATUS: Record<ThemeId, { title: string; state: string; metric: string; value: string }> = {
   sao: { title: 'AINCRAD SYSTEM', state: 'SYSTEM LINK STABLE', metric: 'LINK STATE', value: 'NOMINAL' },
   arise: { title: 'SHADOW MONARCH', state: 'SHADOW AUTHORITY ONLINE', metric: 'MONARCH SYNC', value: 'ACTIVE' },
-  grimoire: { title: 'FIVE-LEAF GRIMOIRE', state: 'ANTI-MAGIC RESONANCE', metric: 'GRIMOIRE SYNC', value: 'RESONANT' },
-  'anti-magic': { title: 'ANTI-MAGIC RELEASE', state: 'NULLIFIER FIELD ACTIVE', metric: 'NULLIFIER', value: 'ACTIVE' },
-  'domain-expansion': { title: 'CURSED ENERGY', state: 'DOMAIN FIELD DEPLOYED', metric: 'FIELD STATE', value: 'STABLE' },
+  grimoire: { title: 'FIVE-LEAF GRIMOIRE', state: 'MAGIC SIGNATURE RESONANT', metric: 'GRIMOIRE SYNC', value: 'RESONANT' },
   limitless: { title: 'LIMITLESS', state: 'INFINITY FIELD ACTIVE', metric: 'CURSED TECHNIQUE', value: 'INFINITY' },
   'breathing-sun': { title: 'HINOKAMI KAGURA', state: 'SOLAR BREATH IGNITED', metric: 'FLAME STATE', value: 'IGNITED' },
   'demon-mode': { title: 'DRAGON SIN', state: 'DEMON POWER RELEASED', metric: 'MAGIC POWER', value: 'UNRESTRICTED' },
   dragon: { title: 'NIGHT FURY', state: 'PLASMA CORE CHARGING', metric: 'PLASMA CORE', value: 'CHARGING' },
+  'tokyo-ghoul': { title: 'ONE-EYED KING', state: 'RC SIGNATURE DETECTED', metric: 'GHOUL FACTOR', value: 'ACTIVE' },
 }
 
 function parseNowPlaying(data: unknown): NowPlayingTrack | null | undefined {
@@ -317,7 +316,7 @@ function HardwareGauge({ label, percent, value, detail }: { label: string; perce
 const COMMAND_COMPLETIONS = [
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
   'sys wallpaper default', 'sys wallpaper default set', 'sys wallpaper default select', 'sys wallpaper default clear',
-  'sys theme list', 'sys theme activate', 'sys theme feature', 'sys theme default', 'sys theme default set', 'sys theme default select',
+  'sys theme list', 'sys theme activate', 'sys theme default', 'sys theme default set', 'sys theme default select',
   'sys wallpaper next', 'sys wallpaper previous', 'sys wallpaper scan', 'sys hardware', 'sys time', 'sys audio',
   'sys mode', 'sys mode normal', 'sys mode stealth', 'sys mode combat', 'sys mode idle', 'sys mode diagnostic',
   'sys session', 'sys anime',
@@ -327,12 +326,12 @@ const COMMAND_COMPLETIONS = [
   'sys widget move 1 50 20', 'sys widget size 1 1', 'sys widgets size 1', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
   'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
-  'sys grimoire', 'sys anti-magic', 'sys domain expansion', 'sys limitless',
-  'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys httyd', 'sys night fury', 'sys stealth', 'sys help', 'help',
+  'sys grimoire', 'sys limitless',
+  'sys hinokami kagura', 'sys demon mode', 'sys httyd', 'sys night fury', 'sys tokyo ghoul', 'sys stealth', 'sys help', 'help',
   'visual list', 'visual haze', 'visual rain', 'visual lightning', 'visual particles', 'visual vignette', 'visual off', 'visual status',
 ]
 
-function findCommandCompletions(value: string, savedWallpaperCount = 0, activeTheme?: ThemeId) {
+function findCommandCompletions(value: string, savedWallpaperCount = 0) {
   const prefix = value.toLowerCase().replace(/\s+/g, ' ')
   if (/^visual\s+$/.test(prefix)) return COMMAND_COMPLETIONS.filter((candidate) => candidate.startsWith('visual '))
   if (/^sys wallpaper\s+$/.test(prefix)) {
@@ -344,7 +343,6 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0, activeTh
   if (/^sys theme default\s+$/.test(prefix)) return ['set', 'select'].map((action) => `sys theme default ${action}`)
   if (/^sys theme default select\s+$/.test(prefix)) return THEME_CHOICES.map((choice) => `sys theme default select ${choice.command}`)
   if (/^sys theme activate\s+$/.test(prefix)) return THEME_CHOICES.map((choice) => `sys theme activate ${choice.command}`)
-  if (/^sys theme feature\s+$/.test(prefix)) return THEME_SYSTEMS.find((system) => system.id === activeTheme)?.features?.map((feature) => `sys theme feature ${feature.name}`) ?? []
   if (/^sys wallpaper fit\s+$/.test(prefix)) return WALLPAPER_FITS.map((fit) => `sys wallpaper fit ${fit}`)
   if (/^sys brightness\s+$/.test(prefix)) return ['sys brightness status', 'sys brightness list', 'sys brightness help']
   if (/^sys brightness monitor\s+$/.test(prefix)) return ['sys brightness monitor 1 ', 'sys brightness monitor 2 ']
@@ -970,23 +968,8 @@ function App() {
         setStatus(defaultTheme ? `STARTUP THEME · ${defaultTheme.toUpperCase()}` : 'NO CUSTOM STARTUP THEME')
       }
     } else if (domain === 'theme' && action === 'list' && args.length === 2) {
-      report(['ELUCIDATOR THEME SYSTEMS', ...THEME_SYSTEMS.map((system) => `${system.id === theme ? 'ACTIVE' : 'READY'} · ${system.label} · SYS THEME ACTIVATE ${system.command.toUpperCase()}`), ...THEME_SYSTEMS.flatMap((system) => system.features?.map((feature) => `${system.id.toUpperCase()} FEATURE · SYS THEME FEATURE ${feature.name.toUpperCase()}`) ?? []), 'THEME SYSTEMS PROVIDE THEIR OWN TRANSITION, RESPONSE, SIGNATURE, AND OPTIONAL FEATURES.'])
+      report(['ELUCIDATOR THEMES', ...THEME_SYSTEMS.map((system) => (system.id === theme ? 'ACTIVE' : 'READY') + ' · ' + system.label + ' · SYS THEME ACTIVATE ' + system.command.toUpperCase()), 'SELECT A THEME WITH ITS SYS COMMAND OR SYS THEME ACTIVATE.'])
       setStatus(`${THEME_SYSTEMS.length} THEME SYSTEMS REGISTERED`)
-    } else if (domain === 'theme' && action === 'feature') {
-      const activeSystem = THEME_SYSTEMS.find((system) => system.id === theme)
-      const requested = args.slice(2).join(' ').toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
-      const feature = activeSystem?.features?.find((item) => [item.name, ...item.aliases].some((alias) => alias.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim() === requested))
-      if (!requested) {
-        report(['ACTIVE THEME FEATURES', activeSystem?.label ?? theme.toUpperCase(), ...(activeSystem?.features?.map((item) => `SYS THEME FEATURE ${item.name.toUpperCase()}`) ?? []), activeSystem?.features?.length ? 'SELECT A REGISTERED FEATURE.' : 'THIS THEME HAS NO EXTRA FEATURES.'])
-        setStatus(`${theme.toUpperCase()} FEATURES READY`)
-      } else if (!feature) {
-        report(['THEME FEATURE UNAVAILABLE', `ACTIVE SYSTEM .......... ${theme.toUpperCase()}`, 'RUN SYS THEME FEATURE TO VIEW ITS FEATURES.'])
-        setStatus('THEME FEATURE NOT FOUND')
-      } else {
-        setSpecialEffect({ kind: feature.effect, id: ++effectIdRef.current })
-        report(feature.response)
-        setStatus(`${theme.toUpperCase()} · ${feature.name.toUpperCase()}`)
-      }
     } else if (domain === 'theme' && action === 'activate') {
       const selectedId = resolveThemeId(args.slice(2).join(' '))
       const selectedSystem = THEME_SYSTEMS.find((system) => system.id === selectedId)
@@ -1004,7 +987,7 @@ function App() {
         setStatus(`${selectedSystem.label} ACTIVATED`)
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE|FEATURE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS STEALTH · SYS FULL COUNTER', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS TOKYO GHOUL · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
@@ -1025,20 +1008,8 @@ function App() {
       setNightStealth(false)
       setTheme('grimoire')
       setSpecialEffect({ kind: 'theme-activation', id: ++effectIdRef.current })
-      report(['FIVE-LEAF GRIMOIRE DETECTED', 'CRIMSON SYSTEM .......... ONLINE', 'ANTI-MAGIC SEAL ........ STANDBY'])
+      report(['FIVE-LEAF GRIMOIRE DETECTED', 'CRIMSON SYSTEM .......... ONLINE', 'GRIMOIRE INTERFACE ...... READY'])
       setStatus('GRIMOIRE PROTOCOL ACTIVATED')
-    } else if (domain === 'anti-magic' && args.length === 1) {
-      setNightStealth(false)
-      setTheme('anti-magic')
-      setSpecialEffect({ kind: 'anti-magic', id: ++effectIdRef.current })
-      report(['ANTI-MAGIC RELEASE', 'DARK ENERGY PULSE ........ DISCHARGED', 'WALLPAPER FIELD .......... STABLE'])
-      setStatus('ANTI-MAGIC PULSE RELEASED')
-    } else if (domain === 'domain' && action === 'expansion' && args.length === 2) {
-      setNightStealth(false)
-      setTheme('domain-expansion')
-      setSpecialEffect({ kind: 'domain', id: ++effectIdRef.current })
-      report(['CURSED ENERGY OUTPUT: UNRESTRICTED', 'DOMAIN EXPANSION ........ DEPLOYED', 'SPATIAL FIELD ........... STABLE'])
-      setStatus('DOMAIN EXPANSION DEPLOYED')
     } else if (domain === 'limitless' && args.length === 1) {
       setNightStealth(false)
       setTheme('limitless')
@@ -1057,16 +1028,21 @@ function App() {
       setSpecialEffect({ kind: 'demon', id: ++effectIdRef.current })
       report(THEME_SYSTEMS.find((system) => system.id === 'demon-mode')?.activationResponse ?? ['DEMON MODE ACTIVATED'])
       setStatus('DEMON MODE AWAKENED')
-    } else if (domain === 'full' && action === 'counter' && args.length === 2) {
-      setSpecialEffect({ kind: 'full-counter', id: ++effectIdRef.current })
-      report(['FULL COUNTER', 'INCOMING SCAN ........... REFLECTED', 'RETURN WAVE ............. RELEASED'])
-      setStatus('FULL COUNTER RELEASED')
     } else if (domain === 'arise' && args.length === 1) {
       setNightStealth(false)
       setTheme('arise')
       setSpecialEffect({ kind: 'arise', id: ++effectIdRef.current })
       report(['SHADOW PROTOCOL // ARISE', 'PURPLE INTERFACE ........ ACTIVE', 'THEME SAVED TO LOCAL SYSTEM.'])
       setStatus('ARISE THEME ACTIVATED')
+    } else if (domain === 'tokyo' && action === 'ghoul' && args.length === 2) {
+      const tokyoGhoul = THEME_SYSTEMS.find((system) => system.id === 'tokyo-ghoul')
+      if (tokyoGhoul) {
+        setNightStealth(false)
+        setTheme(tokyoGhoul.id)
+        setSpecialEffect({ kind: 'theme-activation', id: ++effectIdRef.current })
+        report(tokyoGhoul.activationResponse)
+        setStatus('TOKYO GHOUL SYSTEM ACTIVATED')
+      }
     } else if (domain === 'link' && action === 'start' && args.length === 2) {
       setTheme('sao')
       setSpecialEffect({ kind: 'link-start', id: ++effectIdRef.current })
@@ -1373,7 +1349,7 @@ function App() {
         completed = candidates[index]
       } else {
         const savedWallpaperCount = wallpaperLibrary.filter((entry, index, all) => all.findIndex((candidate) => candidate.wallpaper.name === entry.wallpaper.name) === index).length
-        candidates = findCommandCompletions(value, savedWallpaperCount, theme)
+        candidates = findCommandCompletions(value, savedWallpaperCount)
         if (candidates.length === 0) return
         if (candidates.length === 1) {
           completed = candidates[0]
@@ -1553,21 +1529,19 @@ function App() {
 
       {specialEffect && (
         <div key={specialEffect.id} className={`special-effect effect-${specialEffect.kind}`} aria-hidden="true">
-          {(specialEffect.kind === 'link-start' || specialEffect.kind === 'sword-skill') && (
+          {specialEffect.kind === 'link-start' && (
             <div className="sao-activation-interface">
-              {specialEffect.kind === 'link-start' && <div className="sao-hud-frame"><i /><i /><i /><i /></div>}
+              <div className="sao-hud-frame"><i /><i /><i /><i /></div>
               <div className="sao-cross-lines"><i /><i /></div>
-              {specialEffect.kind === 'link-start' && (
-                <div className="sao-holo-menu">
-                  <b>AINCRAD // MAIN MENU</b>
-                  <span>PLAYER STATUS&nbsp;&nbsp; 100%</span>
-                  <div><i>STATUS</i><i>MAP</i><i>EQUIPMENT</i><i>SKILLS</i></div>
-                  <small>SYSTEM LINK ESTABLISHED</small>
-                </div>
-              )}
+              <div className="sao-holo-menu">
+                <b>AINCRAD // MAIN MENU</b>
+                <span>PLAYER STATUS&nbsp;&nbsp; 100%</span>
+                <div><i>STATUS</i><i>MAP</i><i>EQUIPMENT</i><i>SKILLS</i></div>
+                <small>SYSTEM LINK ESTABLISHED</small>
+              </div>
             </div>
           )}
-          {(specialEffect.kind === 'demon' || specialEffect.kind === 'demon-mark') && (
+          {specialEffect.kind === 'demon' && (
             <div className="demon-mark-activation">
               <ThemeEmblem
                 className="demon-mark-large theme-emblem-image"
@@ -1577,11 +1551,11 @@ function App() {
               <span>DEMON MARK // MAGIC POWER UNRESTRICTED</span>
             </div>
           )}
-          {['theme-activation', 'arise', 'anti-magic', 'domain', 'limitless', 'breathing-sun'].includes(specialEffect.kind) && (
+          {['theme-activation', 'arise', 'limitless', 'breathing-sun'].includes(specialEffect.kind) && (
             <div className="theme-activation-card" style={activationStyle}>
               <ThemeEmblem
                 className="theme-activation-emblem theme-emblem-image"
-                src={stealthIdentity ? STEALTH_PRESENTATION.emblemAsset : activeThemeSystem?.emblemAsset ?? STEALTH_PRESENTATION.emblemAsset}
+                src={activeThemeSystem?.emblemAsset ?? './assets/emblems/tokyo-ghoul.png'}
                 title={activePresentation.title}
               />
               <div className="theme-activation-copy">
@@ -1756,30 +1730,30 @@ function App() {
         onPointerUp={() => { draggingConsoleRef.current = null }}
         onPointerCancel={() => { draggingConsoleRef.current = null }}
       >
-        {themeSignature === 'aincrad' && !stealthIdentity && (
-          <div className="console-theme-signature signature-aincrad" aria-hidden="true">
+        {themeSignature === 'aincrad' && (
+          <div className="console-theme-signature signature-aincrad" style={{ '--signature-accent': activeThemeSystem?.activationPresentation.accent ?? '#00D8FF', '--signature-secondary': activeThemeSystem?.activationPresentation.secondary ?? '#EAFCFF' } as CSSProperties} aria-hidden="true">
             <span className="theme-signature-emblem-frame"><ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title="LINK START" /></span>
             <span><b>AINCRAD SYSTEM</b><small>LINK STABLE · FLOOR 01</small></span>
           </div>
         )}
-        {themeSignature === 'demon-mark' && !stealthIdentity && (
-          <div className="console-theme-signature signature-demon-mark" aria-hidden="true">
-            <span className="theme-signature-emblem-frame"><ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? STEALTH_PRESENTATION.emblemAsset} title="DRAGON SIN OF WRATH" /></span>
+        {themeSignature === 'demon-mark' && (
+          <div className="console-theme-signature signature-demon-mark" style={{ '--signature-accent': activeThemeSystem?.activationPresentation.secondary ?? '#E7C65A', '--signature-secondary': activeThemeSystem?.activationPresentation.accent ?? '#A879FF' } as CSSProperties} aria-hidden="true">
+            <span className="theme-signature-emblem-frame"><ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/dragon-sin-of-wrath.png'} title="DRAGON SIN OF WRATH" /></span>
             <span><b>DEMON MARK</b><small>POWER UNSEALED</small></span>
           </div>
         )}
-        {(themeSignature === 'none' || stealthIdentity) && (
+        {themeSignature === 'none' && (
           <div
-            className={`console-theme-signature signature-${stealthIdentity ? 'stealth' : theme}`}
-            style={{ '--signature-accent': activePresentation.accent, '--signature-secondary': activePresentation.secondary } as CSSProperties}
+            className={`console-theme-signature signature-${theme}`}
+            style={{ '--signature-accent': activeThemeSystem?.activationPresentation.accent ?? STEALTH_PRESENTATION.accent, '--signature-secondary': activeThemeSystem?.activationPresentation.secondary ?? STEALTH_PRESENTATION.secondary } as CSSProperties}
             aria-hidden="true"
           >
             <span className="theme-signature-emblem-frame"><ThemeEmblem
               className="theme-signature-emblem theme-emblem-image"
-              src={stealthIdentity ? STEALTH_PRESENTATION.emblemAsset : activeThemeSystem?.emblemAsset ?? STEALTH_PRESENTATION.emblemAsset}
-              title={activePresentation.title}
+              src={activeThemeSystem?.emblemAsset ?? './assets/emblems/tokyo-ghoul.png'}
+              title={activeThemeSystem?.activationPresentation.title ?? 'SYSTEM'}
             /></span>
-            <span><b>{activePresentation.title}</b><small>{activePresentation.subtitle}</small></span>
+            <span className="theme-signature-copy"><b>{activeThemeSystem?.activationPresentation.title ?? 'SYSTEM'}</b><small>{activeThemeSystem?.activationPresentation.subtitle ?? ''}</small></span>
           </div>
         )}
         <div className="console-output" aria-live="polite">

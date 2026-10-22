@@ -945,30 +945,24 @@
   box-shadow: 0 0 9px #a95cff;
 }
 
-.theme-grimoire .command-console,
-.theme-anti-magic .command-console {
+.theme-grimoire .command-console {
   border-color: rgb(244 64 74 / 44%);
   background: rgb(20 3 7 / 78%);
   box-shadow: 0 0 28px rgb(206 20 37 / 18%);
 }
 
 .theme-grimoire .console-output,
-.theme-grimoire .command-line,
-.theme-anti-magic .console-output,
-.theme-anti-magic .command-line {
+.theme-grimoire .command-line {
   color: #ff9ca3;
   text-shadow: 0 0 10px rgb(255 45 60 / 45%);
 }
 
 .theme-grimoire .console-heading,
-.theme-grimoire .command-prefix,
-.theme-anti-magic .console-heading,
-.theme-anti-magic .command-prefix {
+.theme-grimoire .command-prefix {
   color: #ff5365;
 }
 
-.theme-grimoire .system-widget,
-.theme-anti-magic .system-widget {
+.theme-grimoire .system-widget {
   border-color: rgb(225 52 68 / 43%);
   border-left-color: #fb344d;
   background: linear-gradient(110deg, rgb(54 8 16 / 88%), rgb(20 4 9 / 84%) 76%);
@@ -976,34 +970,27 @@
 }
 
 .theme-grimoire .system-widget header,
-.theme-grimoire .system-widget p b,
-.theme-anti-magic .system-widget header,
-.theme-anti-magic .system-widget p b {
+.theme-grimoire .system-widget p b {
   color: #ff8790;
 }
 
-.theme-grimoire .boot-scan,
-.theme-anti-magic .boot-scan {
+.theme-grimoire .boot-scan {
   background: linear-gradient(to bottom, transparent, rgb(180 0 18 / 4%) 55%, rgb(255 29 46 / 18%) 88%, rgb(255 104 115 / 82%));
   filter: drop-shadow(0 0 16px rgb(234 24 44 / 76%));
 }
 
-.theme-domain-expansion .command-console,
 .theme-limitless .command-console {
   border-color: rgb(157 113 255 / 48%);
   background: rgb(8 5 27 / 78%);
   box-shadow: 0 0 28px rgb(60 90 255 / 20%);
 }
 
-.theme-domain-expansion .console-output,
-.theme-domain-expansion .command-line,
 .theme-limitless .console-output,
 .theme-limitless .command-line {
   color: #c5c5ff;
   text-shadow: 0 0 10px rgb(105 101 255 / 48%);
 }
 
-.theme-domain-expansion .system-widget,
 .theme-limitless .system-widget {
   border-color: rgb(129 132 255 / 46%);
   border-left-color: #9c7aff;
@@ -1011,7 +998,6 @@
   box-shadow: inset 0 0 20px rgb(86 95 255 / 14%), 0 0 18px rgb(80 98 255 / 15%);
 }
 
-.theme-domain-expansion .boot-scan,
 .theme-limitless .boot-scan {
   background: linear-gradient(to bottom, transparent, rgb(50 40 184 / 5%) 55%, rgb(103 88 255 / 18%) 88%, rgb(215 218 255 / 88%));
   filter: drop-shadow(0 0 16px rgb(95 94 255 / 82%));
@@ -1162,30 +1148,6 @@
   --theme-panel: #16080c;
 }
 
-.wallpaper-experience.theme-anti-magic {
-  --theme-primary: #f43f5e;
-  --theme-primary-rgb: 244 63 94;
-  --theme-secondary: #c4b5fd;
-  --theme-secondary-rgb: 196 181 253;
-  --theme-tertiary: #4c0519;
-  --theme-tertiary-rgb: 76 5 25;
-  --theme-text: #d4c9db;
-  --theme-bright: #fff3f7;
-  --theme-panel: #10070e;
-}
-
-.wallpaper-experience.theme-domain-expansion {
-  --theme-primary: #9b7aff;
-  --theme-primary-rgb: 155 122 255;
-  --theme-secondary: #67c7ff;
-  --theme-secondary-rgb: 103 199 255;
-  --theme-tertiary: #312e81;
-  --theme-tertiary-rgb: 49 46 129;
-  --theme-text: #c8d4fa;
-  --theme-bright: #f2f5ff;
-  --theme-panel: #0a0a20;
-}
-
 .wallpaper-experience.theme-limitless {
   --theme-primary: #60a5fa;
   --theme-primary-rgb: 96 165 250;
@@ -1232,6 +1194,18 @@
   --theme-text: #a8b2c1;
   --theme-bright: #effbff;
   --theme-panel: #080b10;
+}
+
+.wallpaper-experience.theme-tokyo-ghoul {
+  --theme-primary: #e53946;
+  --theme-primary-rgb: 229 57 70;
+  --theme-secondary: #e8e8ed;
+  --theme-secondary-rgb: 232 232 237;
+  --theme-tertiary: #721c2b;
+  --theme-tertiary-rgb: 114 28 43;
+  --theme-text: #d6d2d5;
+  --theme-bright: #fff4f5;
+  --theme-panel: #100b0e;
 }
 
 .wallpaper-experience .command-console {
@@ -1427,11 +1401,6 @@
   pointer-events: none;
 }
 
-.effect-anti-magic {
-  background: radial-gradient(ellipse at center, rgb(178 0 23 / 38%), rgb(54 0 8 / 24%) 34%, transparent 72%);
-  animation: anti-magic-pulse 1.55s ease-out both;
-}
-
 .effect-arise {
   background: radial-gradient(ellipse at 50% 52%, rgb(143 66 255 / 27%), rgb(86 25 173 / 12%) 25%, transparent 66%);
   animation: theme-activation-flare 1.7s ease-out both;
@@ -1487,14 +1456,10 @@
   box-shadow: 0 0 25px rgb(55 203 255 / 58%), inset 0 0 17px rgb(76 197 255 / 25%);
 }
 
-.effect-domain::before,
-.effect-domain::after,
 .effect-limitless::before,
 .effect-limitless::after,
 .effect-demon::before,
-.effect-demon::after,
-.effect-demon-mark::before,
-.effect-demon-mark::after {
+.effect-demon::after {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -1505,13 +1470,11 @@
   box-shadow: 0 0 18px rgb(121 117 255 / 58%), inset 0 0 16px rgb(121 117 255 / 20%);
   content: '';
   transform: translate(-50%, -50%);
-  animation: domain-ripple 1.55s cubic-bezier(.14,.64,.28,1) both;
+  animation: theme-ripple 1.55s cubic-bezier(.14,.64,.28,1) both;
 }
 
-.effect-domain::after,
 .effect-limitless::after,
-.effect-demon::after,
-.effect-demon-mark::after { animation-delay: 180ms; }
+.effect-demon::after { animation-delay: 180ms; }
 
 .effect-limitless::before,
 .effect-limitless::after {
@@ -1521,29 +1484,21 @@
 }
 
 .effect-demon::before,
-.effect-demon::after,
-.effect-demon-mark::before,
-.effect-demon-mark::after {
+.effect-demon::after {
   border-color: rgb(231 198 90 / 92%);
   box-shadow: 0 0 22px rgb(231 198 90 / 54%), inset 0 0 18px rgb(139 92 246 / 28%);
 }
 
 .console-theme-signature {
-  position: absolute;
-  z-index: 1;
-  top: -2.15rem;
-  right: 0.55rem;
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  width: 10rem;
-  height: 2.65rem;
-  box-sizing: border-box;
-  padding: 0.22rem 0.55rem;
-  border: 1px solid color-mix(in srgb, var(--signature-accent, var(--theme-primary, #00d8ff)) 42%, transparent);
-  border-bottom-color: color-mix(in srgb, var(--signature-secondary, var(--theme-secondary, #eafcff)) 64%, transparent);
-  border-radius: 3px 3px 0 0;
-  background: color-mix(in srgb, var(--theme-panel, #00080d) 88%, transparent);
+  gap: 0.55rem;
+  width: max-content;
+  max-width: 100%;
+  height: 2.2rem;
+  margin: -1.2rem 0 0.45rem;
   color: var(--signature-accent, var(--theme-primary, #00d8ff));
   font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
   letter-spacing: 0.08em;
@@ -1551,41 +1506,32 @@
   animation: signature-power-on 520ms ease-out both;
 }
 
-.console-theme-signature::before,
-.console-theme-signature::after {
-  content: '';
-  position: absolute;
-  right: 0.78rem;
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-}
-
-.console-theme-signature::before {
-  bottom: -0.17rem;
-  width: 0.9rem;
-  height: 0.18rem;
-  background: color-mix(in srgb, var(--signature-accent, var(--theme-primary, #00d8ff)) 58%, transparent);
-}
-
-.console-theme-signature::after {
-  bottom: -0.15rem;
-  right: 0.81rem;
-  width: 0.84rem;
-  height: 0.16rem;
-  background: color-mix(in srgb, var(--theme-panel, #00080d) 88%, transparent);
-}
-
-.console-theme-signature > span:last-child { display: grid; gap: 0.12rem; min-width: 0; flex: 1; }
+.console-theme-signature > span:last-child { position: relative; z-index: 1; display: grid; gap: 0.12rem; min-width: 0; }
 .console-theme-signature b, .console-theme-signature small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .console-theme-signature b { font-size: 0.52rem; }
 .console-theme-signature small { color: var(--signature-secondary, var(--theme-secondary, #eafcff)); font-size: 0.43rem; }
 
-.theme-signature-emblem-frame { position: relative; display: block; width: 1.75rem; height: 1.75rem; flex: 0 0 1.75rem; overflow: hidden; box-sizing: border-box; border: 1px solid color-mix(in srgb, currentColor 72%, transparent); border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, currentColor 20%, transparent), rgb(0 5 12 / 92%) 72%); box-shadow: inset 0 0 8px color-mix(in srgb, currentColor 22%, transparent), 0 0 8px color-mix(in srgb, currentColor 28%, transparent); }
+.theme-signature-emblem-frame { position: relative; z-index: 1; display: block; width: 2.2rem; height: 2.2rem; flex: 0 0 2.2rem; overflow: hidden; box-sizing: border-box; border: 1px solid color-mix(in srgb, currentColor 76%, transparent); border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, currentColor 20%, transparent), var(--theme-panel, #00080d) 72%); box-shadow: inset 0 0 8px color-mix(in srgb, currentColor 22%, transparent), 0 0 9px color-mix(in srgb, currentColor 30%, transparent); }
 .theme-signature-emblem { position: absolute; top: 50%; left: 50%; display: block; width: 100%; height: 100%; max-width: none; flex: 0 0 auto; object-fit: contain; transform: translate(-50%, -50%); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--signature-accent, var(--theme-primary, #00d8ff)) 68%, transparent)); }
 .signature-aincrad img.theme-signature-emblem { width: 6rem; height: 3.375rem; }
 .theme-emblem-fallback { display: grid; place-items: center; border: 1px solid currentColor; color: currentColor; font-family: ui-monospace, Consolas, monospace; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.05em; }
 
-.signature-demon-mark { color: #e7c65a; }
-.signature-demon-mark small { color: #c49bff; }
+.signature-aincrad,
+.signature-demon-mark,
+.signature-dragon { margin-left: -0.3rem; }
+.signature-arise { margin-right: auto; margin-left: auto; }
+.signature-arise .theme-signature-emblem-frame { transform: translateY(-0.12rem); border-radius: 42% 42% 50% 50%; }
+.signature-grimoire { margin-left: -0.3rem; }
+.signature-grimoire .theme-signature-emblem-frame { border-radius: 0.35rem; }
+.signature-limitless { margin-left: -1rem; }
+.signature-limitless .theme-signature-emblem-frame { box-shadow: inset 0 0 8px color-mix(in srgb, currentColor 22%, transparent), 0 0 0 4px color-mix(in srgb, currentColor 42%, transparent), 0 0 13px color-mix(in srgb, currentColor 38%, transparent); }
+.signature-breathing-sun { margin-right: -0.3rem; margin-left: auto; }
+.signature-breathing-sun .theme-signature-emblem-frame { box-shadow: inset 0 0 8px color-mix(in srgb, currentColor 24%, transparent), 0 0 20px color-mix(in srgb, currentColor 48%, transparent); }
+.signature-demon-mark .theme-signature-emblem-frame { border-radius: 44% 50% 50% 50%; border-color: #e7c65a; box-shadow: inset 0 0 8px rgb(231 198 90 / 26%), 0 0 10px rgb(168 121 255 / 40%); }
+.signature-demon-mark::before { position: absolute; top: 50%; right: 0; left: 0; height: 1px; background: linear-gradient(90deg, transparent, #e7c65a 18%, #e7c65a 82%, transparent); content: ''; }
+.signature-dragon .theme-signature-emblem-frame { border-radius: 48% 48% 43% 55%; }
+.signature-dragon::before { position: absolute; top: 0.04rem; right: 0; left: 1.75rem; height: 1px; background: linear-gradient(90deg, color-mix(in srgb, currentColor 70%, transparent), transparent); content: ''; }
+.signature-dragon::after { position: absolute; top: 1.85rem; left: -0.55rem; width: 0.45rem; height: 1.8rem; border-bottom: 1px solid color-mix(in srgb, currentColor 65%, transparent); border-left: 1px solid color-mix(in srgb, currentColor 65%, transparent); border-radius: 0 0 0 0.45rem; content: ''; filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 45%, transparent)); }
 
 .sao-activation-interface { position: absolute; inset: 0; color: #9feeff; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; }
 .sao-hud-frame { position: absolute; inset: clamp(1rem, 4vw, 3.5rem); animation: sao-hud-frame-in 1.65s ease-out both; }
@@ -1668,40 +1614,6 @@
   animation: sun-breath 1.55s ease-out both;
 }
 
-.effect-system-scan::before {
-  position: absolute;
-  top: -24vh;
-  left: 0;
-  width: 100%;
-  height: 24vh;
-  background: linear-gradient(180deg, transparent, rgb(31 166 255 / 5%) 65%, rgb(99 224 255 / 42%) 97%, transparent);
-  content: '';
-  animation: link-start-scan 1.25s cubic-bezier(.18,.64,.38,1) both;
-}
-
-.effect-sword-skill {
-  background: radial-gradient(ellipse at 50% 50%, rgb(69 215 255 / 16%), transparent 48%);
-  animation: link-start-flare 1.35s ease-out both;
-}
-
-.effect-full-counter::before {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
-  height: 18vh;
-  background: linear-gradient(to bottom, transparent, rgb(140 88 255 / 12%) 58%, rgb(231 211 255 / 88%));
-  filter: drop-shadow(0 0 18px rgb(163 105 255 / 82%));
-  content: '';
-  animation: counter-return 1.45s cubic-bezier(.35,.04,.55,.94) both;
-}
-
-@keyframes anti-magic-pulse {
-  0% { opacity: 0; }
-  18% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
 @keyframes theme-activation-flare {
   0% { opacity: 0; }
   18% { opacity: 1; }
@@ -1731,7 +1643,7 @@
   to { top: 100vh; opacity: 0; }
 }
 
-@keyframes domain-ripple {
+@keyframes theme-ripple {
   from { width: 8vmin; height: 8vmin; opacity: 0.95; }
   to { width: 145vmax; height: 145vmax; opacity: 0; }
 }
@@ -1798,11 +1710,6 @@
   100% { opacity: 0; transform: scale(1.35); }
 }
 
-@keyframes counter-return {
-  from { top: 100%; opacity: 0; }
-  15% { opacity: 1; }
-  to { top: -20vh; opacity: 0; }
-}
 
 @keyframes visual-haze-drift-a {
   from { transform: translate3d(0, 0, 0) scale(1); }

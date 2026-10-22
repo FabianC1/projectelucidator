@@ -2,16 +2,14 @@ export type ThemeId =
   | 'sao'
   | 'arise'
   | 'grimoire'
-  | 'anti-magic'
-  | 'domain-expansion'
   | 'limitless'
   | 'breathing-sun'
   | 'demon-mode'
   | 'dragon'
+  | 'tokyo-ghoul'
 
-export type ThemeTransition = 'link-start' | 'arise' | 'anti-magic' | 'domain' | 'limitless' | 'breathing-sun' | 'demon' | 'system-scan' | 'sword-skill' | 'full-counter' | 'demon-mark'
+export type ThemeTransition = 'link-start' | 'arise' | 'limitless' | 'breathing-sun' | 'demon'
 export type ThemeSignature = 'aincrad' | 'demon-mark' | 'none'
-export type ThemeFeatureDefinition = { name: string; aliases: string[]; effect: ThemeTransition; response: string[] }
 export type ThemeActivationPresentation = {
   title: string
   subtitle: string
@@ -30,10 +28,6 @@ export type ThemeSystemDefinition = {
   activationPresentation: ThemeActivationPresentation
   activationResponse: string[]
   defaultWidgetLayout?: 'free' | 'left' | 'right' | 'top' | 'bottom'
-  features?: ThemeFeatureDefinition[]
-  /** Optional local sound cue for a future user gesture based audio adapter. */
-  activationSound?: string
-  featureCommands?: string[]
 }
 
 /** Registry for command aliases, activation behavior, and theme identity UI. */
@@ -43,11 +37,7 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
     activationEffect: 'link-start', signature: 'aincrad',
     emblemAsset: './assets/emblems/link-start-crossed-swords.png',
     activationPresentation: { title: 'LINK START', subtitle: 'SWORD ART ONLINE SYSTEM', accent: '#00D8FF', secondary: '#EAFCFF' },
-    activationResponse: ['ELUCIDATOR // AINCRAD SYSTEM', 'SYSTEM LINK ............ ESTABLISHED', 'HOLO-MENU .............. SYNCHRONIZED', 'SWORD SKILLS ........... READY', 'WORLD STATE ............ STABLE'],
-    features: [
-      { name: 'system scan', aliases: ['scan'], effect: 'system-scan', response: ['AINCRAD SYSTEM SCAN', 'PLAYER SIGNATURE ....... VERIFIED', 'WORLD LAYER ........... STABLE'] },
-      { name: 'sword skill', aliases: ['sword skills', 'skill'], effect: 'sword-skill', response: ['SWORD SKILL // SONIC LEAP', 'TARGETING VECTOR ....... LOCKED', 'SKILL CONNECT .......... READY'] },
-    ],
+    activationResponse: ['ELUCIDATOR // AINCRAD SYSTEM', 'SYSTEM LINK ............ ESTABLISHED', 'HOLO-MENU .............. SYNCHRONIZED', 'WORLD STATE ............ STABLE'],
   },
   {
     id: 'arise', label: 'SOLO LEVELING / SHADOW MONARCH', command: 'arise', aliases: ['arise', 'solo leveling', 'shadow monarch'],
@@ -61,21 +51,7 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
     signature: 'none',
     emblemAsset: './assets/emblems/grimoire.png',
     activationPresentation: { title: 'GRIMOIRE', subtitle: 'BLACK CLOVER SYSTEM', accent: '#EFA048', secondary: '#FFE0A5' },
-    activationResponse: ['FIVE-LEAF GRIMOIRE DETECTED', 'CRIMSON SYSTEM .......... ONLINE', 'ANTI-MAGIC SEAL ........ STANDBY'],
-  },
-  {
-    id: 'anti-magic', label: 'BLACK CLOVER / ANTI-MAGIC', command: 'anti-magic', aliases: ['anti magic', 'anti-magic'],
-    activationEffect: 'anti-magic', signature: 'none',
-    emblemAsset: './assets/emblems/anti-magic.png',
-    activationPresentation: { title: 'ANTI-MAGIC', subtitle: 'FIVE-LEAF GRIMOIRE SYSTEM', accent: '#F43F5E', secondary: '#C4B5FD' },
-    activationResponse: ['ANTI-MAGIC RELEASE', 'DARK ENERGY PULSE ....... DISCHARGED', 'WALLPAPER FIELD ......... STABLE'],
-  },
-  {
-    id: 'domain-expansion', label: 'JUJUTSU KAISEN / DOMAIN EXPANSION', command: 'domain expansion', aliases: ['domain expansion', 'jujutsu kaisen'],
-    activationEffect: 'domain', signature: 'none',
-    emblemAsset: './assets/emblems/domain-expansion.png',
-    activationPresentation: { title: 'DOMAIN EXPANSION', subtitle: 'JUJUTSU KAISEN SYSTEM', accent: '#9B7AFF', secondary: '#67C7FF' },
-    activationResponse: ['CURSED ENERGY OUTPUT .... UNRESTRICTED', 'DOMAIN EXPANSION ........ DEPLOYED', 'SPATIAL FIELD ........... STABLE'],
+    activationResponse: ['FIVE-LEAF GRIMOIRE DETECTED', 'GRIMOIRE INTERFACE ...... ONLINE', 'MAGIC SIGNATURE ......... RESONANT'],
   },
   {
     id: 'limitless', label: 'JUJUTSU KAISEN / LIMITLESS', command: 'limitless', aliases: ['limitless'],
@@ -97,10 +73,6 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
     emblemAsset: './assets/emblems/dragon-sin-of-wrath.png',
     activationPresentation: { title: 'DEMON MODE', subtitle: 'DRAGON SIN OF WRATH', accent: '#A879FF', secondary: '#E7C65A' },
     activationResponse: ['SEVEN DEADLY SINS // DEMON MODE', 'DEMON MARK ............. DETECTED', 'DARK ENERGY ............ AWAKENING', 'MAGIC POWER ............ UNRESTRICTED', 'MELIODAS PROTOCOL ...... ACTIVE'],
-    features: [
-      { name: 'demon mark surge', aliases: ['mark', 'mark surge'], effect: 'demon-mark', response: ['DEMON MARK // SURGE', 'DARK ENERGY ............ RELEASED', 'MAGIC OUTPUT ........... RISING'] },
-      { name: 'full counter', aliases: ['counter'], effect: 'full-counter', response: ['FULL COUNTER', 'INCOMING FORCE ........ REFLECTED', 'RETURN WAVE ........... RELEASED'] },
-    ],
   },
   {
     id: 'dragon', label: 'HTTYD / NIGHT FURY', command: 'httyd', aliases: ['httyd', 'night fury', 'toothless', 'dragon'],
@@ -109,16 +81,22 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
     activationPresentation: { title: 'HTTYD', subtitle: 'NIGHT FURY SYSTEM', accent: '#70E8FF', secondary: '#5265D8' },
     activationResponse: ['NIGHT FURY', 'ELUCIDATOR // TOOTHLESS PROTOCOL', 'PLASMA CORE ............ STANDBY', 'NIGHT FURY SIGNATURE ... DETECTED'],
   },
+  {
+    id: 'tokyo-ghoul', label: 'TOKYO GHOUL / ONE-EYED KING', command: 'tokyo ghoul', aliases: ['tokyo ghoul', 'tokyo-ghoul', 'kaneki'],
+    signature: 'none',
+    emblemAsset: './assets/emblems/tokyo-ghoul.png',
+    activationPresentation: { title: 'TOKYO GHOUL', subtitle: 'ONE-EYED KING SYSTEM', accent: '#E53946', secondary: '#E8E8ED' },
+    activationResponse: ['TOKYO GHOUL PROTOCOL', 'RC SIGNATURE ........... DETECTED', 'ONE-EYED KING .......... ONLINE', 'SYSTEM COLOR ........... CRIMSON / WHITE'],
+  },
 ]
 
 /** Identity for the persistent stealth mode, separate from the selected anime theme. */
 export const STEALTH_PRESENTATION = {
-  emblemAsset: './assets/emblems/stealth.png',
   title: 'STEALTH',
   subtitle: 'TACTICAL OPERATIONS SYSTEM',
   accent: '#D7DEE8',
   secondary: '#8993A3',
-} satisfies ThemeActivationPresentation & { emblemAsset: string }
+} satisfies ThemeActivationPresentation
 
 export function resolveThemeId(input: string): ThemeId | null {
   const value = input.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
