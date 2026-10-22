@@ -1773,7 +1773,7 @@ function App() {
       </aside>
 
       <section
-        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${themeSignature === 'aincrad' && specialEffect?.kind === 'link-start' ? ' sao-starting' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}${theme === 'demon-mode' ? ' demon-mode-console' : ''}${theme === 'dragon' ? ' night-fury-console' : ''}${theme === 'tokyo-ghoul' ? ' tokyo-ghoul-console' : ''}${consoleEntryClass}`}
+        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${themeSignature === 'aincrad' && consoleEntry?.theme === 'sao' ? ' sao-starting' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}${theme === 'demon-mode' ? ' demon-mode-console' : ''}${theme === 'dragon' ? ' night-fury-console' : ''}${theme === 'tokyo-ghoul' ? ' tokyo-ghoul-console' : ''}${consoleEntryClass}`}
         aria-label="Elucidator system console"
         style={consoleFrame ? {
           left: consoleFrame.x,
