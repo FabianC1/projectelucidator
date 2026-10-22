@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
-import { changeBrightness, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, saveBrightnessToken, type BrightnessMonitor } from './brightnessBridge'
+import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, saveBrightnessToken, type BrightnessMonitor } from './brightnessBridge'
 import './App.css'
 
 declare global {
@@ -327,6 +327,7 @@ function App() {
   const [bootToken, setBootToken] = useState(0)
   const [command, setCommand] = useState('')
   const [brightnessToken, setBrightnessToken] = useState(getBrightnessToken)
+  const [brightnessHelperOnline, setBrightnessHelperOnline] = useState(false)
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
   const [mode, setMode] = useState<SystemMode>('NORMAL')
   const [theme, setTheme] = useState<ThemeId>('sao')
@@ -394,6 +395,25 @@ function App() {
   } as CSSProperties
   const clockZone = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop()?.replaceAll('_', ' ') ?? 'LOCAL TIME'
   const animeStatus = THEME_STATUS[theme]
+
+  useEffect(() => {
+    let active = true
+    const refreshHealth = async () => {
+      const online = await checkBrightnessHelperHealth()
+      if (active) setBrightnessHelperOnline(online)
+    }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refreshHealth()
+    }
+    void refreshHealth()
+    const timer = window.setInterval(() => void refreshHealth(), 10000)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -937,6 +957,7 @@ function App() {
         `USER SESSION ........... ACTIVE · ${formatUptime((Date.now() - sessionStartedAt.current) / 1000)}`,
         `OPERATING MODE ......... ${mode}`,
         'HARDWARE TELEMETRY ...... ' + hardwareStatusLabel(hardwareFeed.status),
+        `WINDOWS BRIDGE .......... ${brightnessHelperOnline ? (brightnessToken ? 'ONLINE · PAIRED' : 'ONLINE · NOT PAIRED') : 'OFFLINE'}`,
         'ALL SYSTEMS OPERATIONAL.',
       ])
       setStatus('SYSTEM STATUS: NOMINAL')

@@ -296,6 +296,10 @@ function Handle-Client {
   } finally { $Client.Close() }
 }
 
+$serverMutex = [System.Threading.Mutex]::new($false, 'Local\ProjectElucidatorDdcServer')
+$ownsServerMutex = $false
+try { $ownsServerMutex = $serverMutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $ownsServerMutex = $true }
+if (-not $ownsServerMutex) { $serverMutex.Dispose(); exit 0 }
 $listener = New-Object System.Net.Sockets.TcpListener([Net.IPAddress]::Loopback, $Port)
 try {
   $listener.Start()
@@ -305,4 +309,6 @@ try {
   }
 } finally {
   $listener.Stop()
+  try { $serverMutex.ReleaseMutex() } catch { }
+  $serverMutex.Dispose()
 }

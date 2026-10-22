@@ -13,6 +13,17 @@ type LockResponse = { ok: boolean; message: string }
 const HELPER_URL = 'http://127.0.0.1:17384'
 export const BRIGHTNESS_TOKEN_KEY = 'project-elucidator-brightness-token'
 
+export async function checkBrightnessHelperHealth() {
+  try {
+    const response = await fetch(`${HELPER_URL}/health`, { cache: 'no-store' })
+    if (!response.ok) return false
+    const health = await response.json() as { available?: boolean }
+    return health.available === true
+  } catch {
+    return false
+  }
+}
+
 export function getBrightnessToken() {
   try { return localStorage.getItem(BRIGHTNESS_TOKEN_KEY) ?? '' } catch { return '' }
 }

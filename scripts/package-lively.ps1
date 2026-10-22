@@ -20,6 +20,7 @@ Write-Output "Created $archivePath with LivelyInfo.json at the archive root."
 
 $helperFiles = @(
   (Join-Path $PSScriptRoot 'brightness-helper.ps1'),
+  (Join-Path $PSScriptRoot 'brightness-watchdog.ps1'),
   (Join-Path $PSScriptRoot 'install-brightness-helper.ps1'),
   (Join-Path $PSScriptRoot 'uninstall-brightness-helper.ps1')
 )
