@@ -1798,6 +1798,90 @@
 .sao-console.sao-starting .console-output > p { opacity: 0; animation: sao-console-details-on 280ms ease-out 560ms both; }
 .sao-console.sao-starting .command-line { animation: sao-console-details-on 300ms ease-out 720ms both; }
 
+/* Each command console gets a short, theme-specific entrance on theme changes. */
+.console-entering .console-output > p { opacity: 0; }
+.console-entering .command-line { animation: console-input-settle 420ms ease-out 180ms both; }
+
+.console-entering-arise .console-theme-signature { animation: console-shadow-rise 760ms cubic-bezier(.18,.7,.25,1) both; }
+.console-entering-arise .console-output > p { animation: console-shadow-line 480ms ease-out both; }
+.console-entering-arise .console-output > p:nth-child(2) { animation-delay: 110ms; }
+.console-entering-arise .console-output > p:nth-child(3) { animation-delay: 190ms; }
+.console-entering-arise .console-output > p:nth-child(n+4) { animation-delay: 270ms; }
+
+.console-entering-grimoire .grimoire-console-emblem { clip-path: inset(100% 0 0); animation: console-leaf-reveal 720ms cubic-bezier(.2,.65,.25,1) both; }
+.console-entering-grimoire .grimoire-console-title,
+.console-entering-grimoire .grimoire-console-mark { opacity: 0; animation: console-book-title 460ms ease-out 260ms both; }
+.console-entering-grimoire .grimoire-header-underline { opacity: 0; animation: console-book-engrave 580ms ease-out 330ms both; }
+.console-entering-grimoire .console-output > p { animation: console-book-line 460ms ease-out both; }
+.console-entering-grimoire .console-output > p:nth-child(2) { animation-delay: 180ms; }
+.console-entering-grimoire .console-output > p:nth-child(n+3) { animation-delay: 300ms; }
+
+.console-entering-limitless .limitless-frame-outer,
+.console-entering-limitless .limitless-frame-inner { animation: console-space-focus 700ms ease-out both; }
+.console-entering-limitless .limitless-frame-arcs { animation: console-orbit-settle 820ms cubic-bezier(.2,.65,.25,1) both; }
+.console-entering-limitless .limitless-console-emblem { animation: console-infinity-focus 680ms cubic-bezier(.2,.7,.2,1) both; }
+.console-entering-limitless .limitless-header-underline { animation: console-orbit-settle 720ms ease-out 100ms both; }
+.console-entering-limitless .console-output > p { animation: console-space-line 460ms ease-out both; }
+.console-entering-limitless .console-output > p:nth-child(2) { animation-delay: 120ms; }
+.console-entering-limitless .console-output > p:nth-child(n+3) { animation-delay: 230ms; }
+
+.console-entering-breathing-sun .hinokami-console-sword { clip-path: inset(0 100% 0 0); animation: console-katana-draw 660ms cubic-bezier(.18,.7,.23,1) both; }
+.console-entering-breathing-sun .hinokami-console-title { opacity: 0; animation: console-sun-title 460ms ease-out 240ms both; }
+.console-entering-breathing-sun .hinokami-console-flame { clip-path: inset(0 100% 0 0); animation: console-flame-unfurl 720ms ease-out 120ms both; }
+.console-entering-breathing-sun .console-output > p { animation: console-sun-line 420ms ease-out both; }
+.console-entering-breathing-sun .console-output > p:nth-child(2) { animation-delay: 140ms; }
+.console-entering-breathing-sun .console-output > p:nth-child(n+3) { animation-delay: 250ms; }
+
+.console-entering-demon-mode .demon-console-emblem { animation: console-demon-mark 720ms ease-out both; }
+.console-entering-demon-mode .demon-console-title { clip-path: inset(0 100% 0 0); animation: console-demon-title 620ms cubic-bezier(.18,.7,.23,1) both; }
+.console-entering-demon-mode .demon-header-underline { animation: console-gold-seal 700ms ease-out 120ms both; }
+.console-entering-demon-mode .console-output > p { animation: console-demon-line 480ms ease-out both; }
+.console-entering-demon-mode .console-output > p:nth-child(2) { animation-delay: 110ms; }
+.console-entering-demon-mode .console-output > p:nth-child(n+3) { animation-delay: 220ms; }
+
+.console-entering-dragon .night-fury-header-emblem,
+.console-entering-dragon .night-fury-header-title { opacity: 0; animation: console-stealth-emerge 600ms ease-out both; }
+.console-entering-dragon .night-fury-header-tail { filter: brightness(.55); animation: console-plasma-link 900ms ease-out 150ms both; }
+.console-entering-dragon .console-output > p { animation: console-stealth-line 420ms ease-out both; }
+.console-entering-dragon .console-output > p:nth-child(2) { animation-delay: 150ms; }
+.console-entering-dragon .console-output > p:nth-child(n+3) { animation-delay: 260ms; }
+
+.console-entering-tokyo-ghoul .console-theme-signature { animation: console-rc-signal 680ms steps(1, end) both; }
+.console-entering-tokyo-ghoul .console-output > p { animation: console-kagune-line 430ms ease-out both; }
+.console-entering-tokyo-ghoul .console-output > p:nth-child(2) { animation-delay: 120ms; }
+.console-entering-tokyo-ghoul .console-output > p:nth-child(n+3) { animation-delay: 240ms; }
+
+@keyframes console-input-settle { from { opacity: .35; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes console-shadow-rise { from { opacity: .2; transform: translateY(7px); filter: brightness(.55); } to { opacity: 1; transform: translateY(0); filter: brightness(1); } }
+@keyframes console-shadow-line { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes console-leaf-reveal { from { clip-path: inset(100% 0 0); filter: brightness(.7); } to { clip-path: inset(0); filter: brightness(1); } }
+@keyframes console-book-title { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes console-book-engrave { from { opacity: 0; filter: brightness(.55); } to { opacity: 1; filter: brightness(1); } }
+@keyframes console-book-line { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes console-space-focus { 0% { opacity: .25; } 65% { opacity: 1; filter: drop-shadow(0 0 5px rgb(65 145 255 / 52%)); } 100% { opacity: 1; filter: none; } }
+@keyframes console-orbit-settle { from { opacity: .25; } 45% { opacity: 1; filter: drop-shadow(0 0 5px rgb(100 120 255 / 48%)); } to { opacity: 1; filter: none; } }
+@keyframes console-infinity-focus { from { opacity: .3; filter: blur(2px); } 70% { opacity: 1; filter: drop-shadow(0 0 8px rgb(76 177 255 / 65%)); } to { opacity: 1; filter: drop-shadow(0 0 5px rgb(45 164 255 / 28%)); } }
+@keyframes console-katana-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes console-sun-title { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes console-flame-unfurl { from { clip-path: inset(0 100% 0 0); filter: brightness(1.3); } to { clip-path: inset(0); filter: brightness(1); } }
+@keyframes console-sun-line { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes console-demon-mark { 0% { filter: brightness(.65) drop-shadow(0 0 0 rgb(173 111 255 / 0%)); } 58% { filter: brightness(1.22) drop-shadow(0 0 9px rgb(173 111 255 / 68%)); } 100% { filter: brightness(1) drop-shadow(0 0 6px rgb(231 198 90 / 24%)); } }
+@keyframes console-demon-title { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes console-gold-seal { 0% { opacity: .35; filter: brightness(.6); } 55% { opacity: 1; filter: brightness(1.45) drop-shadow(0 0 5px rgb(231 198 90 / 45%)); } 100% { opacity: 1; filter: none; } }
+@keyframes console-demon-line { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes console-stealth-emerge { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes console-plasma-link { 0% { filter: brightness(.5); } 55% { filter: brightness(1.45) drop-shadow(0 0 4px rgb(69 216 255 / 55%)); } 100% { filter: brightness(1); } }
+@keyframes console-stealth-line { from { opacity: 0; transform: translateX(3px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes console-rc-signal { 0%, 28%, 48% { opacity: .2; filter: saturate(.5); } 18%, 38%, 68%, 100% { opacity: 1; filter: saturate(1.2); } }
+@keyframes console-kagune-line { from { opacity: 0; transform: translateX(-3px); } to { opacity: 1; transform: translateX(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .console-entering,
+  .console-entering *,
+  .sao-console.sao-starting,
+  .sao-console.sao-starting * { animation-duration: .01ms !important; animation-delay: 0ms !important; }
+}
+
 /* Grimoire console: engraved book-cover frame and restrained seal awakening. */
 .command-console.grimoire-console {
   box-sizing: border-box;
@@ -2483,7 +2567,7 @@
 .hinokami-warmth { position: absolute; inset: 0; background: radial-gradient(ellipse at 51% 48%, rgb(143 57 24 / 13%), transparent 55%); opacity: 0; animation: hinokami-warmth 1.8s ease both; }
 .hinokami-arc { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .hinokami-arc path { fill: none; stroke: rgb(212 137 51 / 48%); stroke-width: 1.5px; stroke-dasharray: 720; stroke-dashoffset: 720; filter: drop-shadow(0 0 3px rgb(213 134 43 / 24%)); animation: hinokami-arc-draw 1.8s ease both; }
-.hinokami-activating .hinokami-console,
+.hinokami-activating .hinokami-console { z-index: 3; opacity: 1; pointer-events: auto; }
 .hinokami-activating .system-widgets { opacity: 0; pointer-events: none; transition: opacity 180ms ease; }
 .hinokami-activation-sword { position: absolute; z-index: 2; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
 .hinokami-fireblade-wrap { position: absolute; z-index: 2; top: 43%; left: var(--activation-center-x); width: min(84vw, 110rem, 170vh); aspect-ratio: 2.7; opacity: 0; clip-path: inset(0 100% 0 0); transform: translate(-53%, -51%); animation: hinokami-sword-reveal 1.55s ease-out 250ms both; }

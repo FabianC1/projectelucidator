@@ -412,6 +412,7 @@ function App() {
     }
   })
   const [specialEffect, setSpecialEffect] = useState<SpecialEffect | null>(null)
+  const [consoleEntry, setConsoleEntry] = useState<{ theme: ThemeId; id: number } | null>(null)
   const [nightStealth, setNightStealth] = useState(false)
   const [hardwareFeed, setHardwareFeed] = useState<HardwareFeed>({ status: 'waiting', readings: null, updatedAt: null })
   const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(null)
@@ -716,6 +717,12 @@ function App() {
   }, [specialEffect])
 
   useEffect(() => {
+    if (!consoleEntry) return
+    const timer = window.setTimeout(() => setConsoleEntry(null), 1150)
+    return () => window.clearTimeout(timer)
+  }, [consoleEntry])
+
+  useEffect(() => {
     try {
       if (consoleFrame) localStorage.setItem(CONSOLE_FRAME_KEY, JSON.stringify(consoleFrame))
     } catch { /* The default position remains usable without storage. */ }
@@ -837,6 +844,12 @@ function App() {
 
     const args = normalized.replace(/^sys\s*/, '').split(' ').filter(Boolean)
     const [domain, action] = args
+    const activateTheme = (nextTheme: ThemeId, effect: SpecialEffect['kind']) => {
+      const isThemeChange = theme !== nextTheme
+      setTheme(nextTheme)
+      if (isThemeChange) setConsoleEntry({ theme: nextTheme, id: ++effectIdRef.current })
+      setSpecialEffect({ kind: effect, id: ++effectIdRef.current })
+    }
 
     if (domain === 'lock' && args.length === 1) {
       if (!brightnessToken) {
@@ -980,8 +993,10 @@ function App() {
         report(['THEME ACTIVATION ERROR', 'USE SYS THEME ACTIVATE <THEME>', 'RUN SYS THEME LIST TO VIEW AVAILABLE SYSTEMS.'])
         setStatus('THEME ACTIVATION COMMAND INVALID')
       } else {
+        const isThemeChange = theme !== selectedSystem.id
         setTheme(selectedSystem.id)
         setNightStealth(false)
+        if (isThemeChange) setConsoleEntry({ theme: selectedSystem.id, id: ++effectIdRef.current })
         setSpecialEffect(selectedSystem.activationEffect
           ? { kind: selectedSystem.activationEffect, id: ++effectIdRef.current }
           : { kind: 'theme-activation', id: ++effectIdRef.current })
@@ -993,13 +1008,12 @@ function App() {
       report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
-      setTheme('dragon')
+      activateTheme('dragon', 'night-fury-stealth')
       setNightStealth(false)
-      setSpecialEffect({ kind: 'night-fury-stealth', id: ++effectIdRef.current })
       report(['NIGHT FURY SYSTEM', 'ALPHA SIGNATURE ......... LINKED', 'PLASMA CORE ............. STANDBY', 'FLIGHT PROTOCOL .......... READY'])
       setStatus('NIGHT FURY PROTOCOL ACTIVATED')
     } else if (domain === 'stealth' && args.length === 1) {
-      setTheme('dragon')
+      activateTheme('dragon', 'night-fury-stealth')
       const activate = !nightStealth
       setNightStealth(activate)
       report(activate
@@ -1008,46 +1022,39 @@ function App() {
       setStatus(activate ? 'NIGHT FURY STEALTH ENGAGED' : 'NIGHT FURY STEALTH DISENGAGED')
     } else if (domain === 'grimoire' && args.length === 1) {
       setNightStealth(false)
-      setTheme('grimoire')
-      setSpecialEffect({ kind: 'grimoire', id: ++effectIdRef.current })
+      activateTheme('grimoire', 'grimoire')
       report(['FIVE-LEAF GRIMOIRE DETECTED', 'CRIMSON SYSTEM .......... ONLINE', 'GRIMOIRE INTERFACE ...... READY'])
       setStatus('GRIMOIRE PROTOCOL ACTIVATED')
     } else if (domain === 'limitless' && args.length === 1) {
       setNightStealth(false)
-      setTheme('limitless')
-      setSpecialEffect({ kind: 'limitless', id: ++effectIdRef.current })
+      activateTheme('limitless', 'limitless')
       report(['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ....... ACTIVE', 'INFINITY FIELD .......... STABLE'])
       setStatus('LIMITLESS PROTOCOL ACTIVATED')
     } else if (domain === 'hinokami' && action === 'kagura' && args.length === 2) {
       setNightStealth(false)
-      setTheme('breathing-sun')
-      setSpecialEffect({ kind: 'breathing-sun', id: ++effectIdRef.current })
+      activateTheme('breathing-sun', 'breathing-sun')
       report(['HINOKAMI KAGURA', 'SUN BREATHING .......... IGNITED', 'NICHIRIN BLADE ......... READY'])
       setStatus('HINOKAMI KAGURA ACTIVATED')
     } else if (domain === 'demon' && action === 'mode' && args.length === 2) {
       setNightStealth(false)
-      setTheme('demon-mode')
-      setSpecialEffect({ kind: 'demon', id: ++effectIdRef.current })
+      activateTheme('demon-mode', 'demon')
       report(THEME_SYSTEMS.find((system) => system.id === 'demon-mode')?.activationResponse ?? ['DEMON MODE ACTIVATED'])
       setStatus('DEMON MODE AWAKENED')
     } else if (domain === 'arise' && args.length === 1) {
       setNightStealth(false)
-      setTheme('arise')
-      setSpecialEffect({ kind: 'arise', id: ++effectIdRef.current })
+      activateTheme('arise', 'arise')
       report(['SHADOW PROTOCOL // ARISE', 'PURPLE INTERFACE ........ ACTIVE', 'THEME SAVED TO LOCAL SYSTEM.'])
       setStatus('ARISE THEME ACTIVATED')
     } else if (domain === 'kagune' && args.length === 1) {
       const tokyoGhoul = THEME_SYSTEMS.find((system) => system.id === 'tokyo-ghoul')
       if (tokyoGhoul) {
         setNightStealth(false)
-        setTheme(tokyoGhoul.id)
-        setSpecialEffect({ kind: 'tokyo-ghoul', id: ++effectIdRef.current })
+        activateTheme(tokyoGhoul.id, 'tokyo-ghoul')
         report(tokyoGhoul.activationResponse)
         setStatus('KAGUNE PROTOCOL ACTIVATED')
       }
     } else if (domain === 'link' && action === 'start' && args.length === 2) {
-      setTheme('sao')
-      setSpecialEffect({ kind: 'link-start', id: ++effectIdRef.current })
+      activateTheme('sao', 'link-start')
       setNightStealth(false)
       report(THEME_SYSTEMS.find((system) => system.id === 'sao')?.activationResponse ?? ['SYSTEM LINK ESTABLISHED'])
       setStatus('SYSTEM LINK STARTED')
@@ -1516,6 +1523,8 @@ function App() {
     if (event.animationName === 'decode-wallpaper') setRevealComplete(true)
   }
 
+  const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
+
   return (
     <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`}>
       {wallpaperUrl && (
@@ -1764,7 +1773,7 @@ function App() {
       </aside>
 
       <section
-        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${themeSignature === 'aincrad' && specialEffect?.kind === 'link-start' ? ' sao-starting' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}${theme === 'demon-mode' ? ' demon-mode-console' : ''}${theme === 'dragon' ? ' night-fury-console' : ''}`}
+        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${themeSignature === 'aincrad' && specialEffect?.kind === 'link-start' ? ' sao-starting' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}${theme === 'demon-mode' ? ' demon-mode-console' : ''}${theme === 'dragon' ? ' night-fury-console' : ''}${theme === 'tokyo-ghoul' ? ' tokyo-ghoul-console' : ''}${consoleEntryClass}`}
         aria-label="Elucidator system console"
         style={consoleFrame ? {
           left: consoleFrame.x,
