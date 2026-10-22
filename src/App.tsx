@@ -1867,19 +1867,19 @@ function App() {
             <svg className="hinokami-frame-ornaments" viewBox="0 0 1000 460" preserveAspectRatio="none" aria-hidden="true">
               <path className="hinokami-frame-outer" d="M18 4H982V456H18Z" />
               <path className="hinokami-frame-inner" d="M24 10H976V450H24Z" />
-              <path className="hinokami-frame-rule" d="M24 376H976" />
               <path className="hinokami-checks" d="M38 34h13v13H38zM51 47h13v13H51zM38 60h13v13H38zM51 73h13v13H51zM38 86h13v13H38zM51 99h13v13H51zM38 112h13v13H38zM51 125h13v13H51zM38 138h13v13H38zM51 151h13v13H51zM38 164h13v13H38zM51 177h13v13H51zM38 190h13v13H38zM51 203h13v13H51zM38 216h13v13H38zM51 229h13v13H51z" />
               <path className="hinokami-checks-dark" d="M51 34h13v13H51zM38 47h13v13H38zM51 60h13v13H51zM38 73h13v13H38zM51 86h13v13H51zM38 99h13v13H38zM51 112h13v13H51zM38 125h13v13H38zM51 138h13v13H51zM38 151h13v13H38zM51 164h13v13H51zM38 177h13v13H38zM51 190h13v13H51zM38 203h13v13H38zM51 216h13v13H51zM38 229h13v13H38z" />
               <path className="hinokami-checks right" d="M949 18h10v10h-10zM959 28h10v10h-10zM949 38h10v10h-10zM959 48h10v10h-10z" />
             </svg>
             <header className="hinokami-console-header" onPointerDown={startConsoleDrag}>
-              <img className="hinokami-console-sword" src={SUN_BREATHING_KATANA} alt="Nichirin katana" />
-              <span className="hinokami-console-title"><strong>HINOKAMI KAGURA</strong><small>DEMON SLAYER // TANJIRO KAMADO</small></span>
-              <svg className="hinokami-header-underline" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
-                <path className="hinokami-underline-ivory" d="M30 35H970" />
-                <path className="hinokami-underline-flame" transform="translate(0 12) scale(1 .76)" d="M30 52C55 50 65 57 85 53C99 50 101 41 109 43C117 45 108 52 127 51C146 50 151 56 172 52C188 49 191 38 199 41C207 44 195 50 219 50C240 50 247 57 268 52C285 48 289 40 297 43C304 46 293 52 315 52C338 52 345 57 367 52C386 48 390 39 398 42C407 45 396 51 419 51C438 51 449 57 469 52C487 48 493 39 501 42C510 45 497 52 520 51C541 50 550 57 572 53C590 49 594 40 602 43C610 46 599 53 623 52C644 51 653 57 675 53C694 49 699 40 708 43C716 46 704 52 729 51C749 50 759 58 780 53C799 49 803 40 812 43C821 46 809 52 833 51C854 50 864 57 887 52C910 49 927 52 970 50L970 82C946 83 936 76 920 80C903 84 896 91 888 86C879 82 891 76 869 77C848 78 841 85 819 81C801 78 796 71 788 75C780 79 793 84 771 84C750 84 742 77 722 81C703 85 699 92 690 87C682 82 694 76 672 77C650 78 642 86 622 82C603 79 599 71 590 75C582 79 595 84 572 85C550 85 543 77 521 81C502 85 499 92 490 87C482 83 494 77 472 77C450 77 443 85 421 82C401 79 397 71 388 75C380 79 394 85 371 85C350 85 342 77 321 81C302 84 298 92 290 87C282 82 294 76 271 77C250 78 243 86 222 82C202 78 197 71 188 75C180 79 194 85 171 85C150 85 142 77 121 81C101 85 96 91 88 86C80 81 92 76 70 77C54 78 44 83 30 81Z" />
-                <path className="hinokami-flame-gaps" transform="translate(0 12) scale(1 .76)" d="M142 52C148 52 150 58 154 66C145 62 142 58 142 52ZM344 52C351 51 354 57 359 65C350 62 346 58 344 52ZM560 52C567 51 571 57 575 65C566 62 562 58 560 52ZM770 52C777 51 781 57 785 65C776 62 772 58 770 52Z" />
-              </svg>
+              <div className="hinokami-header-main">
+                <img className="hinokami-console-sword" src={SUN_BREATHING_KATANA} alt="Nichirin katana" />
+                <span className="hinokami-console-title"><strong>HINOKAMI KAGURA</strong><small>DEMON SLAYER // TANJIRO KAMADO</small></span>
+                <svg className="hinokami-header-underline" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
+                  <path className="hinokami-underline-ivory" d="M0 90H1000" />
+                </svg>
+              </div>
+              <img className="hinokami-console-flame" src="./assets/emblems/flame-short-trimmed.png" alt="" aria-hidden="true" />
             </header>
             <svg className="hinokami-hanafuda" viewBox="0 0 80 130" aria-hidden="true">
               <rect x="3" y="3" width="74" height="124" />
