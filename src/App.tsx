@@ -463,9 +463,6 @@ function App() {
   const activePresentation: ThemeActivationPresentation = stealthIdentity
     ? STEALTH_PRESENTATION
     : activeThemeSystem?.activationPresentation ?? STEALTH_PRESENTATION
-  const activationLines = stealthIdentity
-    ? ['SIGNATURE .............. SUPPRESSED', 'LOW-LIGHT PROFILE ...... ACTIVE', 'SYSTEM READY ........... STEALTH']
-    : activeThemeSystem?.activationResponse.slice(1, 4) ?? []
   const activationStyle = {
     '--activation-accent': activePresentation.accent,
     '--activation-secondary': activePresentation.secondary,
@@ -946,7 +943,7 @@ function App() {
       } else if (defaultAction === 'select' && args.length === 3) {
         report([
           'SELECT STARTUP SYSTEM THEME',
-          ...THEME_CHOICES.map((choice, index) => `${String(index + 1).padStart(2, '0')} · ${choice.label} · ${choice.command.toUpperCase()}${choice.id === defaultTheme ? ' · CURRENT DEFAULT' : ''}`),
+          ...THEME_CHOICES.map((choice, index) => String(index + 1).padStart(2, '0') + ' · ' + choice.label + (choice.status === 'wip' ? ' · WIP' : '') + ' · ' + choice.command.toUpperCase() + (choice.id === defaultTheme ? ' · CURRENT DEFAULT' : '')),
           'SET ONE · SYS THEME DEFAULT SELECT <NUMBER OR THEME NAME>',
         ])
         setStatus('CHOOSE A SAVED STARTUP THEME')
@@ -968,7 +965,10 @@ function App() {
         setStatus(defaultTheme ? `STARTUP THEME · ${defaultTheme.toUpperCase()}` : 'NO CUSTOM STARTUP THEME')
       }
     } else if (domain === 'theme' && action === 'list' && args.length === 2) {
-      report(['ELUCIDATOR THEMES', ...THEME_SYSTEMS.map((system) => (system.id === theme ? 'ACTIVE' : 'READY') + ' · ' + system.label + ' · SYS THEME ACTIVATE ' + system.command.toUpperCase()), 'SELECT A THEME WITH ITS SYS COMMAND OR SYS THEME ACTIVATE.'])
+      report(['ELUCIDATOR THEMES', ...THEME_SYSTEMS.map((system) => {
+        const state = system.id === theme ? (system.status === 'wip' ? 'ACTIVE · WIP' : 'ACTIVE') : system.status.toUpperCase()
+        return state + ' · ' + system.label + ' · SYS THEME ACTIVATE ' + system.command.toUpperCase()
+      }), 'SELECT A THEME WITH ITS SYS COMMAND OR SYS THEME ACTIVATE.'])
       setStatus(`${THEME_SYSTEMS.length} THEME SYSTEMS REGISTERED`)
     } else if (domain === 'theme' && action === 'activate') {
       const selectedId = resolveThemeId(args.slice(2).join(' '))
@@ -992,14 +992,14 @@ function App() {
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
       setNightStealth(false)
-      setSpecialEffect({ kind: 'theme-activation', id: ++effectIdRef.current })
+      setSpecialEffect({ kind: 'night-fury-stealth', id: ++effectIdRef.current })
       report(['NIGHT FURY', 'ELUCIDATOR // TOOTHLESS PROTOCOL', 'ONLINE', 'PLASMA CORE // STANDBY', 'NIGHT FURY SIGNATURE DETECTED'])
       setStatus('NIGHT FURY PROTOCOL ACTIVATED')
     } else if (domain === 'stealth' && args.length === 1) {
       setTheme('dragon')
       const activate = !nightStealth
       setNightStealth(activate)
-      setSpecialEffect({ kind: 'theme-activation', id: ++effectIdRef.current })
+      setSpecialEffect({ kind: 'night-fury-stealth', id: ++effectIdRef.current })
       report(activate
         ? ['NIGHT FURY STEALTH', 'SIGNATURE .............. SUPPRESSED', 'LOW-LIGHT PROFILE ...... ACTIVE', 'WIDGET ARRAY ........... HIDDEN · CLICK COMMAND INPUT TO RESTORE']
         : ['NIGHT FURY STEALTH', 'SIGNATURE .............. RESTORED', 'WIDGET ARRAY ........... ONLINE'])
@@ -1007,7 +1007,7 @@ function App() {
     } else if (domain === 'grimoire' && args.length === 1) {
       setNightStealth(false)
       setTheme('grimoire')
-      setSpecialEffect({ kind: 'theme-activation', id: ++effectIdRef.current })
+      setSpecialEffect({ kind: 'grimoire', id: ++effectIdRef.current })
       report(['FIVE-LEAF GRIMOIRE DETECTED', 'CRIMSON SYSTEM .......... ONLINE', 'GRIMOIRE INTERFACE ...... READY'])
       setStatus('GRIMOIRE PROTOCOL ACTIVATED')
     } else if (domain === 'limitless' && args.length === 1) {
@@ -1039,7 +1039,7 @@ function App() {
       if (tokyoGhoul) {
         setNightStealth(false)
         setTheme(tokyoGhoul.id)
-        setSpecialEffect({ kind: 'theme-activation', id: ++effectIdRef.current })
+        setSpecialEffect({ kind: 'tokyo-ghoul', id: ++effectIdRef.current })
         report(tokyoGhoul.activationResponse)
         setStatus('TOKYO GHOUL SYSTEM ACTIVATED')
       }
@@ -1551,22 +1551,14 @@ function App() {
               <span>DEMON MARK // MAGIC POWER UNRESTRICTED</span>
             </div>
           )}
-          {['theme-activation', 'arise', 'limitless', 'breathing-sun'].includes(specialEffect.kind) && (
-            <div className="theme-activation-card" style={activationStyle}>
+          {['theme-activation', 'arise', 'grimoire', 'limitless', 'breathing-sun', 'night-fury-stealth', 'tokyo-ghoul'].includes(specialEffect.kind) && (
+            <div className={`theme-emblem-activation activation-${theme}`} style={activationStyle}>
               <ThemeEmblem
-                className="theme-activation-emblem theme-emblem-image"
+                className="theme-emblem-activation-image theme-emblem-image"
                 src={activeThemeSystem?.emblemAsset ?? './assets/emblems/tokyo-ghoul.png'}
                 title={activePresentation.title}
               />
-              <div className="theme-activation-copy">
-                <small>ELUCIDATOR // SYSTEM INITIALISING</small>
-                <strong>{activePresentation.title}</strong>
-                <span>{activePresentation.subtitle}</span>
-                <div className="theme-activation-progress"><i /></div>
-                <div className="theme-activation-lines">
-                  {activationLines.map((line) => <p key={line}>{line}</p>)}
-                </div>
-              </div>
+              <span>{stealthIdentity ? activePresentation.title : activeThemeSystem?.activationPresentation.title ?? activePresentation.title}</span>
             </div>
           )}
         </div>
@@ -1775,6 +1767,7 @@ function App() {
             onClick={() => {
               if (!nightStealth) return
               setNightStealth(false)
+              setSpecialEffect({ kind: 'night-fury-stealth', id: ++effectIdRef.current })
               report(['NIGHT FURY STEALTH', 'COMMAND INPUT CONFIRMED', 'WIDGET ARRAY ........... RESTORED'])
               setStatus('NIGHT FURY STEALTH DISENGAGED')
             }}

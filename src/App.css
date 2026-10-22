@@ -1428,11 +1428,10 @@
 }
 
 .effect-arise {
-  background: radial-gradient(ellipse at 50% 52%, rgb(143 66 255 / 27%), rgb(86 25 173 / 12%) 25%, transparent 66%);
+  background: radial-gradient(ellipse at 50% 72%, rgb(97 35 173 / 26%), rgb(38 12 69 / 12%) 32%, transparent 68%);
   animation: theme-activation-flare 1.7s ease-out both;
 }
 
-.effect-arise::before,
 .effect-link-start::before {
   position: absolute;
   top: 50%;
@@ -1446,16 +1445,14 @@
   animation: theme-activation-ring 1.55s cubic-bezier(.14,.64,.28,1) both;
 }
 
-.effect-arise::before {
-  color: rgb(207 155 255 / 88%);
-  box-shadow: 0 0 22px rgb(158 78 255 / 42%), inset 0 0 20px rgb(147 67 245 / 28%);
-}
-
 .effect-arise::after {
   position: absolute;
-  inset: -30% 0 auto;
-  height: 45%;
-  background: linear-gradient(180deg, transparent, rgb(142 76 255 / 4%) 58%, rgb(212 172 255 / 48%) 98%, transparent);
+  top: -35vh;
+  left: calc(50% - 1px);
+  width: 2px;
+  height: 70vh;
+  background: linear-gradient(180deg, transparent, rgb(211 175 255 / 78%) 55%, rgb(135 66 234 / 12%) 100%);
+  filter: drop-shadow(0 0 12px rgb(160 97 255 / 72%));
   content: '';
   animation: arise-scan 1.35s cubic-bezier(.2,.65,.3,1) both;
 }
@@ -1497,6 +1494,11 @@
   content: '';
   transform: translate(-50%, -50%);
   animation: theme-ripple 1.55s cubic-bezier(.14,.64,.28,1) both;
+}
+
+.effect-limitless {
+  background: radial-gradient(circle at 50% 50%, rgb(98 169 255 / 17%), rgb(41 68 173 / 7%) 22%, transparent 60%);
+  animation: limitless-space 1.55s ease-out both;
 }
 
 .effect-limitless::after,
@@ -1653,43 +1655,169 @@
 .demon-mark-large { width: 62%; aspect-ratio: 1; overflow: visible; object-fit: contain; filter: drop-shadow(0 0 9px rgb(168 121 255 / 75%)); animation: demon-emblem-materialize 1.35s cubic-bezier(.16,.7,.24,1) 80ms both; }
 .demon-mark-activation span { color: #f0d987; font-size: clamp(0.5rem, 1.1vw, 0.7rem); letter-spacing: 0.16em; text-align: center; text-shadow: 0 0 9px rgb(139 92 246 / 90%); }
 
-.theme-activation-card {
+.theme-emblem-activation {
   position: absolute;
+  z-index: 1;
   top: 50%;
   left: 50%;
   display: grid;
-  grid-template-columns: clamp(4.5rem, 11vw, 7rem) 1fr;
-  align-items: center;
-  gap: clamp(0.8rem, 2.2vw, 1.6rem);
-  width: min(34rem, calc(100vw - 2rem));
-  padding: clamp(1rem, 3vw, 1.8rem);
-  border: 1px solid color-mix(in srgb, var(--activation-accent) 78%, transparent);
-  background: linear-gradient(120deg, rgb(4 6 14 / 96%), rgb(7 8 17 / 93%));
-  box-shadow: inset 0 0 24px color-mix(in srgb, var(--activation-accent) 12%, transparent), 0 0 30px color-mix(in srgb, var(--activation-accent) 19%, transparent);
+  justify-items: center;
+  gap: 0.55rem;
+  width: clamp(7rem, 19vmin, 14rem);
   color: var(--activation-accent);
   font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
   transform: translate(-50%, -50%);
-  animation: theme-presentation-in 1.65s cubic-bezier(.18,.68,.25,1) both;
+  pointer-events: none;
 }
 
-.theme-activation-emblem { width: 100%; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 0 12px color-mix(in srgb, var(--activation-accent) 55%, transparent)); }
-.theme-activation-copy { display: grid; gap: 0.34rem; min-width: 0; }
-.theme-activation-copy > small { color: var(--activation-secondary); font-size: clamp(0.48rem, 1vw, 0.65rem); letter-spacing: 0.12em; }
-.theme-activation-copy > strong { color: var(--activation-accent); font-size: clamp(0.9rem, 2.2vw, 1.55rem); letter-spacing: 0.13em; }
-.theme-activation-copy > span { color: var(--activation-secondary); font-size: clamp(0.48rem, 1vw, 0.65rem); letter-spacing: 0.1em; }
-.theme-activation-progress { height: 3px; margin: 0.32rem 0; overflow: hidden; background: color-mix(in srgb, var(--activation-accent) 17%, transparent); }
-.theme-activation-progress i { display: block; width: 100%; height: 100%; background: var(--activation-accent); box-shadow: 0 0 9px var(--activation-accent); transform-origin: left; animation: theme-presentation-progress 1.45s ease-out both; }
-.theme-activation-lines { display: grid; gap: 0.18rem; color: var(--activation-secondary); font-size: clamp(0.45rem, 0.9vw, 0.58rem); letter-spacing: 0.07em; }
-.theme-activation-lines p { margin: 0; overflow-wrap: anywhere; }
-.theme-activation-card .theme-emblem-fallback { width: 100%; aspect-ratio: 1; font-size: clamp(1rem, 3vw, 1.8rem); }
+.theme-emblem-activation::before { position: absolute; inset: -13%; border: 1px solid color-mix(in srgb, var(--activation-accent) 72%, transparent); border-top-color: var(--activation-secondary); border-bottom-color: transparent; border-radius: 50%; box-shadow: 0 0 14px color-mix(in srgb, var(--activation-accent) 25%, transparent); content: ''; animation: emblem-halo-spin 1.5s cubic-bezier(.18,.65,.25,1) both; }
+.theme-emblem-activation-image { position: relative; z-index: 1; display: block; width: 82%; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 0 12px color-mix(in srgb, var(--activation-accent) 55%, transparent)); animation: emblem-materialize 1.35s cubic-bezier(.16,.7,.24,1) both; }
+.theme-emblem-activation > span { position: relative; z-index: 1; color: var(--activation-secondary); font-size: clamp(0.46rem, 0.85vw, 0.62rem); font-weight: 700; letter-spacing: 0.16em; text-align: center; text-shadow: 0 0 9px color-mix(in srgb, var(--activation-accent) 62%, transparent); animation: emblem-label-in 1.5s ease both; }
+.theme-emblem-fallback.theme-emblem-activation-image { width: 5rem; aspect-ratio: 1; font-size: 1.2rem; }
 
-@media (max-width: 480px) {
-  .theme-activation-card { grid-template-columns: 3.5rem 1fr; }
-}
+.theme-emblem-activation.activation-grimoire::before { border-radius: 0.3rem; transform: rotate(45deg) scale(.72); }
+.theme-emblem-activation.activation-breathing-sun::before { border-style: dashed; border-width: 2px; }
+.theme-emblem-activation.activation-tokyo-ghoul::before { border-radius: 44% 56% 42% 58%; border-style: double; border-width: 3px; }
+.theme-emblem-activation.activation-arise .theme-emblem-activation-image { animation-name: arise-emblem-materialize; }
+.theme-emblem-activation.activation-grimoire .theme-emblem-activation-image { animation-name: grimoire-emblem-open; }
+.theme-emblem-activation.activation-limitless .theme-emblem-activation-image { animation-name: limitless-emblem-focus; }
+.theme-emblem-activation.activation-breathing-sun .theme-emblem-activation-image { animation-name: sun-emblem-ignite; }
+.theme-emblem-activation.activation-dragon::before { border-color: rgb(82 101 216 / 42%); border-top-color: #70e8ff; box-shadow: 0 0 10px rgb(82 101 216 / 20%); }
+.theme-emblem-activation.activation-dragon .theme-emblem-activation-image { animation-name: stealth-emblem-reveal; filter: drop-shadow(0 0 8px rgb(112 232 255 / 38%)); }
+.theme-emblem-activation.activation-tokyo-ghoul .theme-emblem-activation-image { animation-name: ghoul-emblem-reveal; }
 
 .effect-breathing-sun {
   background: radial-gradient(ellipse at 50% 56%, rgb(255 153 41 / 36%), rgb(255 91 15 / 17%) 28%, transparent 64%);
   animation: sun-breath 1.55s ease-out both;
+}
+
+.effect-breathing-sun::before {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  width: min(56vmin, 34rem);
+  aspect-ratio: 1;
+  border: 1px solid rgb(255 182 87 / 64%);
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgb(255 111 20 / 42%) 0deg 3deg, transparent 3deg 22.5deg);
+  mask: radial-gradient(circle, transparent 53%, #000 56% 59%, transparent 62%);
+  content: '';
+  transform: translate(-50%, -50%) scale(.4) rotate(-40deg);
+  animation: sun-wheel 1.5s cubic-bezier(.15,.7,.25,1) both;
+}
+
+.effect-breathing-sun::after {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  width: min(74vw, 70rem);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgb(255 115 31 / 10%), #ffe0a4 50%, #ff7a22 54%, transparent);
+  box-shadow: 0 0 14px rgb(255 113 31 / 75%);
+  content: '';
+  transform: translate(-50%, -50%) rotate(-27deg) scaleX(.08);
+  animation: sun-slash 1.25s cubic-bezier(.17,.68,.27,1) both;
+}
+
+.effect-grimoire {
+  background: radial-gradient(ellipse at 50% 55%, rgb(153 77 22 / 22%), rgb(38 18 6 / 8%) 34%, transparent 67%);
+}
+
+.effect-grimoire::before,
+.effect-grimoire::after {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  width: min(25vw, 22rem);
+  height: min(36vh, 20rem);
+  border: 1px solid rgb(255 190 91 / 62%);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 11px, rgb(255 190 91 / 22%) 12px, transparent 13px 22px),
+    linear-gradient(130deg, rgb(64 31 9 / 76%), rgb(17 10 5 / 92%));
+  box-shadow: inset 0 0 28px rgb(239 160 72 / 14%), 0 0 20px rgb(239 160 72 / 16%);
+  content: '';
+}
+
+.effect-grimoire::before {
+  left: calc(50% - min(25vw, 22rem));
+  clip-path: polygon(0 8%, 92% 0, 100% 100%, 8% 88%);
+  transform: translateY(-50%) perspective(800px) rotateY(32deg) scaleX(.05);
+  transform-origin: right center;
+  animation: grimoire-page-open 1.55s cubic-bezier(.16,.72,.24,1) both;
+}
+
+.effect-grimoire::after {
+  left: 50%;
+  clip-path: polygon(8% 0, 100% 8%, 92% 88%, 0 100%);
+  transform: translateY(-50%) perspective(800px) rotateY(-32deg) scaleX(.05);
+  transform-origin: left center;
+  animation: grimoire-page-open 1.55s cubic-bezier(.16,.72,.24,1) both;
+}
+
+.effect-night-fury-stealth {
+  background: radial-gradient(ellipse at 50% 55%, rgb(10 20 38 / 62%), rgb(4 9 16 / 28%) 35%, transparent 67%);
+}
+
+.effect-night-fury-stealth::before {
+  position: absolute;
+  z-index: 0;
+  top: 19%;
+  left: 50%;
+  width: min(70vw, 65rem);
+  height: min(55vh, 38rem);
+  background: linear-gradient(180deg, rgb(31 44 66 / 12%), rgb(30 71 118 / 22%) 60%, transparent 88%);
+  clip-path: polygon(0 12%, 20% 26%, 31% 8%, 43% 43%, 50% 25%, 57% 43%, 69% 8%, 80% 26%, 100% 12%, 79% 50%, 62% 56%, 50% 100%, 38% 56%, 21% 50%);
+  filter: drop-shadow(0 0 15px rgb(37 77 128 / 32%));
+  content: '';
+  opacity: 0;
+  transform: translateX(-50%) scaleX(.68) translateY(3vh);
+  transform-origin: center;
+  animation: night-fury-cloak 1.5s cubic-bezier(.2,.65,.25,1) both;
+}
+
+.effect-night-fury-stealth::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 4px 7px at calc(50% - 0.9rem) 48%, rgb(112 232 255 / 92%) 0 65%, transparent 100%),
+    radial-gradient(ellipse 4px 7px at calc(50% + 0.9rem) 48%, rgb(112 232 255 / 92%) 0 65%, transparent 100%);
+  filter: drop-shadow(0 0 8px rgb(112 232 255 / 78%));
+  content: '';
+  opacity: 0;
+  animation: night-fury-eyes 1.45s ease-in-out both;
+}
+
+.effect-tokyo-ghoul {
+  background: radial-gradient(ellipse at 50% 52%, rgb(153 12 37 / 20%), rgb(24 4 10 / 12%) 34%, transparent 66%);
+}
+
+.effect-tokyo-ghoul::before,
+.effect-tokyo-ghoul::after {
+  position: absolute;
+  z-index: 0;
+  top: 18%;
+  width: min(30vw, 28rem);
+  height: 68vh;
+  background: linear-gradient(180deg, rgb(255 87 112 / 10%), rgb(229 57 70 / 72%) 55%, rgb(98 7 28 / 28%));
+  filter: drop-shadow(0 0 12px rgb(229 57 70 / 58%));
+  content: '';
+}
+
+.effect-tokyo-ghoul::before {
+  left: 13%;
+  clip-path: polygon(88% 0, 100% 5%, 64% 34%, 79% 44%, 38% 69%, 51% 75%, 0 100%, 31% 71%, 20% 61%, 54% 37%);
+  transform: translateY(22%) rotate(9deg);
+  animation: ghoul-kagune-left 1.35s cubic-bezier(.16,.7,.22,1) both;
+}
+
+.effect-tokyo-ghoul::after {
+  right: 13%;
+  clip-path: polygon(12% 0, 0 5%, 36% 34%, 21% 44%, 62% 69%, 49% 75%, 100% 100%, 69% 71%, 80% 61%, 46% 37%);
+  transform: translateY(-22%) rotate(-9deg);
+  animation: ghoul-kagune-right 1.35s cubic-bezier(.16,.7,.22,1) both;
 }
 
 @keyframes theme-activation-flare {
@@ -1708,6 +1836,58 @@
   18% { opacity: .8; }
   to { transform: translateY(100vh); opacity: 0; }
 }
+
+@keyframes grimoire-page-open {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  58% { transform: translateY(-50%) perspective(800px) rotateY(0) scaleX(1); }
+  100% { opacity: 0; transform: translateY(-50%) perspective(800px) rotateY(0) scaleX(1.02); }
+}
+
+@keyframes limitless-space {
+  0% { opacity: 0; filter: hue-rotate(0deg); }
+  30% { opacity: 1; }
+  65% { filter: hue-rotate(48deg); }
+  100% { opacity: 0; filter: hue-rotate(0deg); }
+}
+
+@keyframes sun-wheel {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.35) rotate(-40deg); }
+  28% { opacity: .95; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.18) rotate(110deg); }
+}
+
+@keyframes sun-slash {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(-27deg) scaleX(.08); }
+  24% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(-27deg) scaleX(1); }
+}
+
+@keyframes night-fury-cloak {
+  0% { opacity: 0; transform: translateX(-50%) scaleX(.68) translateY(3vh); }
+  32% { opacity: .62; }
+  68% { opacity: .38; transform: translateX(-50%) scaleX(1) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) scaleX(1.04) translateY(-1vh); }
+}
+
+@keyframes night-fury-eyes {
+  0%, 28%, 46%, 100% { opacity: 0; }
+  34%, 40% { opacity: .95; }
+  43% { opacity: .22; }
+}
+
+@keyframes ghoul-kagune-left {
+  0% { opacity: 0; transform: translate(-18vw, 24%) rotate(18deg) scale(.45); }
+  28% { opacity: .85; }
+  100% { opacity: 0; transform: translate(8vw, -4%) rotate(-6deg) scale(1); }
+}
+
+@keyframes ghoul-kagune-right {
+  0% { opacity: 0; transform: translate(18vw, -24%) rotate(-18deg) scale(.45); }
+  28% { opacity: .85; }
+  100% { opacity: 0; transform: translate(-8vw, 4%) rotate(6deg) scale(1); }
+}
+
 
 @keyframes link-start-flare {
   0% { opacity: 0; }
@@ -1758,16 +1938,65 @@
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1) rotate(4deg); }
 }
 
-@keyframes theme-presentation-in {
-  0% { opacity: 0; transform: translate(-50%, -46%) scale(.97); }
-  14% { opacity: 1; }
-  76% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -52%) scale(1.01); }
+@keyframes emblem-halo-spin {
+  0% { opacity: 0; transform: rotate(-55deg) scale(.55); }
+  24% { opacity: .95; }
+  100% { opacity: 0; transform: rotate(165deg) scale(1.12); }
 }
 
-@keyframes theme-presentation-progress {
-  from { transform: scaleX(.04); }
-  to { transform: scaleX(1); }
+@keyframes emblem-materialize {
+  0% { opacity: 0; transform: scale(.62); }
+  48% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+@keyframes emblem-label-in {
+  0%, 18% { opacity: 0; transform: translateY(5px); }
+  36% { opacity: 1; transform: translateY(0); }
+  82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes arise-emblem-materialize {
+  0% { opacity: 0; transform: translateY(24px) scale(.82); filter: drop-shadow(0 0 2px #9b5de5); }
+  44% { opacity: 1; }
+  68% { transform: translateY(-3px) scale(1.04); }
+  100% { opacity: 0; transform: translateY(-8px) scale(1); }
+}
+
+@keyframes grimoire-emblem-open {
+  0% { opacity: 0; transform: perspective(600px) rotateY(48deg) scale(.8); }
+  42% { opacity: 1; }
+  70% { transform: perspective(600px) rotateY(0) scale(1.04); }
+  100% { opacity: 0; transform: perspective(600px) rotateY(-4deg) scale(1); }
+}
+
+@keyframes limitless-emblem-focus {
+  0% { opacity: 0; transform: scale(.35); filter: blur(10px); }
+  42% { opacity: 1; filter: blur(0); }
+  72% { transform: scale(1.06); }
+  100% { opacity: 0; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes sun-emblem-ignite {
+  0% { opacity: 0; transform: rotate(-32deg) scale(.78); }
+  35% { opacity: 1; }
+  60% { transform: rotate(7deg) scale(1.06); }
+  100% { opacity: 0; transform: rotate(0) scale(1); }
+}
+
+@keyframes stealth-emblem-reveal {
+  0% { opacity: 0; transform: scale(.86); filter: brightness(.55) drop-shadow(0 0 2px #70e8ff); }
+  36% { opacity: .92; transform: scale(1.015); }
+  68% { opacity: .78; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.02); filter: brightness(.82) drop-shadow(0 0 8px #70e8ff); }
+}
+
+@keyframes ghoul-emblem-reveal {
+  0% { opacity: 0; transform: translateX(-18px) skewX(-12deg); clip-path: inset(0 100% 0 0); }
+  38% { opacity: 1; }
+  68% { transform: translateX(0) skewX(0); clip-path: inset(0); }
+  100% { opacity: 0; transform: translateX(4px); clip-path: inset(0); }
 }
 
 @keyframes demon-emblem-materialize {

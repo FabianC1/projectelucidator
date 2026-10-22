@@ -8,7 +8,7 @@ export type ThemeId =
   | 'dragon'
   | 'tokyo-ghoul'
 
-export type ThemeTransition = 'link-start' | 'arise' | 'limitless' | 'breathing-sun' | 'demon'
+export type ThemeTransition = 'link-start' | 'arise' | 'grimoire' | 'limitless' | 'breathing-sun' | 'demon' | 'night-fury-stealth' | 'tokyo-ghoul'
 export type ThemeSignature = 'aincrad' | 'demon-mark' | 'none'
 export type ThemeActivationPresentation = {
   title: string
@@ -20,6 +20,7 @@ export type ThemeActivationPresentation = {
 export type ThemeSystemDefinition = {
   id: ThemeId
   label: string
+  status: 'ready' | 'wip'
   command: string
   aliases: string[]
   activationEffect?: ThemeTransition
@@ -33,42 +34,42 @@ export type ThemeSystemDefinition = {
 /** Registry for command aliases, activation behavior, and theme identity UI. */
 export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
   {
-    id: 'sao', label: 'SWORD ART ONLINE / AINCRAD', command: 'sao', aliases: ['sao', 'aincrad', 'sword art online', 'link start'],
+    id: 'sao', label: 'SWORD ART ONLINE / AINCRAD', status: 'wip', command: 'sao', aliases: ['sao', 'aincrad', 'sword art online', 'link start'],
     activationEffect: 'link-start', signature: 'aincrad',
     emblemAsset: './assets/emblems/link-start-crossed-swords.png',
     activationPresentation: { title: 'LINK START', subtitle: 'SWORD ART ONLINE SYSTEM', accent: '#00D8FF', secondary: '#EAFCFF' },
     activationResponse: ['ELUCIDATOR // AINCRAD SYSTEM', 'SYSTEM LINK ............ ESTABLISHED', 'HOLO-MENU .............. SYNCHRONIZED', 'WORLD STATE ............ STABLE'],
   },
   {
-    id: 'arise', label: 'SOLO LEVELING / SHADOW MONARCH', command: 'arise', aliases: ['arise', 'solo leveling', 'shadow monarch'],
+    id: 'arise', label: 'SOLO LEVELING / SHADOW MONARCH', status: 'ready', command: 'arise', aliases: ['arise', 'solo leveling', 'shadow monarch'],
     activationEffect: 'arise', signature: 'none',
     emblemAsset: './assets/emblems/arise-shadow-monarch.png',
     activationPresentation: { title: 'ARISE', subtitle: 'SHADOW MONARCH SYSTEM', accent: '#9B5DE5', secondary: '#E0C2FF' },
     activationResponse: ['SHADOW PROTOCOL // ARISE', 'GATE SIGNATURE ......... DETECTED', 'SHADOW AUTHORITY ....... ONLINE', 'MONARCH SYSTEM ......... SYNCHRONIZED'],
   },
   {
-    id: 'grimoire', label: 'BLACK CLOVER / GRIMOIRE', command: 'grimoire', aliases: ['grimoire', 'black clover'],
-    signature: 'none',
+    id: 'grimoire', label: 'BLACK CLOVER / GRIMOIRE', status: 'wip', command: 'grimoire', aliases: ['grimoire', 'black clover'],
+    activationEffect: 'grimoire', signature: 'none',
     emblemAsset: './assets/emblems/grimoire.png',
     activationPresentation: { title: 'GRIMOIRE', subtitle: 'BLACK CLOVER SYSTEM', accent: '#EFA048', secondary: '#FFE0A5' },
     activationResponse: ['FIVE-LEAF GRIMOIRE DETECTED', 'GRIMOIRE INTERFACE ...... ONLINE', 'MAGIC SIGNATURE ......... RESONANT'],
   },
   {
-    id: 'limitless', label: 'JUJUTSU KAISEN / LIMITLESS', command: 'limitless', aliases: ['limitless'],
+    id: 'limitless', label: 'JUJUTSU KAISEN / LIMITLESS', status: 'ready', command: 'limitless', aliases: ['limitless'],
     activationEffect: 'limitless', signature: 'none',
     emblemAsset: './assets/emblems/limitless.png',
     activationPresentation: { title: 'LIMITLESS', subtitle: 'JUJUTSU KAISEN SYSTEM', accent: '#60A5FA', secondary: '#C4B5FD' },
     activationResponse: ['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ...... ACTIVE', 'INFINITY FIELD .......... STABLE'],
   },
   {
-    id: 'breathing-sun', label: 'DEMON SLAYER / HINOKAMI KAGURA', command: 'hinokami kagura', aliases: ['hinokami kagura'],
+    id: 'breathing-sun', label: 'DEMON SLAYER / HINOKAMI KAGURA', status: 'ready', command: 'hinokami kagura', aliases: ['hinokami kagura'],
     activationEffect: 'breathing-sun', signature: 'none',
     emblemAsset: './assets/emblems/hinokami-kagura.png',
     activationPresentation: { title: 'HINOKAMI KAGURA', subtitle: 'DEMON SLAYER SYSTEM', accent: '#F47B20', secondary: '#5DA8FF' },
     activationResponse: ['HINOKAMI KAGURA', 'FLAME BREATHING ......... IGNITED', 'SYSTEM COLOR ............ SUNSET RED'],
   },
   {
-    id: 'demon-mode', label: 'SEVEN DEADLY SINS / DEMON MODE', command: 'demon mode', aliases: ['demon mode', 'seven deadly sins', 'meliodas'],
+    id: 'demon-mode', label: 'SEVEN DEADLY SINS / DEMON MODE', status: 'ready', command: 'demon mode', aliases: ['demon mode', 'seven deadly sins', 'meliodas'],
     activationEffect: 'demon', signature: 'demon-mark',
     emblemAsset: './assets/emblems/dragon-sin-of-wrath.png',
     activationPresentation: { title: 'DEMON MODE', subtitle: 'DRAGON SIN OF WRATH', accent: '#A879FF', secondary: '#E7C65A' },
@@ -76,14 +77,14 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
   },
   {
     id: 'dragon', label: 'HTTYD / NIGHT FURY', command: 'httyd', aliases: ['httyd', 'night fury', 'toothless', 'dragon'],
-    signature: 'none',
+    status: 'wip', activationEffect: 'night-fury-stealth', signature: 'none',
     emblemAsset: './assets/emblems/night-fury.png',
     activationPresentation: { title: 'HTTYD', subtitle: 'NIGHT FURY SYSTEM', accent: '#70E8FF', secondary: '#5265D8' },
     activationResponse: ['NIGHT FURY', 'ELUCIDATOR // TOOTHLESS PROTOCOL', 'PLASMA CORE ............ STANDBY', 'NIGHT FURY SIGNATURE ... DETECTED'],
   },
   {
     id: 'tokyo-ghoul', label: 'TOKYO GHOUL / ONE-EYED KING', command: 'tokyo ghoul', aliases: ['tokyo ghoul', 'tokyo-ghoul', 'kaneki'],
-    signature: 'none',
+    status: 'wip', activationEffect: 'tokyo-ghoul', signature: 'none',
     emblemAsset: './assets/emblems/tokyo-ghoul.png',
     activationPresentation: { title: 'TOKYO GHOUL', subtitle: 'ONE-EYED KING SYSTEM', accent: '#E53946', secondary: '#E8E8ED' },
     activationResponse: ['TOKYO GHOUL PROTOCOL', 'RC SIGNATURE ........... DETECTED', 'ONE-EYED KING .......... ONLINE', 'SYSTEM COLOR ........... CRIMSON / WHITE'],

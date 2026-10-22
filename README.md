@@ -57,7 +57,7 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys link start` | Activate the SAO interface with its Aincrad scan and holographic menu |
 | `sys theme default set` | Save the currently active system theme as the startup theme |
 | `sys theme default select` | List themes; append a number or theme name to choose the startup theme |
-| `sys theme list` | Show registered theme systems |
+| `sys theme list` | Show registered theme systems and their READY/WIP status |
 | `sys theme activate <THEME>` | Activate a registered theme by name or alias, such as `sao`, `link start`, or `demon mode` |
 | `sys grimoire` | Activate the Black Clover theme |
 | `sys limitless` | Activate the Jujutsu Kaisen theme and spatial ripple effect |
@@ -87,6 +87,8 @@ The primary color drives the console and widget structure, the secondary color h
 | `sys tokyo ghoul` | Crimson `#E53946` | Silver `#E8E8ED` | Dark crimson `#721C2B` |
 
 Theme behavior is registered in `src/themeSystems.ts`: each entry declares aliases, activation response, transition, emblem, and visual identity. `sys theme activate` uses the registry so themes reuse the existing activation framework.
+
+Theme status: Arise, Limitless, Hinokami Kagura, and Demon Mode are the current READY themes. SAO, Grimoire, HTTYD, and Tokyo Ghoul are marked WIP while their theme work continues; their commands remain available.
 
 Theme emblem artwork is loaded from `public/assets/emblems/` using the paths in `src/themeSystems.ts`: `link-start-crossed-swords.png`, `arise-shadow-monarch.png`, `grimoire.png`, `limitless.png`, `hinokami-kagura.png`, `dragon-sin-of-wrath.png`, `night-fury.png`, and `tokyo-ghoul.png`. The browser image loader also accepts SVG and WebP; update the corresponding registry path if using another extension. Missing artwork falls back to a compact theme label. Theme identity colors and activation copy are stored with each registry entry; STEALTH remains a system mode rather than a theme.
 
