@@ -2389,6 +2389,77 @@
   .hinokami-console .command-line { margin-inline: -.72rem; padding-inline: .8rem; }
 }
 
+/* Seven Deadly Sins / Demon Mode console */
+.command-console.demon-mode-console {
+  box-sizing: border-box;
+  width: min(35rem, calc(100vw - 2rem));
+  overflow: hidden;
+  padding: .65rem .9rem .35rem;
+  border: 0;
+  border-radius: 0;
+  background: rgb(10 7 17 / 95%);
+  box-shadow: inset 0 0 24px rgb(139 92 246 / 7%), 0 0 24px rgb(0 0 0 / 28%);
+  backdrop-filter: blur(3px);
+}
+.demon-console-frame { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.demon-frame-outer,
+.demon-frame-inner { fill: none; vector-effect: non-scaling-stroke; }
+.demon-frame-outer { stroke: #d4b35b; stroke-width: 1.2px; filter: drop-shadow(0 0 2px rgb(231 198 90 / 22%)); }
+.demon-frame-inner { stroke: rgb(178 142 62 / 76%); stroke-width: .7px; }
+.demon-binding path { fill: #c69d43; stroke: #f0d17a; stroke-width: .8px; vector-effect: non-scaling-stroke; }
+.demon-binding .demon-clasp-inset { fill: #382817; stroke: #9d7734; stroke-width: .65px; }
+.demon-fissures { fill: none; stroke: #a34cf2; stroke-width: 2.1px; stroke-linecap: round; stroke-linejoin: bevel; opacity: .82; filter: drop-shadow(0 0 3px rgb(139 92 246 / 40%)); vector-effect: non-scaling-stroke; }
+.demon-console-header { position: relative; z-index: 1; margin: 0; padding: .18rem .3rem 0; cursor: grab; touch-action: none; user-select: none; }
+.demon-console-header:active { cursor: grabbing; }
+.demon-header-main { position: relative; height: 6.65rem; }
+.demon-console-emblem { position: absolute; top: .12rem; left: .18rem; display: block; width: 5rem; height: 5rem; object-fit: contain; filter: drop-shadow(0 0 6px rgb(231 198 90 / 24%)); }
+.demon-console-title { position: absolute; top: .82rem; right: 7.2rem; left: 5.65rem; display: grid; gap: .28rem; min-width: 0; color: #f0dfb4; }
+.demon-console-title strong { overflow: hidden; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.25rem, 2.5vw, 1.72rem); font-weight: 600; letter-spacing: .13em; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
+.demon-console-title small { overflow: hidden; color: #d6c59e; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(.42rem, .82vw, .55rem); letter-spacing: .15em; text-overflow: ellipsis; white-space: nowrap; }
+.demon-console-state { position: absolute; top: 1.28rem; right: .42rem; display: flex; align-items: center; gap: .36rem; color: #dfc36d; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(.42rem, .72vw, .52rem); letter-spacing: .12em; white-space: nowrap; }
+.demon-console-state i { width: .38rem; height: .38rem; border: 1px solid #a879ff; background: #9b5de5; transform: rotate(45deg); box-shadow: 0 0 7px rgb(139 92 246 / 70%); }
+.demon-header-underline { position: absolute; z-index: 4; right: 0; bottom: .75rem; left: 0; width: 100%; height: 1.55rem; overflow: visible; pointer-events: none; }
+.demon-crescent { fill: #8f4ce0; stroke: #c29aff; stroke-width: .7px; stroke-linejoin: round; filter: drop-shadow(0 0 3px rgb(139 92 246 / 48%)); vector-effect: non-scaling-stroke; }
+.demon-binding-segment { fill: #d2ad55; stroke: #f0d98e; stroke-width: .75px; stroke-linejoin: bevel; vector-effect: non-scaling-stroke; }
+.demon-binding-highlight { fill: #f3dc91; opacity: .9; }
+.demon-binding-shadow { fill: #80602c; opacity: .84; }
+.demon-underline-rule { fill: none; stroke: #d6b75e; stroke-width: 1.5px; stroke-linecap: square; vector-effect: non-scaling-stroke; }
+.demon-underline-rule { stroke-width: 1.5px; }
+.demon-binding-gap { fill: #9b5de5; filter: drop-shadow(0 0 2px rgb(139 92 246 / 60%)); }
+.demon-underline-tip { fill: #d6b75e; stroke: #f0d98e; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.demon-mode-console .console-output { position: relative; z-index: 1; max-height: calc(100vh - 16rem); margin: .22rem .15rem .55rem; padding: 0 .35rem; overflow-y: auto; scrollbar-width: none; color: #f0e8d5; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; font-size: clamp(.65rem, 1.03vw, .76rem); line-height: 1.5; letter-spacing: .035em; text-shadow: 0 0 5px rgb(231 198 90 / 8%); }
+.demon-mode-console .console-output::-webkit-scrollbar { display: none; }
+.demon-mode-console .console-output .console-heading { color: #f2e5c4; }
+.demon-mode-output-leader { color: rgb(231 220 190 / 70%); }
+.demon-mode-output-value { color: #e7c65a; }
+.demon-mode-output-value.awakening { color: #bd82f4; text-shadow: 0 0 7px rgb(139 92 246 / 44%); }
+.demon-mode-console .command-line { position: relative; z-index: 1; min-height: 1.9rem; margin: 0; padding: .38rem .25rem 0; border-top: 0; color: #c49bff; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; font-size: clamp(.72rem, 1.2vw, .9rem); text-shadow: none; }
+.demon-mode-console .command-line::before { position: absolute; top: 0; right: .15rem; left: .15rem; border-top: 1px solid rgb(214 183 94 / 76%); content: ''; pointer-events: none; }
+.demon-mode-console .command-prefix { color: #d8bb67; }
+.demon-mode-console .command-line button { color: #b77af0; }
+.demon-mode-console .command-line input { color: #d8c7f2; caret-color: #bd82f4; }
+.demon-mode-console .command-line input::placeholder { color: rgb(196 155 255 / 42%); }
+
+.theme-demon-mode .demon-mode-console {
+  border-color: transparent;
+  background: rgb(8 6 14 / 96%);
+  box-shadow: inset 0 0 25px rgb(139 92 246 / 6%), 0 0 24px rgb(0 0 0 / 30%);
+}
+.theme-demon-mode .demon-mode-console .console-output { color: #efe5ce; }
+.theme-demon-mode .demon-mode-console .console-heading { color: #f0dfb4; }
+.theme-demon-mode .demon-mode-console .command-line { color: #c49bff; }
+
+@media (max-width: 520px) {
+  .command-console.demon-mode-console { padding-inline: .72rem; }
+  .demon-header-main { height: 5.9rem; }
+  .demon-console-emblem { width: 4.5rem; height: 4.5rem; }
+  .demon-console-title { top: .84rem; right: .25rem; left: 4.65rem; }
+  .demon-console-title strong { font-size: 1.05rem; letter-spacing: .1em; }
+  .demon-console-title small { font-size: .38rem; letter-spacing: .08em; }
+  .demon-console-state { display: none; }
+  .demon-mode-console .command-line { margin-inline: 0; padding-inline: .2rem; }
+}
+
 /* Hinokami activation is a short layered sword reveal; each element animates once. */
 .hinokami-activation { position: absolute; inset: 0; overflow: hidden; animation: hinokami-overlay-out 1.8s ease both; }
 .hinokami-warmth { position: absolute; inset: 0; background: radial-gradient(ellipse at 51% 48%, rgb(143 57 24 / 13%), transparent 55%); opacity: 0; animation: hinokami-warmth 1.8s ease both; }
