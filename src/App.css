@@ -1540,7 +1540,9 @@
 .effect-limitless::before,
 .effect-limitless::after,
 .effect-demon::before,
-.effect-demon::after {
+.effect-demon::after,
+.effect-demon-mark::before,
+.effect-demon-mark::after {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -1556,7 +1558,8 @@
 
 .effect-domain::after,
 .effect-limitless::after,
-.effect-demon::after { animation-delay: 180ms; }
+.effect-demon::after,
+.effect-demon-mark::after { animation-delay: 180ms; }
 
 .effect-limitless::before,
 .effect-limitless::after {
@@ -1566,10 +1569,108 @@
 }
 
 .effect-demon::before,
-.effect-demon::after {
+.effect-demon::after,
+.effect-demon-mark::before,
+.effect-demon-mark::after {
   border-color: rgb(231 198 90 / 92%);
   box-shadow: 0 0 22px rgb(231 198 90 / 54%), inset 0 0 18px rgb(139 92 246 / 28%);
 }
+
+.console-theme-signature {
+  position: absolute;
+  z-index: 1;
+  top: -2.55rem;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.15rem;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid rgb(var(--theme-primary-rgb, 0 216 255) / 34%);
+  border-bottom-color: rgb(var(--theme-secondary-rgb, 234 252 255) / 56%);
+  background: rgb(0 7 14 / 88%);
+  color: var(--theme-primary, #00d8ff);
+  font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  animation: signature-power-on 520ms ease-out both;
+}
+
+.console-theme-signature > span:last-child { display: grid; gap: 0.12rem; }
+.console-theme-signature b { font-size: 0.52rem; }
+.console-theme-signature small { color: var(--theme-secondary, #eafcff); font-size: 0.43rem; }
+
+.aincrad-signature-ring {
+  position: relative;
+  display: block;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 1px solid var(--theme-secondary, #eafcff);
+  border-radius: 50%;
+  box-shadow: inset 0 0 7px rgb(var(--theme-primary-rgb, 0 216 255) / 24%), 0 0 7px rgb(var(--theme-primary-rgb, 0 216 255) / 32%);
+}
+
+.aincrad-signature-ring::before,
+.aincrad-signature-ring::after {
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgb(var(--theme-primary-rgb, 0 216 255) / 64%);
+  border-radius: 50%;
+  content: '';
+}
+
+.aincrad-signature-ring::after { inset: 6px; border-color: var(--theme-secondary, #eafcff); }
+.aincrad-signature-ring i { position: absolute; z-index: 1; width: 3px; height: 3px; border-radius: 50%; background: var(--theme-secondary, #eafcff); }
+.aincrad-signature-ring i:nth-child(1) { top: -2px; left: calc(50% - 1px); }
+.aincrad-signature-ring i:nth-child(2) { right: -2px; top: calc(50% - 1px); }
+.aincrad-signature-ring i:nth-child(3) { bottom: -2px; left: calc(50% - 1px); }
+.aincrad-signature-ring i:nth-child(4) { left: -2px; top: calc(50% - 1px); }
+
+.signature-demon-mark { color: #e7c65a; border-color: rgb(168 121 255 / 44%); border-bottom-color: #e7c65a; }
+.signature-demon-mark small { color: #c49bff; }
+.demon-mark-small { width: 1.65rem; height: 1.65rem; overflow: visible; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; filter: drop-shadow(0 0 4px rgb(168 121 255 / 55%)); }
+
+.sao-activation-interface { position: absolute; inset: 0; color: #9feeff; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; }
+.sao-hud-frame { position: absolute; inset: clamp(1rem, 4vw, 3.5rem); animation: sao-hud-frame-in 1.65s ease-out both; }
+.sao-hud-frame i { position: absolute; width: clamp(1.4rem, 3vw, 2.8rem); height: clamp(1.4rem, 3vw, 2.8rem); border-color: rgb(94 223 255 / 74%); border-style: solid; }
+.sao-hud-frame i:nth-child(1) { top: 0; left: 0; border-width: 1px 0 0 1px; }
+.sao-hud-frame i:nth-child(2) { top: 0; right: 0; border-width: 1px 1px 0 0; }
+.sao-hud-frame i:nth-child(3) { right: 0; bottom: 0; border-width: 0 1px 1px 0; }
+.sao-hud-frame i:nth-child(4) { bottom: 0; left: 0; border-width: 0 0 1px 1px; }
+
+.sao-cross-lines { position: absolute; inset: 0; overflow: hidden; }
+.sao-cross-lines i { position: absolute; top: 50%; left: 50%; width: min(74vw, 110vh); height: 2px; background: linear-gradient(90deg, transparent, rgb(0 157 255 / 10%), #d8fbff 49%, #74eaff 51%, transparent); box-shadow: 0 0 8px rgb(42 194 255 / 85%); transform-origin: center; animation: sao-sword-cross 1.15s cubic-bezier(.18,.68,.24,1) both; }
+.sao-cross-lines i:first-child { --sao-angle: 42deg; }
+.sao-cross-lines i:last-child { --sao-angle: -42deg; animation-delay: 90ms; }
+
+.sao-holo-menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  gap: 0.7rem;
+  width: min(24rem, calc(100vw - 3rem));
+  padding: 1rem 1.15rem 0.8rem;
+  border: 1px solid rgb(112 226 255 / 68%);
+  border-left: 2px solid #8feeff;
+  background: linear-gradient(115deg, rgb(2 24 42 / 94%), rgb(1 8 18 / 91%));
+  box-shadow: inset 0 0 18px rgb(48 176 255 / 13%), 0 0 26px rgb(27 163 255 / 22%);
+  text-shadow: 0 0 8px rgb(66 204 255 / 44%);
+  transform: translate(-50%, -50%);
+  animation: sao-menu-deploy 1.65s cubic-bezier(.2,.7,.25,1) both;
+}
+
+.sao-holo-menu b { color: #e6fbff; font-size: 0.76rem; letter-spacing: 0.16em; }
+.sao-holo-menu > span { color: #71dfff; font-size: 0.59rem; letter-spacing: 0.1em; }
+.sao-holo-menu > div { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
+.sao-holo-menu > div i { padding: 0.36rem 0.15rem; border: 1px solid rgb(101 212 255 / 43%); color: #c3f4ff; font-size: 0.48rem; font-style: normal; text-align: center; }
+.sao-holo-menu > div i:first-child { background: rgb(0 177 255 / 20%); }
+.sao-holo-menu small { justify-self: end; color: #77dff9; font-size: 0.48rem; letter-spacing: 0.12em; }
+
+.demon-mark-activation { position: absolute; top: 50%; left: 50%; display: grid; justify-items: center; gap: 0.7rem; width: min(32vmin, 20rem); color: #c49bff; transform: translate(-50%, -50%); animation: demon-mark-reveal 1.7s ease-out both; }
+.demon-mark-activation::before { position: absolute; z-index: -1; top: 50%; left: 50%; width: 118%; aspect-ratio: 1; border: 1px solid rgb(231 198 90 / 52%); border-radius: 50%; box-shadow: inset 0 0 20px rgb(139 92 246 / 24%), 0 0 28px rgb(139 92 246 / 34%); content: ''; transform: translate(-50%, -50%); animation: demon-seal-turn 1.7s ease-out both; }
+.demon-mark-large { width: 62%; overflow: visible; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; filter: drop-shadow(0 0 9px rgb(168 121 255 / 75%)); stroke-dasharray: 520; stroke-dashoffset: 520; animation: demon-mark-draw 1.35s ease-out 80ms forwards; }
+.demon-mark-activation span { color: #f0d987; font-size: clamp(0.5rem, 1.1vw, 0.7rem); letter-spacing: 0.16em; text-align: center; text-shadow: 0 0 9px rgb(139 92 246 / 90%); }
 
 .effect-breathing-water {
   background: linear-gradient(115deg, transparent 18%, rgb(58 226 239 / 20%) 36%, rgb(116 250 255 / 48%) 40%, transparent 58%);
@@ -1579,6 +1680,22 @@
 .effect-breathing-sun {
   background: radial-gradient(ellipse at 50% 56%, rgb(255 153 41 / 36%), rgb(255 91 15 / 17%) 28%, transparent 64%);
   animation: sun-breath 1.55s ease-out both;
+}
+
+.effect-system-scan::before {
+  position: absolute;
+  top: -24vh;
+  left: 0;
+  width: 100%;
+  height: 24vh;
+  background: linear-gradient(180deg, transparent, rgb(31 166 255 / 5%) 65%, rgb(99 224 255 / 42%) 97%, transparent);
+  content: '';
+  animation: link-start-scan 1.25s cubic-bezier(.18,.64,.38,1) both;
+}
+
+.effect-sword-skill {
+  background: radial-gradient(ellipse at 50% 50%, rgb(69 215 255 / 16%), transparent 48%);
+  animation: link-start-flare 1.35s ease-out both;
 }
 
 .effect-full-counter::before {
@@ -1675,6 +1792,46 @@
 @keyframes domain-ripple {
   from { width: 8vmin; height: 8vmin; opacity: 0.95; }
   to { width: 145vmax; height: 145vmax; opacity: 0; }
+}
+
+@keyframes signature-power-on {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sao-hud-frame-in {
+  0% { opacity: 0; }
+  20%, 72% { opacity: .9; }
+  100% { opacity: 0; }
+}
+
+@keyframes sao-sword-cross {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--sao-angle)) scaleX(.35); }
+  24% { opacity: 1; }
+  46% { opacity: .86; transform: translate(-50%, -50%) rotate(var(--sao-angle)) scaleX(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--sao-angle)) scaleX(.9); }
+}
+
+@keyframes sao-menu-deploy {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.88); }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  68% { opacity: .96; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.035); }
+}
+
+@keyframes demon-mark-reveal {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.62) rotate(-12deg); }
+  22% { opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1) rotate(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1) rotate(4deg); }
+}
+
+@keyframes demon-mark-draw { to { stroke-dashoffset: 0; } }
+
+@keyframes demon-seal-turn {
+  from { opacity: 0; transform: translate(-50%, -50%) rotate(-38deg) scale(.76); }
+  25% { opacity: .9; }
+  to { opacity: 0; transform: translate(-50%, -50%) rotate(28deg) scale(1.25); }
 }
 
 @keyframes breathing-flow {

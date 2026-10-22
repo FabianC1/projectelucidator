@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
 import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, saveBrightnessToken, type BrightnessMonitor } from './brightnessBridge'
+import { resolveThemeId, THEME_SYSTEMS, type ThemeId } from './themeSystems'
 import './App.css'
 
 declare global {
@@ -12,7 +13,6 @@ declare global {
 
 type SavedWallpaper = { blob: Blob; name: string }
 type SystemMode = 'NORMAL' | 'STEALTH' | 'COMBAT' | 'IDLE' | 'DIAGNOSTIC'
-type ThemeId = 'sao' | 'arise' | 'grimoire' | 'anti-magic' | 'domain-expansion' | 'limitless' | 'breathing-water' | 'breathing-sun' | 'demon-mode' | 'dragon'
 type VisualTheme = 'off' | 'haze' | 'rain' | 'lightning' | 'particles' | 'vignette'
 type WallpaperFit = 'cover' | 'contain' | 'stretch' | 'span'
 type SpecialEffect = { kind: string; id: number }
@@ -96,19 +96,8 @@ const VISUAL_THEME_PREF_KEY = 'project-elucidator-visual-theme'
 const WALLPAPER_FIT_PREF_KEY = 'project-elucidator-wallpaper-fit'
 const WALLPAPER_FITS: WallpaperFit[] = ['cover', 'contain', 'stretch', 'span']
 const VISUAL_THEMES: VisualTheme[] = ['off', 'haze', 'rain', 'lightning', 'particles', 'vignette']
-const THEME_IDS: ThemeId[] = ['sao', 'arise', 'grimoire', 'anti-magic', 'domain-expansion', 'limitless', 'breathing-water', 'breathing-sun', 'demon-mode', 'dragon']
-const THEME_CHOICES: Array<{ id: ThemeId; label: string; command: string }> = [
-  { id: 'sao', label: 'SWORD ART ONLINE / AINCRAD', command: 'link start' },
-  { id: 'arise', label: 'SOLO LEVELING / SHADOW MONARCH', command: 'arise' },
-  { id: 'grimoire', label: 'BLACK CLOVER / GRIMOIRE', command: 'grimoire' },
-  { id: 'anti-magic', label: 'BLACK CLOVER / ANTI-MAGIC', command: 'anti-magic' },
-  { id: 'domain-expansion', label: 'JUJUTSU KAISEN / DOMAIN EXPANSION', command: 'domain expansion' },
-  { id: 'limitless', label: 'JUJUTSU KAISEN / LIMITLESS', command: 'limitless' },
-  { id: 'breathing-water', label: 'DEMON SLAYER / WATER BREATHING', command: 'breathing water' },
-  { id: 'breathing-sun', label: 'DEMON SLAYER / HINOKAMI KAGURA', command: 'hinokami kagura' },
-  { id: 'demon-mode', label: 'SEVEN DEADLY SINS / DEMON MODE', command: 'demon mode' },
-  { id: 'dragon', label: 'HTTYD / NIGHT FURY', command: 'httyd' },
-]
+const THEME_IDS = THEME_SYSTEMS.map((system) => system.id)
+const THEME_CHOICES = THEME_SYSTEMS
 const TYPE_RATE = 185
 const LINE_GAP = 0.035
 const PHASE_PAUSE = 0.2
@@ -236,16 +225,18 @@ function readThemePreference(key: string): ThemeId | null {
 }
 
 function resolveThemeChoice(value: string): ThemeId | null {
-  const normalized = value.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
-  const aliases: Record<string, ThemeId> = {
-    aincrad: 'sao', 'sword art online': 'sao', 'solo leveling': 'arise', 'shadow monarch': 'arise',
-    'black clover': 'grimoire', 'jujutsu kaisen': 'domain-expansion', 'water breathing': 'breathing-water',
-    'hinokami kagura': 'breathing-sun', 'sun breathing': 'breathing-sun', 'seven deadly sins': 'demon-mode',
-    'night fury': 'dragon', toothless: 'dragon',
-  }
-  return aliases[normalized] ?? THEME_CHOICES.find((choice) => choice.id.replace(/-/g, ' ') === normalized
-    || choice.label.toLowerCase() === normalized
-    || choice.command === normalized)?.id ?? null
+  return resolveThemeId(value)
+}
+
+function DemonMark({ className }: { className: string }) {
+  return (
+    <svg className={className} viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <path d="M50 8C32 8 19 19 18 35c-1 11 5 18 14 18 7 0 11-5 10-11-1-5-8-7-11-2-3 4 1 9 5 7 3-1 4-5 2-7" />
+      <path d="M50 8c18 0 31 11 32 27 1 11-5 18-14 18-7 0-11-5-10-11 1-5 8-7 11-2 3 4-1 9-5 7-3-1-4-5-2-7" />
+      <path d="M24 15 13 8l2 20M76 15l11-7-2 20M50 18v25c0 9-8 12-14 17-8 7-8 20 1 26 7 6 18 4 22-3 4-6 1-14-6-16-5-1-9 2-9 6M50 43c0 9 8 12 14 17 8 7 8 20-1 26-7 6-18 4-22-3" />
+      <path d="M39 60c5 3 7 8 5 12m17-12c-5 3-7 8-5 12M41 49h4m10 0h4" />
+    </svg>
+  )
 }
 
 async function readWallpaperLibrary() {
@@ -327,7 +318,7 @@ function HardwareGauge({ label, percent, value, detail }: { label: string; perce
 const COMMAND_COMPLETIONS = [
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
   'sys wallpaper default', 'sys wallpaper default set', 'sys wallpaper default select', 'sys wallpaper default clear',
-  'sys theme default', 'sys theme default set', 'sys theme default select',
+  'sys theme list', 'sys theme activate', 'sys theme feature', 'sys theme default', 'sys theme default set', 'sys theme default select',
   'sys wallpaper next', 'sys wallpaper previous', 'sys wallpaper scan', 'sys hardware', 'sys time', 'sys audio',
   'sys mode', 'sys mode normal', 'sys mode stealth', 'sys mode combat', 'sys mode idle', 'sys mode diagnostic',
   'sys session', 'sys anime',
@@ -342,7 +333,7 @@ const COMMAND_COMPLETIONS = [
   'visual list', 'visual haze', 'visual rain', 'visual lightning', 'visual particles', 'visual vignette', 'visual off', 'visual status',
 ]
 
-function findCommandCompletions(value: string, savedWallpaperCount = 0) {
+function findCommandCompletions(value: string, savedWallpaperCount = 0, activeTheme?: ThemeId) {
   const prefix = value.toLowerCase().replace(/\s+/g, ' ')
   if (/^visual\s+$/.test(prefix)) return COMMAND_COMPLETIONS.filter((candidate) => candidate.startsWith('visual '))
   if (/^sys wallpaper\s+$/.test(prefix)) {
@@ -350,9 +341,11 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0) {
   }
   if (/^sys wallpaper default\s+$/.test(prefix)) return ['set', 'select', 'clear'].map((action) => `sys wallpaper default ${action}`)
   if (/^sys wallpaper default select\s+$/.test(prefix)) return Array.from({ length: savedWallpaperCount }, (_, index) => `sys wallpaper default select ${index + 1}`)
-  if (/^sys theme\s+$/.test(prefix)) return ['default'].map((action) => `sys theme ${action}`)
+  if (/^sys theme\s+$/.test(prefix)) return ['list', 'activate', 'feature', 'default'].map((action) => `sys theme ${action}`)
   if (/^sys theme default\s+$/.test(prefix)) return ['set', 'select'].map((action) => `sys theme default ${action}`)
   if (/^sys theme default select\s+$/.test(prefix)) return THEME_CHOICES.map((choice) => `sys theme default select ${choice.command}`)
+  if (/^sys theme activate\s+$/.test(prefix)) return THEME_CHOICES.map((choice) => `sys theme activate ${choice.command}`)
+  if (/^sys theme feature\s+$/.test(prefix)) return THEME_SYSTEMS.find((system) => system.id === activeTheme)?.features?.map((feature) => `sys theme feature ${feature.name}`) ?? []
   if (/^sys wallpaper fit\s+$/.test(prefix)) return WALLPAPER_FITS.map((fit) => `sys wallpaper fit ${fit}`)
   if (/^sys brightness\s+$/.test(prefix)) return ['sys brightness status', 'sys brightness list', 'sys brightness help']
   if (/^sys brightness monitor\s+$/.test(prefix)) return ['sys brightness monitor 1 ', 'sys brightness monitor 2 ']
@@ -470,6 +463,7 @@ function App() {
   } as CSSProperties
   const clockZone = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop()?.replaceAll('_', ' ') ?? 'LOCAL TIME'
   const animeStatus = THEME_STATUS[theme]
+  const themeSignature = THEME_SYSTEMS.find((system) => system.id === theme)?.signature ?? 'none'
 
   useEffect(() => {
     let active = true
@@ -965,8 +959,43 @@ function App() {
         report(['SYSTEM THEME DEFAULT', `ACTIVE DEFAULT ......... ${defaultTheme ? defaultTheme.toUpperCase() : 'NONE · LAST ACTIVE THEME'}`, 'USE · SET | SELECT'])
         setStatus(defaultTheme ? `STARTUP THEME · ${defaultTheme.toUpperCase()}` : 'NO CUSTOM STARTUP THEME')
       }
+    } else if (domain === 'theme' && action === 'list' && args.length === 2) {
+      report(['ELUCIDATOR THEME SYSTEMS', ...THEME_SYSTEMS.map((system) => `${system.id === theme ? 'ACTIVE' : 'READY'} · ${system.label} · SYS THEME ACTIVATE ${system.command.toUpperCase()}`), ...THEME_SYSTEMS.flatMap((system) => system.features?.map((feature) => `${system.id.toUpperCase()} FEATURE · SYS THEME FEATURE ${feature.name.toUpperCase()}`) ?? []), 'THEME SYSTEMS PROVIDE THEIR OWN TRANSITION, RESPONSE, SIGNATURE, AND OPTIONAL FEATURES.'])
+      setStatus(`${THEME_SYSTEMS.length} THEME SYSTEMS REGISTERED`)
+    } else if (domain === 'theme' && action === 'feature') {
+      const activeSystem = THEME_SYSTEMS.find((system) => system.id === theme)
+      const requested = args.slice(2).join(' ').toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+      const feature = activeSystem?.features?.find((item) => [item.name, ...item.aliases].some((alias) => alias.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim() === requested))
+      if (!requested) {
+        report(['ACTIVE THEME FEATURES', activeSystem?.label ?? theme.toUpperCase(), ...(activeSystem?.features?.map((item) => `SYS THEME FEATURE ${item.name.toUpperCase()}`) ?? []), activeSystem?.features?.length ? 'SELECT A REGISTERED FEATURE.' : 'THIS THEME HAS NO EXTRA FEATURES.'])
+        setStatus(`${theme.toUpperCase()} FEATURES READY`)
+      } else if (!feature) {
+        report(['THEME FEATURE UNAVAILABLE', `ACTIVE SYSTEM .......... ${theme.toUpperCase()}`, 'RUN SYS THEME FEATURE TO VIEW ITS FEATURES.'])
+        setStatus('THEME FEATURE NOT FOUND')
+      } else {
+        setSpecialEffect({ kind: feature.effect, id: ++effectIdRef.current })
+        report(feature.response)
+        setStatus(`${theme.toUpperCase()} · ${feature.name.toUpperCase()}`)
+      }
+    } else if (domain === 'theme' && action === 'activate') {
+      const selectedId = resolveThemeId(args.slice(2).join(' '))
+      const selectedSystem = THEME_SYSTEMS.find((system) => system.id === selectedId)
+      if (!selectedSystem) {
+        report(['THEME ACTIVATION ERROR', 'USE SYS THEME ACTIVATE <THEME>', 'RUN SYS THEME LIST TO VIEW AVAILABLE SYSTEMS.'])
+        setStatus('THEME ACTIVATION COMMAND INVALID')
+      } else {
+        setTheme(selectedSystem.id)
+        setNightStealth(false)
+        setNightFuryAlpha(false)
+        setSpecialEffect(selectedSystem.activationEffect
+          ? { kind: selectedSystem.activationEffect, id: ++effectIdRef.current }
+          : null)
+        if (selectedSystem.defaultWidgetLayout) setWidgetLayout(selectedSystem.defaultWidgetLayout)
+        report(selectedSystem.activationResponse)
+        setStatus(`${selectedSystem.label} ACTIVATED`)
+      }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE|FEATURE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
@@ -1035,7 +1064,7 @@ function App() {
       setNightStealth(false)
       setTheme('demon-mode')
       setSpecialEffect({ kind: 'demon', id: ++effectIdRef.current })
-      report(['DEMON MARK: DETECTED', 'MAGIC POWER: UNRESTRICTED', 'SYSTEM COLOR: GOLD / PURPLE', 'MELIODAS PROTOCOL // ACTIVATED'])
+      report(THEME_SYSTEMS.find((system) => system.id === 'demon-mode')?.activationResponse ?? ['DEMON MODE ACTIVATED'])
       setStatus('DEMON MODE AWAKENED')
     } else if (domain === 'full' && action === 'counter' && args.length === 2) {
       setSpecialEffect({ kind: 'full-counter', id: ++effectIdRef.current })
@@ -1052,7 +1081,7 @@ function App() {
       setSpecialEffect({ kind: 'link-start', id: ++effectIdRef.current })
       setNightStealth(false)
       setNightFuryAlpha(false)
-      report(['ELUCIDATOR // MAINFRAME', 'SYSTEM LINK ............ ESTABLISHED', 'STANDARD CYAN INTERFACE .. RESTORED'])
+      report(THEME_SYSTEMS.find((system) => system.id === 'sao')?.activationResponse ?? ['SYSTEM LINK ESTABLISHED'])
       setStatus('SYSTEM LINK STARTED · CYAN THEME RESTORED')
     } else if (domain === 'status' && args.length === 1) {
       report([
@@ -1353,7 +1382,7 @@ function App() {
         completed = candidates[index]
       } else {
         const savedWallpaperCount = wallpaperLibrary.filter((entry, index, all) => all.findIndex((candidate) => candidate.wallpaper.name === entry.wallpaper.name) === index).length
-        candidates = findCommandCompletions(value, savedWallpaperCount)
+        candidates = findCommandCompletions(value, savedWallpaperCount, theme)
         if (candidates.length === 0) return
         if (candidates.length === 1) {
           completed = candidates[0]
@@ -1522,7 +1551,30 @@ function App() {
         />
       )}
 
-      {specialEffect && <div key={specialEffect.id} className={`special-effect effect-${specialEffect.kind}`} aria-hidden="true" />}
+      {specialEffect && (
+        <div key={specialEffect.id} className={`special-effect effect-${specialEffect.kind}`} aria-hidden="true">
+          {(specialEffect.kind === 'link-start' || specialEffect.kind === 'sword-skill') && (
+            <div className="sao-activation-interface">
+              {specialEffect.kind === 'link-start' && <div className="sao-hud-frame"><i /><i /><i /><i /></div>}
+              <div className="sao-cross-lines"><i /><i /></div>
+              {specialEffect.kind === 'link-start' && (
+                <div className="sao-holo-menu">
+                  <b>AINCRAD // MAIN MENU</b>
+                  <span>PLAYER STATUS&nbsp;&nbsp; 100%</span>
+                  <div><i>STATUS</i><i>MAP</i><i>EQUIPMENT</i><i>SKILLS</i></div>
+                  <small>SYSTEM LINK ESTABLISHED</small>
+                </div>
+              )}
+            </div>
+          )}
+          {(specialEffect.kind === 'demon' || specialEffect.kind === 'demon-mark') && (
+            <div className="demon-mark-activation">
+              <DemonMark className="demon-mark-large" />
+              <span>DEMON MARK // MAGIC POWER UNRESTRICTED</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {ready && (
         <section className={`boot-sequence${booting ? '' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
@@ -1676,6 +1728,18 @@ function App() {
         onPointerUp={() => { draggingConsoleRef.current = null }}
         onPointerCancel={() => { draggingConsoleRef.current = null }}
       >
+        {themeSignature === 'aincrad' && (
+          <div className="console-theme-signature signature-aincrad" aria-hidden="true">
+            <span className="aincrad-signature-ring"><i /><i /><i /><i /></span>
+            <span><b>AINCRAD SYSTEM</b><small>LINK STABLE · FLOOR 01</small></span>
+          </div>
+        )}
+        {themeSignature === 'demon-mark' && (
+          <div className="console-theme-signature signature-demon-mark" aria-hidden="true">
+            <DemonMark className="demon-mark-small" />
+            <span><b>DEMON MARK</b><small>POWER UNSEALED</small></span>
+          </div>
+        )}
         <div className="console-output" aria-live="polite">
           {consoleLines.map((line, index) => <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''} onPointerDown={index === 0 ? startConsoleDrag : undefined}>{line}</p>)}
         </div>

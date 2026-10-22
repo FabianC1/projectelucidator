@@ -57,6 +57,9 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys link start` | Restore the standard cyan interface |
 | `sys theme default set` | Save the currently active system theme as the startup theme |
 | `sys theme default select` | List themes; append a number or theme name to choose the startup theme |
+| `sys theme list` | Show registered theme systems and their feature commands |
+| `sys theme activate <THEME>` | Activate a registered theme by name or alias, such as `sao` or `demon mode` |
+| `sys theme feature` | List and run feature effects provided by the active theme |
 | `sys grimoire` / `sys anti-magic` | Activate Black Clover crimson themes; anti-magic also pulses across the screen |
 | `sys domain expansion` / `sys limitless` | Activate Jujutsu Kaisen violet-blue themes and spatial ripple effects |
 | `sys breathing water` | Activate Tanjiro-inspired deep blue Water Breathing |
@@ -74,7 +77,7 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 
 ### Theme palettes
 
-The primary color drives the console and widget structure, the secondary color highlights status and hardware dial arcs, and the tertiary color adds panel depth and glow. Theme changes transition across these elements together.
+The primary color drives the console and widget structure, the secondary color highlights status and hardware dial arcs, and the tertiary color adds panel depth and glow. Theme changes transition across these elements together. SAO adds a short Aincrad menu, a system scan, and crossing blade-like light trails during link activation. Demon Mode adds a custom animated demon mark, gold seal rings, violet energy, and mark/surge plus Full Counter feature commands.
 
 | Theme command | Primary | Secondary | Depth accent |
 | --- | --- | --- | --- |
@@ -88,6 +91,10 @@ The primary color drives the console and widget structure, the secondary color h
 | `sys hinokami kagura` | Sun orange `#F47B20` | Tanjiro blue `#5DA8FF` | Burnt orange `#9A3412` |
 | `sys demon mode` | Gold `#E7C65A` | Purple `#A879FF` | Deep violet `#51317E` |
 | `sys httyd` / `sys night fury` | Plasma cyan `#70E8FF` | Night Fury blue `#5265D8` | Steel `#A8B2C1` |
+
+Theme behavior is registered in `src/themeSystems.ts`: each entry declares aliases, activation response and transition, optional signature, feature commands, optional widget layout, and an optional sound cue path. `sys theme activate` and `sys theme feature` use that registry, so themes can reuse the current transition effects without adding another parallel command tree. A theme that needs a new visual transition adds a CSS effect; a new type of functionality needs an adapter in the app. Sound cue metadata is reserved for a future audio adapter and does not play audio yet.
+
+For SAO, activate `sys link start` or `sys theme activate sao`, then run `sys theme feature` to see its `system scan` and `sword skill` sequences. For Seven Deadly Sins, activate `sys demon mode` or `sys theme activate meliodas`, then use `sys theme feature` for the Demon Mark surge and Full Counter effects.
 
 ### Widgets
 
