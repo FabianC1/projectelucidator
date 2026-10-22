@@ -19,7 +19,7 @@ type SpecialEffect = { kind: string; id: number }
 type WidgetPosition = { x: number; y: number }
 type WidgetPositions = Record<number, WidgetPosition>
 type WidgetLayout = 'free' | 'left' | 'right' | 'top' | 'bottom'
-type ConsoleFrame = { x: number; y: number; width: number; height: number }
+type ConsoleFrame = { x: number; y: number; width: number; height: number; anchor?: 'top' | 'bottom' }
 type LayoutSnapshot = { consoleFrame: ConsoleFrame | null; widgetPositions: WidgetPositions; widgetLayout?: WidgetLayout }
 type BootMessage = { text: string; result: string; pause?: number }
 type BootPhase = { id: string; title: string; messages: BootMessage[] }
@@ -629,6 +629,7 @@ function App() {
           y: Math.max(0, Math.min(window.innerHeight - height, stored.y)),
           width,
           height,
+          anchor: stored.anchor === 'bottom' ? 'bottom' : 'top',
         })
       }
     } catch { /* Use the default console dimensions if preferences are unavailable. */ }
@@ -1482,7 +1483,7 @@ function App() {
     if (!drag) return
     const x = Math.max(0, Math.min(window.innerWidth - drag.frame.width, event.clientX - drag.offsetX))
     const y = Math.max(0, Math.min(window.innerHeight - drag.frame.height, event.clientY - drag.offsetY))
-    setConsoleFrame({ ...drag.frame, x, y })
+    setConsoleFrame({ ...drag.frame, x, y: window.innerHeight - y - drag.frame.height, anchor: 'bottom' })
   }
 
   const chooseWallpaper = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -1710,7 +1711,13 @@ function App() {
       <section
         className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}`}
         aria-label="Elucidator system console"
-        style={consoleFrame ? { left: consoleFrame.x, top: 'auto', bottom: window.innerHeight - consoleFrame.y - consoleFrame.height, width: consoleFrame.width, minHeight: consoleFrame.height } : undefined}
+        style={consoleFrame ? {
+          left: consoleFrame.x,
+          top: consoleFrame.anchor === 'bottom' ? 'auto' : consoleFrame.y,
+          right: 'auto',
+          bottom: consoleFrame.anchor === 'bottom' ? consoleFrame.y : 'auto',
+          width: consoleFrame.width,
+        } : undefined}
         onPointerMove={moveConsole}
         onPointerUp={() => { draggingConsoleRef.current = null }}
         onPointerCancel={() => { draggingConsoleRef.current = null }}

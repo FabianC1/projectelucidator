@@ -207,9 +207,8 @@
   bottom: clamp(1rem, 3vh, 2rem);
   width: min(35rem, calc(100vw - 2rem));
   min-width: min(18rem, calc(100vw - 2rem));
-  min-height: 6rem;
   overflow: visible;
-  padding: 0.7rem 0.9rem 0.55rem;
+  padding: 0.7rem 0.9rem 0.35rem;
   border: 1px solid rgb(89 201 222 / 18%);
   border-radius: 3px;
   background: rgb(0 8 13 / 58%);
