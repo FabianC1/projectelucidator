@@ -1954,7 +1954,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 6.6rem minmax(0, 1fr) auto;
+  grid-template-columns: 8.15rem minmax(0, 1fr) auto;
   align-items: center;
   gap: .72rem;
   height: 6.5rem;
@@ -1966,7 +1966,7 @@
   user-select: none;
 }
 .limitless-console-header:active { cursor: grabbing; }
-.limitless-console-emblem { grid-column: 1; grid-row: 1; display: block; width: 6.15rem; height: 6.15rem; object-fit: contain; filter: drop-shadow(0 0 5px rgb(45 164 255 / 28%)); }
+.limitless-console-emblem { grid-column: 1; grid-row: 1; display: block; width: 8rem; height: 3.72rem; object-fit: contain; filter: drop-shadow(0 0 5px rgb(45 164 255 / 28%)); }
 .limitless-console-title { grid-column: 2; grid-row: 1; display: grid; align-content: center; gap: .32rem; min-width: 0; color: #e2efff; font-family: Arial, 'Segoe UI', sans-serif; }
 .limitless-console-title strong { font-size: clamp(1.25rem, 2.6vw, 1.65rem); font-weight: 300; letter-spacing: .24em; line-height: 1; }
 .limitless-console-title small { color: #a8bbd9; font-size: clamp(.49rem, .92vw, .62rem); font-weight: 400; letter-spacing: .22em; white-space: nowrap; }
@@ -2025,11 +2025,13 @@
 .limitless-console .command-line button { color: #23d2ff; }
 .limitless-console .command-line input { color: #a8a0f5; caret-color: #46d8ff; }
 .limitless-console .command-line input::placeholder { color: rgb(159 186 222 / 43%); }
+.theme-emblem-activation.activation-limitless { width: clamp(12rem, 24vmin, 20rem); }
+.theme-emblem-activation.activation-limitless .theme-emblem-activation-image { width: 100%; aspect-ratio: 2.24; }
 
 @media (max-width: 520px) {
   .command-console.limitless-console { padding-inline: .78rem; }
-  .limitless-console-header { grid-template-columns: 5.2rem minmax(0, 1fr); height: 5.7rem; gap: .42rem; padding-right: .2rem; }
-  .limitless-console-emblem { width: 5rem; height: 5rem; }
+  .limitless-console-header { grid-template-columns: 6.5rem minmax(0, 1fr); height: 5.7rem; gap: .42rem; padding-right: .2rem; }
+  .limitless-console-emblem { width: 6.35rem; height: 2.9rem; }
   .limitless-console-title strong { font-size: 1.12rem; letter-spacing: .17em; }
   .limitless-console-title small { font-size: .46rem; letter-spacing: .1em; }
   .limitless-console-state { position: absolute; top: .08rem; right: .2rem; display: flex; font-size: .38rem; }
