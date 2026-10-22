@@ -1145,9 +1145,6 @@
 .night-fury-corner-bl { bottom: -.02rem; left: -.02rem; transform: scaleY(-1); }
 .night-fury-corner-br { right: -.02rem; bottom: -.02rem; transform: scale(-1); }
 .night-fury-corner-fins { position: absolute; top: .16rem; right: .16rem; display: block; width: 2.9rem; height: 2.5rem; object-fit: contain; }
-.night-fury-notches { position: absolute; display: block; width: 2.5rem; height: 1.2rem; object-fit: contain; }
-.night-fury-notches-tr { top: 2.45rem; right: .25rem; }
-.night-fury-notches-bl { bottom: 2.1rem; left: .25rem; transform: rotate(180deg); }
 .night-fury-header { position: relative; z-index: 1; height: 5.55rem; margin: 0; padding: 0; cursor: grab; touch-action: none; user-select: none; }
 .night-fury-header:active { cursor: grabbing; }
 .night-fury-header-emblem { position: absolute; top: .12rem; left: .42rem; display: block; width: 4.45rem; height: 3.55rem; object-fit: contain; filter: drop-shadow(0 0 5px rgb(57 174 225 / 14%)); pointer-events: none; }
@@ -1181,7 +1178,6 @@
   .night-fury-header-title small { font-size: .37rem; letter-spacing: .09em; }
   .night-fury-header-state { display: none; }
   .night-fury-corner-fins { width: 2rem; height: 1.7rem; }
-  .night-fury-notches { width: 1.9rem; height: .95rem; }
   .night-fury-bottom-divider { height: .42rem; }
   .night-fury-console .command-line { padding-inline: 1.45rem 1.8rem; }
 }
