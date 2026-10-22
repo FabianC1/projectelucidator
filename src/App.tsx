@@ -999,7 +999,6 @@ function App() {
       setTheme('dragon')
       const activate = !nightStealth
       setNightStealth(activate)
-      setSpecialEffect({ kind: 'night-fury-stealth', id: ++effectIdRef.current })
       report(activate
         ? ['NIGHT FURY STEALTH', 'SIGNATURE .............. SUPPRESSED', 'LOW-LIGHT PROFILE ...... ACTIVE', 'WIDGET ARRAY ........... HIDDEN · CLICK COMMAND INPUT TO RESTORE']
         : ['NIGHT FURY STEALTH', 'SIGNATURE .............. RESTORED', 'WIDGET ARRAY ........... ONLINE'])
@@ -1453,7 +1452,7 @@ function App() {
     }
   }
 
-  const startConsoleDrag = (event: ReactPointerEvent<HTMLParagraphElement>) => {
+  const startConsoleDrag = (event: ReactPointerEvent<HTMLElement>) => {
     if ((event.target as HTMLElement).closest('button')) return
     const bounds = event.currentTarget.closest('.command-console')?.getBoundingClientRect()
     if (!bounds) return
@@ -1515,7 +1514,7 @@ function App() {
   }
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}`}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}`}>
       {wallpaperUrl && (
         <img
           key={bootToken}
@@ -1709,7 +1708,7 @@ function App() {
       </aside>
 
       <section
-        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}`}
+        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}`}
         aria-label="Elucidator system console"
         style={consoleFrame ? {
           left: consoleFrame.x,
@@ -1723,10 +1722,40 @@ function App() {
         onPointerCancel={() => { draggingConsoleRef.current = null }}
       >
         {themeSignature === 'aincrad' && (
-          <div className="console-theme-signature signature-aincrad" style={{ '--signature-accent': activeThemeSystem?.activationPresentation.accent ?? '#00D8FF', '--signature-secondary': activeThemeSystem?.activationPresentation.secondary ?? '#EAFCFF' } as CSSProperties} aria-hidden="true">
-            <span className="theme-signature-emblem-frame"><ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title="LINK START" /></span>
-            <span><b>AINCRAD SYSTEM</b><small>LINK STABLE · FLOOR 01</small></span>
-          </div>
+          <>
+            <svg className="sao-frame-ornaments" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true">
+              <path className="sao-frame-shadow" d="M17 3H948L997 55V345L950 397H17L3 383V17Z" />
+              <path className="sao-frame-outer" d="M17 3H948L997 55V345L950 397H17L3 383V17Z" />
+              <path className="sao-frame-inner" d="M22 9H944L991 59V342L947 390H20L9 379V21Z" />
+              <path className="sao-frame-glass" d="M24 13H937L982 61V337L940 383H25L15 373V25Z" />
+              <path className="sao-frame-top-shade" d="M865 13H935L980 61V96H929Z" />
+              <path className="sao-frame-bottom-shade" d="M950 384L990 340V365L963 391H950Z" />
+              <path className="sao-frame-rails" d="M944 4L996 59M960 4L997 45M976 4L998 30M950 395L996 347M965 395L997 360M980 395L998 374" />
+              <path className="sao-frame-orange" d="M12 35V91" />
+              <path className="sao-frame-ticks" d="M12 101l5 5M12 111l5 5M12 121l5 5M12 131l5 5M12 141l5 5" />
+              <path className="sao-frame-divider" d="M4 303H996" />
+              <path className="sao-frame-lower-accent" d="M950 391l45-48M964 393l34-36" />
+            </svg>
+            <header className="sao-console-header" onPointerDown={startConsoleDrag}>
+              <ThemeEmblem
+                className="sao-console-swords theme-emblem-image"
+                src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'}
+                title="Link Start crossed swords"
+              />
+              <span className="sao-console-title">
+                <strong>AINCRAD SYSTEM</strong>
+                <small>SWORD ART ONLINE // LINK START</small>
+              </span>
+              <span className="sao-console-floor"><span>FLOOR 01</span><i aria-hidden="true" /></span>
+              <svg className="sao-header-underline" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true">
+                <path className="sao-underline-shadow" d="M18 67H132L170 22H438L451 34H790L804 39H963" />
+                <path className="sao-underline-main" d="M18 63H128L166 18H435L448 30H785L800 35H963" />
+                <path className="sao-underline-secondary" d="M18 70H134L173 26H439L453 38H786" />
+                <path className="sao-underline-cyan" d="M806 35H842M856 35H887M902 35H929" />
+                <path className="sao-underline-end" d="M963 27L972 35L963 43L954 35Z" />
+              </svg>
+            </header>
+          </>
         )}
         {themeSignature === 'demon-mark' && (
           <div className="console-theme-signature signature-demon-mark" style={{ '--signature-accent': activeThemeSystem?.activationPresentation.secondary ?? '#E7C65A', '--signature-secondary': activeThemeSystem?.activationPresentation.accent ?? '#A879FF' } as CSSProperties} aria-hidden="true">
@@ -1749,7 +1778,14 @@ function App() {
           </div>
         )}
         <div className="console-output" aria-live="polite">
-          {consoleLines.map((line, index) => <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''} onPointerDown={index === 0 ? startConsoleDrag : undefined}>{line}</p>)}
+          {consoleLines.map((line, index) => {
+            const saoStatus = themeSignature === 'aincrad' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
+            return (
+              <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''} onPointerDown={index === 0 ? startConsoleDrag : undefined}>
+                {saoStatus ? <><span>{saoStatus[1]}</span><span className="sao-output-leader">{saoStatus[2]}</span><span className="sao-output-value">{saoStatus[3]}</span></> : line}
+              </p>
+            )
+          })}
         </div>
         <form className="command-line" onSubmit={submitCommand}>
           <span className="command-prefix">C:\ELUCIDATOR\SYSTEM&gt;</span>
@@ -1767,7 +1803,6 @@ function App() {
             onClick={() => {
               if (!nightStealth) return
               setNightStealth(false)
-              setSpecialEffect({ kind: 'night-fury-stealth', id: ++effectIdRef.current })
               report(['NIGHT FURY STEALTH', 'COMMAND INPUT CONFIRMED', 'WIDGET ARRAY ........... RESTORED'])
               setStatus('NIGHT FURY STEALTH DISENGAGED')
             }}

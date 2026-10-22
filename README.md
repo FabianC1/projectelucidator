@@ -88,7 +88,16 @@ The primary color drives the console and widget structure, the secondary color h
 
 Theme behavior is registered in `src/themeSystems.ts`: each entry declares aliases, activation response, transition, emblem, and visual identity. `sys theme activate` uses the registry so themes reuse the existing activation framework.
 
-Theme status: Arise, Limitless, Hinokami Kagura, and Demon Mode are the current READY themes. SAO, Grimoire, HTTYD, and Tokyo Ghoul are marked WIP while their theme work continues; their commands remain available.
+### Theme design checklist
+
+- [x] **Arise** — console design and activation animation complete.
+- [ ] **Demon Mode** — activation animation complete; console design still needs work (half complete).
+- [ ] **Limitless** — activation animation complete; console design still needs work (half complete).
+- [ ] **Hinokami Kagura** — activation animation complete; console design still needs work (half complete).
+- [x] **SAO / Link Start** — console design and activation animation complete.
+- [ ] **Grimoire** — not started.
+- [ ] **HTTYD / Night Fury** — activation animation complete; console design still needs work (half complete).
+- [ ] **Tokyo Ghoul** — not started.
 
 Theme emblem artwork is loaded from `public/assets/emblems/` using the paths in `src/themeSystems.ts`: `link-start-crossed-swords.png`, `arise-shadow-monarch.png`, `grimoire.png`, `limitless.png`, `hinokami-kagura.png`, `dragon-sin-of-wrath.png`, `night-fury.png`, and `tokyo-ghoul.png`. The browser image loader also accepts SVG and WebP; update the corresponding registry path if using another extension. Missing artwork falls back to a compact theme label. Theme identity colors and activation copy are stored with each registry entry; STEALTH remains a system mode rather than a theme.
 

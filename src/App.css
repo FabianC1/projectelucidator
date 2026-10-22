@@ -1613,6 +1613,126 @@
 .signature-dragon::before { position: absolute; top: 0.04rem; right: 0; left: 1.75rem; height: 1px; background: linear-gradient(90deg, color-mix(in srgb, currentColor 70%, transparent), transparent); content: ''; }
 .signature-dragon::after { position: absolute; top: 1.85rem; left: -0.55rem; width: 0.45rem; height: 1.8rem; border-bottom: 1px solid color-mix(in srgb, currentColor 65%, transparent); border-left: 1px solid color-mix(in srgb, currentColor 65%, transparent); border-radius: 0 0 0 0.45rem; content: ''; filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 45%, transparent)); }
 
+/* Aincrad console: the SAO identity is built into its own compact frame. */
+.command-console.sao-console {
+  box-sizing: border-box;
+  width: min(35rem, calc(100vw - 2rem));
+  min-width: min(18rem, calc(100vw - 2rem));
+  overflow: hidden;
+  padding: 0.72rem 1.15rem 0.48rem;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(112deg, rgb(3 18 31 / 94%), rgb(1 9 18 / 93%) 58%, rgb(4 25 42 / 91%));
+  box-shadow: inset 0 0 28px rgb(21 112 161 / 12%), 0 0 24px rgb(32 165 221 / 12%);
+  backdrop-filter: blur(4px);
+}
+
+.sao-frame-ornaments { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.sao-frame-shadow,
+.sao-frame-outer,
+.sao-frame-inner,
+.sao-frame-glass,
+.sao-frame-rails,
+.sao-frame-orange,
+.sao-frame-ticks,
+.sao-frame-lower-accent { fill: none; vector-effect: non-scaling-stroke; }
+.sao-frame-shadow { stroke: rgb(0 0 0 / 68%); stroke-width: 5px; }
+.sao-frame-outer { stroke: #e9f7ff; stroke-width: 1.5px; filter: drop-shadow(0 0 3px rgb(157 231 255 / 52%)); }
+.sao-frame-inner { stroke: rgb(71 196 236 / 78%); stroke-width: 1px; }
+.sao-frame-glass { fill: rgb(39 116 159 / 4%); stroke: rgb(107 182 214 / 21%); stroke-width: 1px; }
+.sao-frame-top-shade { fill: rgb(72 152 193 / 10%); }
+.sao-frame-bottom-shade { fill: rgb(48 157 198 / 13%); }
+.sao-frame-rails { stroke: #eefaff; stroke-width: 2px; filter: drop-shadow(0 0 2px rgb(157 231 255 / 38%)); }
+.sao-frame-orange { stroke: #ff8b24; stroke-width: 4px; filter: drop-shadow(0 0 4px rgb(255 139 36 / 40%)); }
+.sao-frame-ticks { stroke: #18d8f5; stroke-width: 2.5px; }
+.sao-frame-divider { display: none; }
+.sao-frame-lower-accent { stroke: #51d5f4; stroke-width: 2px; }
+
+.sao-console-header {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.72rem;
+  height: 5.6rem;
+  margin: 0 0 0.1rem;
+  padding: 0.16rem 0.8rem 0.95rem 0.12rem;
+  box-sizing: border-box;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.sao-console-header:active { cursor: grabbing; }
+.sao-console-swords { position: absolute; top: -0.34rem; left: -2.18rem; display: block; width: 10.65rem; height: 6rem; max-width: none; object-fit: contain; filter: drop-shadow(0 0 5px rgb(99 224 255 / 36%)); }
+.sao-console-title { grid-column: 2; display: grid; min-width: 0; gap: 0.28rem; padding-top: 0.58rem; color: #f2f8fc; font-family: 'Arial', 'Segoe UI', sans-serif; }
+.sao-console-title strong { overflow: hidden; font-size: clamp(0.95rem, 2.1vw, 1.32rem); font-weight: 400; letter-spacing: 0.18em; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
+.sao-console-title small { overflow: hidden; color: #dae8f1; font-size: clamp(0.48rem, 1.03vw, 0.65rem); font-weight: 400; letter-spacing: 0.17em; text-overflow: ellipsis; white-space: nowrap; }
+.sao-console-floor { grid-column: 3; display: flex; align-items: center; gap: 0.55rem; align-self: center; margin-top: 0.48rem; color: #d9e7ef; font-family: 'Arial', 'Segoe UI', sans-serif; font-size: clamp(0.48rem, 0.95vw, 0.62rem); letter-spacing: 0.2em; white-space: nowrap; }
+.sao-console-floor i { display: block; width: 0.55rem; height: 0.55rem; border: 1.5px solid #ff8b24; box-shadow: 0 0 5px rgb(255 139 36 / 30%); transform: rotate(45deg); }
+.sao-header-underline { position: absolute; right: 0.2rem; bottom: -0.1rem; left: 0; width: calc(100% - 0.2rem); height: 2.35rem; overflow: visible; pointer-events: none; }
+.sao-underline-shadow,
+.sao-underline-main,
+.sao-underline-secondary,
+.sao-underline-cyan { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: square; stroke-linejoin: bevel; }
+.sao-underline-shadow { stroke: rgb(0 0 0 / 70%); stroke-width: 4px; }
+.sao-underline-main { stroke: #edf9ff; stroke-width: 1.7px; filter: drop-shadow(0 0 2px rgb(135 220 255 / 44%)); }
+.sao-underline-secondary { stroke: rgb(68 186 225 / 67%); stroke-width: 1px; }
+.sao-underline-cyan { stroke: #15d5f1; stroke-width: 2.5px; }
+.sao-underline-end { fill: rgb(3 18 31 / 96%); stroke: #e8f8ff; stroke-width: 1.7px; vector-effect: non-scaling-stroke; }
+
+.sao-console .console-output {
+  position: relative;
+  z-index: 1;
+  max-height: calc(100vh - 14rem);
+  margin: 0.2rem 0.05rem 0.56rem;
+  padding: 0 1.05rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+  color: #edf5fa;
+  font-size: clamp(0.7rem, 1.12vw, 0.85rem);
+  line-height: 1.55;
+  letter-spacing: 0.055em;
+  text-shadow: 0 0 7px rgb(93 201 234 / 12%);
+}
+.sao-console .console-output::-webkit-scrollbar { display: none; }
+.sao-console .console-output .console-heading { color: #f7fbff; }
+.sao-output-leader { color: rgb(223 237 245 / 78%); }
+.sao-output-value { color: #16d9f4; }
+.sao-console .command-line {
+  position: relative;
+  z-index: 1;
+  min-height: 2rem;
+  margin: 0 -1.15rem;
+  padding: 0.45rem 1.2rem 0.04rem;
+  border-top: 1px solid rgb(194 229 243 / 76%);
+  color: #dbeaf1;
+  text-shadow: none;
+}
+.sao-console .command-prefix,
+.sao-console .command-line button { color: #10d9f5; }
+.sao-console .command-line input { color: #c4d4de; caret-color: #15d5f1; }
+.sao-console .command-line input::placeholder { color: rgb(173 199 213 / 45%); }
+
+.theme-sao .sao-console:focus-within {
+  background: linear-gradient(112deg, rgb(3 18 31 / 97%), rgb(1 9 18 / 96%) 58%, rgb(4 25 42 / 95%));
+  box-shadow: inset 0 0 30px rgb(21 112 161 / 16%), 0 0 28px rgb(32 165 221 / 17%);
+}
+
+.theme-sao .sao-console-header .sao-console-swords { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+
+@media (max-width: 520px) {
+  .command-console.sao-console { padding-inline: 0.82rem; }
+  .sao-console-header { grid-template-columns: 3rem minmax(0, 1fr) auto; gap: 0.45rem; height: 5.05rem; padding-right: 0.5rem; }
+  .sao-console-swords { top: -0.28rem; left: -1.8rem; width: 8.95rem; height: 5.05rem; }
+  .sao-console-title { padding-top: 0.52rem; }
+  .sao-console-title strong { letter-spacing: 0.12em; }
+  .sao-console-title small { letter-spacing: 0.08em; }
+  .sao-console-floor { gap: 0.34rem; letter-spacing: 0.1em; }
+  .sao-console-floor i { width: 0.42rem; height: 0.42rem; }
+  .sao-console .command-line { margin-inline: -0.82rem; padding-inline: 0.9rem; }
+}
+
 .sao-activation-interface { position: absolute; inset: 0; color: #9feeff; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; }
 .sao-hud-frame { position: absolute; inset: clamp(1rem, 4vw, 3.5rem); animation: sao-hud-frame-in 1.65s ease-out both; }
 .sao-hud-frame i { position: absolute; width: clamp(1.4rem, 3vw, 2.8rem); height: clamp(1.4rem, 3vw, 2.8rem); border-color: rgb(94 223 255 / 74%); border-style: solid; }
@@ -1757,37 +1877,12 @@
 }
 
 .effect-night-fury-stealth {
-  background: radial-gradient(ellipse at 50% 55%, rgb(10 20 38 / 62%), rgb(4 9 16 / 28%) 35%, transparent 67%);
+  background: transparent;
 }
 
-.effect-night-fury-stealth::before {
-  position: absolute;
-  z-index: 0;
-  top: 19%;
-  left: 50%;
-  width: min(70vw, 65rem);
-  height: min(55vh, 38rem);
-  background: linear-gradient(180deg, rgb(31 44 66 / 12%), rgb(30 71 118 / 22%) 60%, transparent 88%);
-  clip-path: polygon(0 12%, 20% 26%, 31% 8%, 43% 43%, 50% 25%, 57% 43%, 69% 8%, 80% 26%, 100% 12%, 79% 50%, 62% 56%, 50% 100%, 38% 56%, 21% 50%);
-  filter: drop-shadow(0 0 15px rgb(37 77 128 / 32%));
-  content: '';
-  opacity: 0;
-  transform: translateX(-50%) scaleX(.68) translateY(3vh);
-  transform-origin: center;
-  animation: night-fury-cloak 1.5s cubic-bezier(.2,.65,.25,1) both;
-}
-
-.effect-night-fury-stealth::after {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 4px 7px at calc(50% - 0.9rem) 48%, rgb(112 232 255 / 92%) 0 65%, transparent 100%),
-    radial-gradient(ellipse 4px 7px at calc(50% + 0.9rem) 48%, rgb(112 232 255 / 92%) 0 65%, transparent 100%);
-  filter: drop-shadow(0 0 8px rgb(112 232 255 / 78%));
-  content: '';
-  opacity: 0;
-  animation: night-fury-eyes 1.45s ease-in-out both;
+.night-fury-activating .command-console,
+.night-fury-activating .system-widget {
+  animation: night-fury-stealth-pass 1.7s ease-in-out both;
 }
 
 .effect-tokyo-ghoul {
@@ -1863,17 +1958,10 @@
   100% { opacity: 0; transform: translate(-50%, -50%) rotate(-27deg) scaleX(1); }
 }
 
-@keyframes night-fury-cloak {
-  0% { opacity: 0; transform: translateX(-50%) scaleX(.68) translateY(3vh); }
-  32% { opacity: .62; }
-  68% { opacity: .38; transform: translateX(-50%) scaleX(1) translateY(0); }
-  100% { opacity: 0; transform: translateX(-50%) scaleX(1.04) translateY(-1vh); }
-}
-
-@keyframes night-fury-eyes {
-  0%, 28%, 46%, 100% { opacity: 0; }
-  34%, 40% { opacity: .95; }
-  43% { opacity: .22; }
+@keyframes night-fury-stealth-pass {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  34% { filter: brightness(.52) saturate(.55); }
+  56% { filter: brightness(.68) saturate(.72); }
 }
 
 @keyframes ghoul-kagune-left {
