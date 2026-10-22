@@ -1927,6 +1927,118 @@
   .grimoire-seal-messages span { animation-duration: 1ms !important; animation-delay: 0ms !important; }
 }
 
+/* Limitless console: curved Infinity geometry with a deliberate spatial break. */
+.command-console.limitless-console {
+  box-sizing: border-box;
+  width: min(35rem, calc(100vw - 2rem));
+  min-width: min(18rem, calc(100vw - 2rem));
+  overflow: hidden;
+  padding: .72rem 1rem .38rem;
+  border: 0;
+  border-radius: 0;
+  color: #d6e9ff;
+  background: linear-gradient(110deg, rgb(2 12 27 / 96%), rgb(4 7 25 / 96%) 62%, rgb(13 7 30 / 95%));
+  box-shadow: inset 0 0 30px rgb(54 101 210 / 11%), 0 0 22px rgb(97 90 244 / 12%);
+  backdrop-filter: blur(4px);
+}
+.limitless-frame-ornaments { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.limitless-frame-outer,
+.limitless-frame-inner,
+.limitless-frame-arcs { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.limitless-frame-outer { stroke: url(#limitless-frame-gradient); stroke-width: 1.35px; filter: drop-shadow(0 0 3px rgb(81 155 255 / 28%)); }
+.limitless-frame-inner { stroke: url(#limitless-frame-gradient); stroke-width: .65px; opacity: .5; }
+.limitless-frame-arcs { stroke: url(#limitless-frame-gradient); stroke-width: .85px; opacity: .58; }
+.limitless-arc-point.blue { fill: #22d8ff; filter: drop-shadow(0 0 3px rgb(34 216 255 / 70%)); }
+.limitless-arc-point.violet { fill: #b66bff; filter: drop-shadow(0 0 3px rgb(182 107 255 / 65%)); }
+.limitless-console-header {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 6.6rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .72rem;
+  height: 6.5rem;
+  margin: 0 0 .18rem;
+  padding: .05rem .55rem .8rem .12rem;
+  box-sizing: border-box;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.limitless-console-header:active { cursor: grabbing; }
+.limitless-console-emblem { grid-column: 1; grid-row: 1; display: block; width: 6.15rem; height: 6.15rem; object-fit: contain; filter: drop-shadow(0 0 5px rgb(45 164 255 / 28%)); }
+.limitless-console-title { grid-column: 2; grid-row: 1; display: grid; align-content: center; gap: .32rem; min-width: 0; color: #e2efff; font-family: Arial, 'Segoe UI', sans-serif; }
+.limitless-console-title strong { font-size: clamp(1.25rem, 2.6vw, 1.65rem); font-weight: 300; letter-spacing: .24em; line-height: 1; }
+.limitless-console-title small { color: #a8bbd9; font-size: clamp(.49rem, .92vw, .62rem); font-weight: 400; letter-spacing: .22em; white-space: nowrap; }
+.limitless-console-state { grid-column: 3; grid-row: 1; display: flex; align-items: center; gap: .42rem; color: #a9bad9; font-family: Arial, 'Segoe UI', sans-serif; font-size: clamp(.43rem, .75vw, .55rem); letter-spacing: .14em; white-space: nowrap; }
+.limitless-console-state i { width: .42rem; height: .42rem; border-radius: 50%; }
+.limitless-dot-blue { margin-left: .2rem; background: #20cfff; box-shadow: 0 0 7px rgb(32 207 255 / 72%); }
+.limitless-dot-violet { background: #ad68ff; box-shadow: 0 0 7px rgb(173 104 255 / 65%); }
+.limitless-header-underline { position: absolute; right: .12rem; bottom: -.1rem; left: 0; width: calc(100% - .12rem); height: 2.7rem; overflow: visible; pointer-events: none; }
+.limitless-underline-left,
+.limitless-underline-right { fill: none; stroke: #20cfff; stroke-width: 1.05px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.limitless-underline-left.second,
+.limitless-underline-right.second { stroke: #526df4; stroke-width: .7px; opacity: .92; }
+.limitless-underline-right { stroke: #aa65ff; }
+.limitless-underline-right.second { stroke: #8067ff; }
+.limitless-gap-dot.blue { fill: #21d7ff; filter: drop-shadow(0 0 3px rgb(33 215 255 / 68%)); }
+.limitless-gap-dot.violet { fill: #b170ff; filter: drop-shadow(0 0 3px rgb(177 112 255 / 62%)); }
+.limitless-loop-point { fill: #bd6cff; }
+.limitless-loop-point.second { fill: #8c78ff; }
+.limitless-console .console-output {
+  position: relative;
+  z-index: 1;
+  max-height: calc(100vh - 15rem);
+  margin: .12rem .08rem .48rem;
+  padding: 0 .95rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+  color: #cddfff;
+  font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
+  font-size: clamp(.67rem, 1.05vw, .78rem);
+  line-height: 1.52;
+  letter-spacing: .045em;
+  text-shadow: 0 0 7px rgb(93 164 255 / 11%);
+}
+.limitless-console .console-output::-webkit-scrollbar { display: none; }
+.limitless-console .console-output .console-heading { color: #e3efff; }
+.limitless-output-leader { color: rgb(190 211 243 / 70%); }
+.limitless-output-value { color: #23d5ff; }
+.limitless-output-value.stable { color: #ae76ff; }
+.limitless-console .command-line {
+  position: relative;
+  z-index: 1;
+  min-height: 1.9rem;
+  margin: 0 -1rem;
+  padding: .48rem 1.05rem .02rem;
+  border-top: 0;
+  color: #c9d9f6;
+  font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
+  font-size: clamp(.72rem, 1.2vw, .9rem);
+  text-shadow: none;
+}
+.limitless-console .command-line::before,
+.limitless-console .command-line::after { position: absolute; top: 0; left: 1rem; width: calc(100% - 2rem); height: 1px; content: ''; pointer-events: none; }
+.limitless-console .command-line::before { background: linear-gradient(90deg, #1dcfff 0%, #527dff 47%, transparent 47%, transparent 53%, #8e70ff 53%, #ca70ff 100%); opacity: .9; }
+.limitless-console .command-line::after { top: -1px; background: radial-gradient(circle at 48.6% 50%, #27d7ff 0 2px, transparent 2.8px), radial-gradient(circle at 51.4% 50%, #b771ff 0 2px, transparent 2.8px); }
+.limitless-console .command-prefix,
+.limitless-console .command-line button { color: #23d2ff; }
+.limitless-console .command-line input { color: #a8a0f5; caret-color: #46d8ff; }
+.limitless-console .command-line input::placeholder { color: rgb(159 186 222 / 43%); }
+
+@media (max-width: 520px) {
+  .command-console.limitless-console { padding-inline: .78rem; }
+  .limitless-console-header { grid-template-columns: 5.2rem minmax(0, 1fr); height: 5.7rem; gap: .42rem; padding-right: .2rem; }
+  .limitless-console-emblem { width: 5rem; height: 5rem; }
+  .limitless-console-title strong { font-size: 1.12rem; letter-spacing: .17em; }
+  .limitless-console-title small { font-size: .46rem; letter-spacing: .1em; }
+  .limitless-console-state { position: absolute; top: .08rem; right: .2rem; display: flex; font-size: .38rem; }
+  .limitless-header-underline { height: 2.25rem; }
+  .limitless-console .command-line { margin-inline: -.78rem; padding-inline: .85rem; }
+  .limitless-console .command-line::before,
+  .limitless-console .command-line::after { left: .78rem; width: calc(100% - 1.56rem); }
+}
+
 .demon-mark-activation { position: absolute; top: 50%; left: 50%; display: grid; justify-items: center; gap: 0.7rem; width: min(32vmin, 20rem); color: #c49bff; transform: translate(-50%, -50%); animation: demon-mark-reveal 1.7s ease-out both; }
 .demon-mark-activation::before { position: absolute; z-index: -1; top: 50%; left: 50%; width: 118%; aspect-ratio: 1; border: 1px solid rgb(231 198 90 / 52%); border-radius: 50%; box-shadow: inset 0 0 20px rgb(139 92 246 / 24%), 0 0 28px rgb(139 92 246 / 34%); content: ''; transform: translate(-50%, -50%); animation: demon-seal-turn 1.7s ease-out both; }
 .demon-mark-large { width: 62%; aspect-ratio: 1; overflow: visible; object-fit: contain; filter: drop-shadow(0 0 9px rgb(168 121 255 / 75%)); animation: demon-emblem-materialize 1.35s cubic-bezier(.16,.7,.24,1) 80ms both; }

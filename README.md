@@ -95,11 +95,11 @@ Theme behavior is registered in `src/themeSystems.ts`: each entry declares alias
 - [ ] **Limitless** — activation animation complete; console design still needs work (half complete).
 - [ ] **Hinokami Kagura** — activation animation complete; console design still needs work (half complete).
 - [x] **SAO / Link Start** — console design and activation animation complete.
-- [ ] **Grimoire** — not started.
+- [x] **Grimoire** — console design and activation animation complete.
 - [ ] **HTTYD / Night Fury** — activation animation complete; console design still needs work (half complete).
 - [ ] **Tokyo Ghoul** — not started.
 
-Theme emblem artwork is loaded from `public/assets/emblems/` using the paths in `src/themeSystems.ts`: `link-start-crossed-swords.png`, `arise-shadow-monarch.png`, `grimoire.png`, `limitless.png`, `hinokami-kagura.png`, `dragon-sin-of-wrath.png`, `night-fury.png`, and `tokyo-ghoul.png`. The browser image loader also accepts SVG and WebP; update the corresponding registry path if using another extension. Missing artwork falls back to a compact theme label. Theme identity colors and activation copy are stored with each registry entry; STEALTH remains a system mode rather than a theme.
+Theme emblem artwork is loaded from `public/assets/emblems/` using the paths in `src/themeSystems.ts`: `link-start-crossed-swords.png`, `arise-shadow-monarch.png`, `grimoire.png`, `limitless1.png`, `hinokami-kagura.png`, `dragon-sin-of-wrath.png`, `night-fury.png`, and `tokyo-ghoul.png`. The browser image loader also accepts SVG and WebP; update the corresponding registry path if using another extension. Missing artwork falls back to a compact theme label. Theme identity colors and activation copy are stored with each registry entry; STEALTH remains a system mode rather than a theme.
 
 Activate a theme directly with its `sys` command or through `sys theme activate <name>`; `sys theme list` shows the available systems.
 

@@ -57,7 +57,7 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
   {
     id: 'limitless', label: 'JUJUTSU KAISEN / LIMITLESS', status: 'ready', command: 'limitless', aliases: ['limitless'],
     activationEffect: 'limitless', signature: 'none',
-    emblemAsset: './assets/emblems/limitless.png',
+    emblemAsset: './assets/emblems/limitless1.png',
     activationPresentation: { title: 'LIMITLESS', subtitle: 'JUJUTSU KAISEN SYSTEM', accent: '#60A5FA', secondary: '#C4B5FD' },
     activationResponse: ['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ...... ACTIVE', 'INFINITY FIELD .......... STABLE'],
   },

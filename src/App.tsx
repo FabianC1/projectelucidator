@@ -1741,7 +1741,7 @@ function App() {
       </aside>
 
       <section
-        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}`}
+        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}`}
         aria-label="Elucidator system console"
         style={consoleFrame ? {
           left: consoleFrame.x,
@@ -1825,13 +1825,48 @@ function App() {
             </header>
           </>
         )}
+        {theme === 'limitless' && (
+          <>
+            <svg className="limitless-frame-ornaments" viewBox="0 0 1000 460" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="limitless-frame-gradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#17d9ff" />
+                  <stop offset="48%" stopColor="#396eff" />
+                  <stop offset="100%" stopColor="#c060ff" />
+                </linearGradient>
+              </defs>
+              <path className="limitless-frame-outer" d="M42 4H958Q996 4 996 42V418Q996 456 958 456H42Q4 456 4 418V42Q4 4 42 4Z" />
+              <path className="limitless-frame-inner" d="M46 10H954Q990 10 990 46V414Q990 450 954 450H46Q10 450 10 414V46Q10 10 46 10Z" />
+              <path className="limitless-frame-arcs" d="M10 158C10 80 66 18 153 10M10 190C10 94 81 28 185 10M10 222C10 112 96 43 218 10M990 302C990 380 934 442 847 450M990 270C990 366 919 432 815 450M990 238C990 348 904 417 782 450" />
+              <circle className="limitless-arc-point blue" cx="30" cy="93" r="2.1" />
+              <circle className="limitless-arc-point blue" cx="67" cy="42" r="1.6" />
+              <circle className="limitless-arc-point violet" cx="950" cy="377" r="1.8" />
+              <circle className="limitless-arc-point violet" cx="974" cy="338" r="2.1" />
+            </svg>
+            <header className="limitless-console-header" onPointerDown={startConsoleDrag}>
+              <ThemeEmblem className="limitless-console-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/limitless1.png'} title="Limitless infinity emblem" />
+              <span className="limitless-console-title"><strong>LIMITLESS</strong><small>JUJUTSU KAISEN SYSTEM</small></span>
+              <span className="limitless-console-state">INFINITY // STABLE<i className="limitless-dot-blue" /><i className="limitless-dot-violet" /></span>
+              <svg className="limitless-header-underline" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true">
+                <path className="limitless-underline-left" d="M25 84C68 84 91 81 123 84C150 87 165 100 207 101H462" />
+                <path className="limitless-underline-left second" d="M25 92C68 92 93 88 124 91C151 94 168 108 208 109H462" />
+                <path className="limitless-underline-right" d="M538 84H855C896 84 921 70 950 48C969 34 983 32 989 39C995 47 980 61 962 73C933 92 907 101 855 101H538" />
+                <path className="limitless-underline-right second" d="M538 92H853C894 92 920 78 947 57C965 43 978 40 983 45C988 51 975 63 957 76C930 94 904 109 853 109H538" />
+                <circle className="limitless-gap-dot blue" cx="482" cy="88" r="3.2" />
+                <circle className="limitless-gap-dot violet" cx="518" cy="96" r="3.2" />
+                <circle className="limitless-loop-point" cx="989" cy="39" r="2.4" />
+                <circle className="limitless-loop-point second" cx="962" cy="73" r="2" />
+              </svg>
+            </header>
+          </>
+        )}
         {themeSignature === 'demon-mark' && (
           <div className="console-theme-signature signature-demon-mark" style={{ '--signature-accent': activeThemeSystem?.activationPresentation.secondary ?? '#E7C65A', '--signature-secondary': activeThemeSystem?.activationPresentation.accent ?? '#A879FF' } as CSSProperties} aria-hidden="true">
             <span className="theme-signature-emblem-frame"><ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/dragon-sin-of-wrath.png'} title="DRAGON SIN OF WRATH" /></span>
             <span><b>DEMON MARK</b><small>POWER UNSEALED</small></span>
           </div>
         )}
-        {themeSignature === 'none' && theme !== 'grimoire' && (
+        {themeSignature === 'none' && theme !== 'grimoire' && theme !== 'limitless' && (
           <div
             className={`console-theme-signature signature-${theme}`}
             style={{ '--signature-accent': activeThemeSystem?.activationPresentation.accent ?? STEALTH_PRESENTATION.accent, '--signature-secondary': activeThemeSystem?.activationPresentation.secondary ?? STEALTH_PRESENTATION.secondary } as CSSProperties}
@@ -1847,10 +1882,11 @@ function App() {
         )}
         <div className="console-output" aria-live="polite">
           {consoleLines.map((line, index) => {
-            const highlightedStatus = themeSignature === 'aincrad' || theme === 'grimoire' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
+            const highlightedStatus = themeSignature === 'aincrad' || theme === 'grimoire' || theme === 'limitless' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
+            const outputTone = theme === 'grimoire' ? 'grimoire' : theme === 'limitless' ? 'limitless' : 'sao'
             return (
               <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''} onPointerDown={index === 0 ? startConsoleDrag : undefined}>
-                {highlightedStatus ? <><span>{highlightedStatus[1]}</span><span className={theme === 'grimoire' ? 'grimoire-output-leader' : 'sao-output-leader'}>{highlightedStatus[2]}</span><span className={theme === 'grimoire' ? 'grimoire-output-value' : 'sao-output-value'}>{highlightedStatus[3]}</span></> : line}
+                {highlightedStatus ? <><span>{highlightedStatus[1]}</span><span className={`${outputTone}-output-leader`}>{highlightedStatus[2]}</span><span className={`${outputTone}-output-value${theme === 'limitless' && /STABLE/i.test(highlightedStatus[3]) ? ' stable' : ''}`}>{highlightedStatus[3]}</span></> : line}
               </p>
             )
           })}
