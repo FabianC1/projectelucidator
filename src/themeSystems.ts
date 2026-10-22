@@ -62,7 +62,7 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
     activationResponse: ['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ...... ACTIVE', 'INFINITY FIELD .......... STABLE'],
   },
   {
-    id: 'breathing-sun', label: 'DEMON SLAYER / HINOKAMI KAGURA', status: 'ready', command: 'demon slayer', aliases: ['demon slayer', 'hinokami kagura'],
+    id: 'breathing-sun', label: 'DEMON SLAYER / HINOKAMI KAGURA', status: 'ready', command: 'hinokami kagura', aliases: ['hinokami kagura'],
     activationEffect: 'breathing-sun', signature: 'none',
     emblemAsset: './assets/emblems/hinokami-kagura.png',
     activationPresentation: { title: 'HINOKAMI KAGURA', subtitle: 'SUN BREATHING // IGNITED', accent: '#F47B20', secondary: '#5DA8FF' },

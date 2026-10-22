@@ -33,6 +33,7 @@ type NowPlayingStatus = 'waiting' | 'browser' | 'none' | 'track' | 'invalid'
 
 const WIDGET_IDS = [1, 2, 3, 4, 5] as const
 const SUN_BREATHING_KATANA = './assets/swords/sun-breathing-katana.png'
+const HINOKAMI_FIREBLADE = './assets/swords/hinokami-fireblade.png'
 const WIDGET_SCALES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const
 type WidgetScale = (typeof WIDGET_SCALES)[number]
 type WidgetScales = Partial<Record<number, WidgetScale>>
@@ -328,7 +329,7 @@ const COMMAND_COMPLETIONS = [
   'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys limitless',
-  'sys demon slayer', 'sys hinokami kagura', 'sys demon mode', 'sys httyd', 'sys night fury', 'sys tokyo ghoul', 'sys stealth', 'sys help', 'help',
+  'sys hinokami kagura', 'sys demon mode', 'sys httyd', 'sys night fury', 'sys tokyo ghoul', 'sys stealth', 'sys help', 'help',
   'visual list', 'visual haze', 'visual rain', 'visual lightning', 'visual particles', 'visual vignette', 'visual off', 'visual status',
 ]
 
@@ -1017,12 +1018,12 @@ function App() {
       setSpecialEffect({ kind: 'limitless', id: ++effectIdRef.current })
       report(['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ....... ACTIVE', 'INFINITY FIELD .......... STABLE'])
       setStatus('LIMITLESS PROTOCOL ACTIVATED')
-    } else if ((domain === 'demon' && action === 'slayer' && args.length === 2) || (domain === 'hinokami' && action === 'kagura' && args.length === 2)) {
+    } else if (domain === 'hinokami' && action === 'kagura' && args.length === 2) {
       setNightStealth(false)
       setTheme('breathing-sun')
       setSpecialEffect({ kind: 'breathing-sun', id: ++effectIdRef.current })
       report(['HINOKAMI KAGURA', 'SUN BREATHING .......... IGNITED', 'NICHIRIN BLADE ......... READY'])
-      setStatus('DEMON SLAYER SYSTEM ACTIVATED')
+      setStatus('HINOKAMI KAGURA ACTIVATED')
     } else if (domain === 'demon' && action === 'mode' && args.length === 2) {
       setNightStealth(false)
       setTheme('demon-mode')
@@ -1516,7 +1517,7 @@ function App() {
   }
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}`}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`}>
       {wallpaperUrl && (
         <img
           key={bootToken}
@@ -1590,14 +1591,10 @@ function App() {
               <svg className="hinokami-arc" viewBox="0 0 1000 700" preserveAspectRatio="none">
                 <path d="M260 524A305 305 0 0 1 740 220" />
               </svg>
-              <img className="hinokami-activation-sword" src={SUN_BREATHING_KATANA} alt="" />
-              <svg className="hinokami-slash" viewBox="0 0 1000 700" preserveAspectRatio="none">
-                <path className="hinokami-slash-core" d="M194 108Q482 319 819 490" />
-              </svg>
-              <svg className="hinokami-flame-trail" viewBox="0 0 1000 700" preserveAspectRatio="none">
-                <defs><linearGradient id="hinokami-flame-gradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#ef3c1e" stopOpacity=".08" /><stop offset="45%" stopColor="#e5351d" stopOpacity=".86" /><stop offset="78%" stopColor="#ff862e" stopOpacity=".74" /><stop offset="100%" stopColor="#ffe4a1" stopOpacity=".04" /></linearGradient></defs>
-                <path d="M148 93Q263 191 377 244Q503 302 602 378Q710 460 858 503Q804 511 765 493Q788 523 841 535Q766 539 709 506Q624 455 548 406Q446 340 342 297Q229 251 148 93Z" />
-              </svg>
+              <div className="hinokami-fireblade-wrap">
+                <img className="hinokami-activation-sword" src={HINOKAMI_FIREBLADE} alt="" />
+                <span className="hinokami-fireblade-light" style={{ maskImage: `url(${HINOKAMI_FIREBLADE})`, WebkitMaskImage: `url(${HINOKAMI_FIREBLADE})` }} />
+              </div>
               <div className="hinokami-activation-copy"><strong>HINOKAMI KAGURA</strong><span>SUN BREATHING // IGNITED</span></div>
             </div>
           )}
@@ -1879,10 +1876,17 @@ function App() {
               <img className="hinokami-console-sword" src={SUN_BREATHING_KATANA} alt="Nichirin katana" />
               <span className="hinokami-console-title"><strong>HINOKAMI KAGURA</strong><small>DEMON SLAYER // TANJIRO KAMADO</small></span>
               <svg className="hinokami-header-underline" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
-                <path className="hinokami-underline-ivory" d="M30 72H970" />
-                <path className="hinokami-underline-flame" d="M31 81C105 77 132 88 202 82S313 79 370 84S461 77 520 83S637 89 699 81S820 85 970 79" />
+                <path className="hinokami-underline-ivory" d="M30 35H970" />
+                <path className="hinokami-underline-flame" transform="translate(0 12) scale(1 .76)" d="M30 52C55 50 65 57 85 53C99 50 101 41 109 43C117 45 108 52 127 51C146 50 151 56 172 52C188 49 191 38 199 41C207 44 195 50 219 50C240 50 247 57 268 52C285 48 289 40 297 43C304 46 293 52 315 52C338 52 345 57 367 52C386 48 390 39 398 42C407 45 396 51 419 51C438 51 449 57 469 52C487 48 493 39 501 42C510 45 497 52 520 51C541 50 550 57 572 53C590 49 594 40 602 43C610 46 599 53 623 52C644 51 653 57 675 53C694 49 699 40 708 43C716 46 704 52 729 51C749 50 759 58 780 53C799 49 803 40 812 43C821 46 809 52 833 51C854 50 864 57 887 52C910 49 927 52 970 50L970 82C946 83 936 76 920 80C903 84 896 91 888 86C879 82 891 76 869 77C848 78 841 85 819 81C801 78 796 71 788 75C780 79 793 84 771 84C750 84 742 77 722 81C703 85 699 92 690 87C682 82 694 76 672 77C650 78 642 86 622 82C603 79 599 71 590 75C582 79 595 84 572 85C550 85 543 77 521 81C502 85 499 92 490 87C482 83 494 77 472 77C450 77 443 85 421 82C401 79 397 71 388 75C380 79 394 85 371 85C350 85 342 77 321 81C302 84 298 92 290 87C282 82 294 76 271 77C250 78 243 86 222 82C202 78 197 71 188 75C180 79 194 85 171 85C150 85 142 77 121 81C101 85 96 91 88 86C80 81 92 76 70 77C54 78 44 83 30 81Z" />
+                <path className="hinokami-flame-gaps" transform="translate(0 12) scale(1 .76)" d="M142 52C148 52 150 58 154 66C145 62 142 58 142 52ZM344 52C351 51 354 57 359 65C350 62 346 58 344 52ZM560 52C567 51 571 57 575 65C566 62 562 58 560 52ZM770 52C777 51 781 57 785 65C776 62 772 58 770 52Z" />
               </svg>
             </header>
+            <svg className="hinokami-hanafuda" viewBox="0 0 80 130" aria-hidden="true">
+              <rect x="3" y="3" width="74" height="124" />
+              <circle cx="40" cy="38" r="19" />
+              <path d="M9 78L28 62L39 70L53 58L72 76M9 91L25 84L36 91L53 82L72 90M8 105C20 99 27 112 39 105S58 99 72 107" />
+              <path className="hana-leaf" d="M49 18C60 15 64 21 66 28C57 29 51 25 49 18ZM13 48C22 43 29 47 32 54C23 57 17 54 13 48Z" />
+            </svg>
           </>
         )}
         {themeSignature === 'demon-mark' && (
