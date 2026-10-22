@@ -1787,15 +1787,10 @@
 .grimoire-frame-ornaments { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .grimoire-frame-outer,
 .grimoire-frame-inner,
-.grimoire-spine,
-.grimoire-corners,
-.grimoire-fissures { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.grimoire-spine { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
 .grimoire-frame-outer { stroke: #c7a45f; stroke-width: 1.35px; filter: drop-shadow(0 0 2px rgb(214 173 94 / 28%)); }
 .grimoire-frame-inner { stroke: rgb(214 178 106 / 88%); stroke-width: .9px; }
 .grimoire-spine { stroke: rgb(202 158 81 / 38%); stroke-width: .8px; }
-.grimoire-corners { stroke: #c5a25e; stroke-width: 1px; }
-.grimoire-corners path { fill: none; }
-.grimoire-fissures { stroke: rgb(164 37 46 / 39%); stroke-width: .7px; }
 .grimoire-input-rule { display: none; stroke: rgb(198 162 96 / 68%); stroke-width: .8px; }
 .grimoire-console-header {
   position: relative;
@@ -1870,6 +1865,7 @@
   width: min(34rem, 82vw);
   aspect-ratio: 1.72;
   overflow: hidden;
+  clip-path: polygon(5% 1%, 95% 1%, 99.4% 8%, 99.4% 92%, 95% 99%, 5% 99%, .6% 92%, .6% 8%);
   background: linear-gradient(145deg, rgb(29 10 10 / 96%), rgb(12 5 6 / 97%) 68%, rgb(27 8 9 / 96%));
   box-shadow: inset 0 0 42px rgb(109 28 29 / 18%), 0 0 32px rgb(160 104 45 / 12%);
   animation: grimoire-cover-in 350ms ease-out both;

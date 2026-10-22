@@ -1793,22 +1793,9 @@ function App() {
         {theme === 'grimoire' && (
           <>
             <svg className="grimoire-frame-ornaments" viewBox="0 0 1000 460" preserveAspectRatio="none" aria-hidden="true">
-              <defs>
-                <g id="grimoire-console-leaf-corner">
-                  <path d="M8 9C18 16 25 25 31 37C39 52 49 62 64 72" />
-                  <path d="M24 28C14 27 8 21 7 13C16 14 23 19 27 26Z" />
-                  <path d="M39 48C30 48 24 43 22 35C31 36 38 40 42 47Z" />
-                  <path d="M53 62C46 63 40 59 37 53C45 52 51 55 56 61Z" />
-                </g>
-              </defs>
               <path className="grimoire-frame-outer" d="M20 3H980L997 20V440L980 457H20L3 440V20Z" />
               <path className="grimoire-frame-inner" d="M25 9H975L991 25V435L975 451H25L9 435V25Z" />
               <path className="grimoire-spine" d="M23 30V430M29 30V430" />
-              <use className="grimoire-corners" href="#grimoire-console-leaf-corner" transform="translate(22 18) scale(.76)" />
-              <use className="grimoire-corners" href="#grimoire-console-leaf-corner" transform="translate(978 18) scale(-.76 .76)" />
-              <use className="grimoire-corners" href="#grimoire-console-leaf-corner" transform="translate(22 442) scale(.76 -.76)" />
-              <use className="grimoire-corners" href="#grimoire-console-leaf-corner" transform="translate(978 442) scale(-.76 -.76)" />
-              <path className="grimoire-fissures" d="M68 20L80 13L89 8M932 440L920 447L911 452" />
               <path className="grimoire-input-rule" d="M4 385H996" />
             </svg>
             <header className="grimoire-console-header" onPointerDown={startConsoleDrag}>
