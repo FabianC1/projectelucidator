@@ -1323,7 +1323,7 @@
 .kagune-rc-tab b { overflow: hidden; font: 700 .54rem/1 ui-monospace, Consolas, monospace; letter-spacing: .075em; text-overflow: ellipsis; white-space: nowrap; }
 .kagune-header-tendril { position: absolute; z-index: 1; top: 2.8rem; left: 5.2rem; display: block; width: calc(100% - 23rem); height: auto; object-fit: contain; pointer-events: none; }
 .kagune-right-tendril { position: absolute; z-index: 2; top: 2.5rem; right: .38rem; display: block; width: 4.65rem; height: 3.9rem; object-fit: contain; object-position: center top; pointer-events: none; }
-.kagune-bottom-tendril { position: absolute; z-index: 0; top: 0; left: 0; display: block; width: 100%; height: auto; object-fit: contain; transform: translateY(calc(-100% + 2rem)); pointer-events: none; }
+.kagune-bottom-tendril { position: absolute; z-index: 0; top: 0; left: 0; display: block; width: 100%; height: auto; object-fit: contain; transform: translateY(calc(-100% + 4rem)); pointer-events: none; }
 .tokyo-ghoul-console .console-output { position: relative; z-index: 2; min-height: 4.2rem; max-height: calc(100vh - 11rem); margin: .05rem .18rem .2rem; padding: 0 4.3rem 0 1.55rem; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgb(196 34 54 / 42%) transparent; color: #e0dfe2; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; font-size: clamp(.74rem, 1.1vw, .86rem); line-height: 1.48; letter-spacing: .035em; text-shadow: 0 0 5px rgb(230 225 230 / 7%); }
 .tokyo-ghoul-console .console-heading { color: #f1eff1; }
 .tokyo-ghoul-output-leader { color: rgb(205 204 209 / 72%); }
