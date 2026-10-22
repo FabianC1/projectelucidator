@@ -1792,12 +1792,12 @@
 .grimoire-leaves,
 .grimoire-fissures,
 .grimoire-input-rule { display: none; fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
-.grimoire-frame-outer { stroke: #b89454; stroke-width: 1.15px; filter: drop-shadow(0 0 2px rgb(214 173 94 / 25%)); }
-.grimoire-frame-inner { stroke: rgb(214 178 106 / 68%); stroke-width: .65px; }
+.grimoire-frame-outer { stroke: #c7a45f; stroke-width: 1.35px; filter: drop-shadow(0 0 2px rgb(214 173 94 / 28%)); }
+.grimoire-frame-inner { stroke: rgb(214 178 106 / 88%); stroke-width: .9px; }
 .grimoire-spine { stroke: rgb(202 158 81 / 38%); stroke-width: .8px; }
 .grimoire-corners { stroke: #c5a25e; stroke-width: 1px; }
-.grimoire-leaves { stroke: #aa8b51; stroke-width: .85px; }
-.grimoire-fissures { stroke: rgb(164 37 46 / 54%); stroke-width: .8px; }
+.grimoire-corners path { fill: none; }
+.grimoire-fissures { stroke: rgb(164 37 46 / 39%); stroke-width: .7px; }
 .grimoire-input-rule { stroke: rgb(198 162 96 / 68%); stroke-width: .8px; }
 .grimoire-console-header {
   position: relative;
@@ -1827,9 +1827,9 @@
 .grimoire-underline-leaf { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
 .grimoire-underline-main { stroke: #c9a765; stroke-width: 1.1px; filter: drop-shadow(0 0 2px rgb(200 159 85 / 20%)); }
 .grimoire-underline-secondary { stroke: rgb(161 126 66 / 67%); stroke-width: .65px; }
-.grimoire-underline-accent { stroke: #a68a52; stroke-width: .85px; }
+.grimoire-underline-stem { stroke: #c4a260; stroke-width: 1px; }
 .grimoire-underline-diamond { fill: #711923; stroke: #d0aa64; stroke-width: 1px; vector-effect: non-scaling-stroke; }
-.grimoire-underline-leaf { stroke: #c4a260; stroke-width: 1px; }
+.grimoire-underline-leaf { fill: #20100d; stroke: #c4a260; stroke-width: 1px; }
 .grimoire-console .console-output {
   position: relative;
   z-index: 1;
@@ -1882,12 +1882,10 @@
 .grimoire-cover-flourish,
 .grimoire-cover-leaves,
 .grimoire-cover-fissures { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
-.grimoire-cover-outline { stroke: #d5b46d; stroke-width: 1.35px; stroke-dasharray: 2200; stroke-dashoffset: 2200; animation: grimoire-stroke-draw 300ms ease-out 40ms forwards; }
-.grimoire-cover-inner { stroke: rgb(186 147 79 / 64%); stroke-width: .8px; stroke-dasharray: 2100; stroke-dashoffset: 2100; animation: grimoire-stroke-draw 280ms ease-out 70ms forwards; }
-.grimoire-cover-flourish,
-.grimoire-cover-leaves { stroke: #c7a55f; stroke-width: 1.15px; stroke-dasharray: 900; stroke-dashoffset: 900; animation: grimoire-stroke-draw 500ms ease-out 350ms forwards; }
-.grimoire-cover-leaves { stroke: #9e8249; stroke-width: .8px; stroke-dasharray: 900; stroke-dashoffset: 900; animation-duration: 380ms; animation-delay: 470ms; }
-.grimoire-cover-fissures { stroke: #b3273d; stroke-width: 1px; stroke-dasharray: 180; stroke-dashoffset: 180; animation: grimoire-stroke-draw 450ms ease-out 880ms forwards; }
+.grimoire-cover-outline { stroke: #d5b46d; stroke-width: 1.35px; stroke-dasharray: 2600 2600; stroke-dashoffset: 2600; animation: grimoire-stroke-draw 300ms ease-out 40ms forwards; }
+.grimoire-cover-inner { stroke: rgb(186 147 79 / 78%); stroke-width: .9px; stroke-dasharray: 2500 2500; stroke-dashoffset: 2500; animation: grimoire-stroke-draw 280ms ease-out 70ms forwards; }
+.grimoire-cover-flourish { fill: none; stroke: #c7a55f; stroke-width: 1.15px; stroke-dasharray: 180 180; stroke-dashoffset: 180; animation: grimoire-stroke-draw 500ms ease-out 350ms forwards; }
+.grimoire-cover-fissures { stroke: #b3273d; stroke-width: 1px; stroke-dasharray: 100 100; stroke-dashoffset: 100; animation: grimoire-stroke-draw 450ms ease-out 880ms forwards; }
 .grimoire-seal-content { position: absolute; top: 15%; left: 50%; display: grid; justify-items: center; gap: .25rem; width: 34%; color: #d4bd8c; transform: translateX(-50%); }
 .grimoire-seal-emblem { display: block; width: 76%; height: auto; aspect-ratio: 1; object-fit: contain; clip-path: inset(100% 0 0); filter: drop-shadow(0 0 7px rgb(207 53 58 / 28%)); animation: grimoire-emblem-rise 550ms cubic-bezier(.18,.65,.3,1) 350ms forwards, grimoire-seal-pulse 350ms ease-in-out 1400ms 1; }
 .grimoire-seal-content strong { color: #e0c987; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(.66rem, 1.65vw, 1.05rem); font-weight: 500; letter-spacing: .2em; opacity: 0; animation: grimoire-copy-in 300ms ease-out 780ms forwards; }

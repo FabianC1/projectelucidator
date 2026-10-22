@@ -1555,11 +1555,21 @@ function App() {
             <div className="grimoire-seal-activation">
               <div className="grimoire-seal-cover">
                 <svg className="grimoire-seal-lines" viewBox="0 0 640 400" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    <g id="grimoire-seal-leaf-corner">
+                      <path d="M8 9C18 16 25 25 31 37C39 52 49 62 64 72" />
+                      <path d="M24 28C14 27 8 21 7 13C16 14 23 19 27 26Z" />
+                      <path d="M39 48C30 48 24 43 22 35C31 36 38 40 42 47Z" />
+                      <path d="M53 62C46 63 40 59 37 53C45 52 51 55 56 61Z" />
+                    </g>
+                  </defs>
                   <path className="grimoire-cover-outline" d="M32 4H608L636 32V368L608 396H32L4 368V32Z" />
                   <path className="grimoire-cover-inner" d="M42 15H598L625 42V358L598 385H42L15 358V42Z" />
-                  <path className="grimoire-cover-flourish" d="M24 112C55 108 44 69 71 40C76 68 106 63 113 31C130 62 112 81 91 90C76 96 66 106 63 126M616 112C585 108 596 69 569 40C564 68 534 63 527 31C510 62 528 81 549 90C564 96 574 106 577 126M24 288C55 292 44 331 71 360C76 332 106 337 113 369C130 338 112 319 91 310C76 304 66 294 63 274M616 288C585 292 596 331 569 360C564 332 534 337 527 369C510 338 528 319 549 310C564 304 574 294 577 274" />
-                  <path className="grimoire-cover-leaves" d="M57 62Q36 46 32 33Q53 36 66 55M73 84Q51 75 44 61Q67 62 80 75M583 62Q604 46 608 33Q587 36 574 55M567 84Q589 75 596 61Q573 62 560 75M57 338Q36 354 32 367Q53 364 66 345M583 338Q604 354 608 367Q587 364 574 345" />
-                  <path className="grimoire-cover-fissures" d="M104 90L126 72L136 49L157 38M536 292L516 312L506 337L484 356M104 90L111 112L100 130M536 292L528 272L540 254" />
+                  <use className="grimoire-cover-flourish" href="#grimoire-seal-leaf-corner" transform="translate(20 22) scale(.78)" />
+                  <use className="grimoire-cover-flourish" href="#grimoire-seal-leaf-corner" transform="translate(620 22) scale(-.78 .78)" />
+                  <use className="grimoire-cover-flourish" href="#grimoire-seal-leaf-corner" transform="translate(20 378) scale(.78 -.78)" />
+                  <use className="grimoire-cover-flourish" href="#grimoire-seal-leaf-corner" transform="translate(620 378) scale(-.78 -.78)" />
+                  <path className="grimoire-cover-fissures" d="M74 37L91 29L101 20M566 363L550 371L540 380" />
                 </svg>
                 <div className="grimoire-seal-content">
                   <ThemeEmblem className="grimoire-seal-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/grimoire.png'} title="Five-leaf grimoire" />
@@ -1783,12 +1793,22 @@ function App() {
         {theme === 'grimoire' && (
           <>
             <svg className="grimoire-frame-ornaments" viewBox="0 0 1000 460" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <g id="grimoire-console-leaf-corner">
+                  <path d="M8 9C18 16 25 25 31 37C39 52 49 62 64 72" />
+                  <path d="M24 28C14 27 8 21 7 13C16 14 23 19 27 26Z" />
+                  <path d="M39 48C30 48 24 43 22 35C31 36 38 40 42 47Z" />
+                  <path d="M53 62C46 63 40 59 37 53C45 52 51 55 56 61Z" />
+                </g>
+              </defs>
               <path className="grimoire-frame-outer" d="M20 3H980L997 20V440L980 457H20L3 440V20Z" />
               <path className="grimoire-frame-inner" d="M25 9H975L991 25V435L975 451H25L9 435V25Z" />
               <path className="grimoire-spine" d="M23 30V430M29 30V430" />
-              <path className="grimoire-corners" d="M12 75C28 72 22 46 43 28C48 49 71 45 78 23C91 44 76 60 60 66C47 71 41 80 39 94M988 75C972 72 978 46 957 28C952 49 929 45 922 23C909 44 924 60 940 66C953 71 959 80 961 94M12 385C28 388 22 414 43 432C48 411 71 415 78 437C91 416 76 400 60 394C47 389 41 380 39 366M988 385C972 388 978 414 957 432C952 411 929 415 922 437C909 416 924 400 940 394C953 389 959 380 961 366" />
-              <path className="grimoire-leaves" d="M36 49Q20 39 18 29Q34 31 45 43M52 65Q33 58 28 48Q47 48 58 57M964 49Q980 39 982 29Q966 31 955 43M948 65Q967 58 972 48Q953 48 942 57M36 411Q20 421 18 431Q34 429 45 417M964 411Q980 421 982 431Q966 429 955 417" />
-              <path className="grimoire-fissures" d="M75 40L88 30L94 18M923 420L912 430L906 442M80 421L88 408L86 396M920 39L912 52L915 64" />
+              <use className="grimoire-corners" href="#grimoire-console-leaf-corner" transform="translate(22 18) scale(.76)" />
+              <use className="grimoire-corners" href="#grimoire-console-leaf-corner" transform="translate(978 18) scale(-.76 .76)" />
+              <use className="grimoire-corners" href="#grimoire-console-leaf-corner" transform="translate(22 442) scale(.76 -.76)" />
+              <use className="grimoire-corners" href="#grimoire-console-leaf-corner" transform="translate(978 442) scale(-.76 -.76)" />
+              <path className="grimoire-fissures" d="M68 20L80 13L89 8M932 440L920 447L911 452" />
               <path className="grimoire-input-rule" d="M4 385H996" />
             </svg>
             <header className="grimoire-console-header" onPointerDown={startConsoleDrag}>
@@ -1796,11 +1816,11 @@ function App() {
               <span className="grimoire-console-title"><strong>GRIMOIRE</strong><small>BLACK CLOVER SYSTEM</small></span>
               <span className="grimoire-console-mark">FIVE-LEAF // ANTI-MAGIC</span>
               <svg className="grimoire-header-underline" viewBox="0 0 1000 110" preserveAspectRatio="none" aria-hidden="true">
-                <path className="grimoire-underline-secondary" d="M24 91C71 91 88 81 112 59Q132 41 153 58C171 73 177 81 194 81H476Q489 81 496 72Q503 81 516 81H955" />
-                <path className="grimoire-underline-main" d="M24 86C72 86 88 76 113 54Q132 36 154 53C172 68 179 76 196 76H477Q490 76 496 67Q502 76 515 76H955" />
-                <path className="grimoire-underline-accent" d="M210 76H304M319 76H408M585 76H652M670 76H731" />
-                <path className="grimoire-underline-diamond" d="M496 57L507 72L496 87L485 72Z" />
-                <path className="grimoire-underline-leaf" d="M24 86Q47 69 72 83Q54 83 43 92Q35 95 24 86M955 76Q932 59 907 73Q925 73 936 82Q944 85 955 76" />
+                <path className="grimoire-underline-main" d="M24 87C45 86 60 76 77 59C91 45 106 39 123 43C137 46 145 57 159 65C175 75 188 78 210 78H474M518 78H897" />
+                <path className="grimoire-underline-secondary" d="M24 92C48 91 63 81 81 64C95 51 108 46 122 49C137 52 147 63 162 71C179 81 191 84 211 84H474M518 84H897" />
+                <path className="grimoire-underline-stem" d="M24 87C38 78 44 66 45 51M47 68C34 69 27 64 24 55C35 55 43 59 47 68ZM56 59C48 51 48 43 53 36C60 43 62 51 56 59ZM39 76C30 77 24 73 21 66C30 65 36 69 39 76ZM159 65C177 64 187 54 195 41M176 60C182 51 191 48 200 50C194 58 186 61 176 60ZM186 72C196 68 205 71 211 78C201 81 193 79 186 72Z" />
+                <path className="grimoire-underline-diamond" d="M496 63L507 81L496 99L485 81Z" />
+                <path className="grimoire-underline-leaf" d="M897 78C920 78 936 69 948 54C962 41 976 42 988 49C975 51 966 58 958 68C949 79 934 86 913 86C930 87 943 93 950 102C933 100 920 94 909 86H897Z" />
               </svg>
             </header>
           </>
