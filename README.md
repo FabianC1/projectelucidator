@@ -90,6 +90,8 @@ The primary color drives the console and widget structure, the secondary color h
 
 Theme behavior is registered in `src/themeSystems.ts`: each entry declares aliases, activation response and transition, optional signature, feature commands, optional widget layout, and an optional sound cue path. `sys theme activate` and `sys theme feature` use that registry, so themes can reuse the current transition effects without adding another parallel command tree. A theme that needs a new visual transition adds a CSS effect; a new type of functionality needs an adapter in the app. Sound cue metadata is reserved for a future audio adapter and does not play audio yet.
 
+Theme emblem artwork is loaded from `public/assets/emblems/` using the paths in `src/themeSystems.ts`. Add transparent files named `link-start-crossed-swords.png`, `arise-shadow-monarch.png`, `grimoire.png`, `anti-magic.png`, `domain-expansion.png`, `limitless.png`, `hinokami-kagura.png`, `dragon-sin-of-wrath.png`, `night-fury.png`, and `stealth.png`. The browser image loader also accepts SVG and WebP; update the corresponding registry path if using another extension. Missing artwork falls back to a compact theme label. Theme identity colors and activation copy are stored with each registry entry; STEALTH mode has its own identity metadata.
+
 For SAO, activate `sys link start` or `sys theme activate sao`, then run `sys theme feature` to see its `system scan` and `sword skill` sequences. For Seven Deadly Sins, activate `sys demon mode` or `sys theme activate meliodas`, then use `sys theme feature` for the Dragon Sin emblem and Full Counter effects.
 
 ### Widgets

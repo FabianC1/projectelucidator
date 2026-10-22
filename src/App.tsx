@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
 import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, saveBrightnessToken, type BrightnessMonitor } from './brightnessBridge'
-import { resolveThemeId, THEME_SYSTEMS, type ThemeId } from './themeSystems'
+import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
 import './App.css'
 
 declare global {
@@ -227,27 +227,14 @@ function resolveThemeChoice(value: string): ThemeId | null {
   return resolveThemeId(value)
 }
 
-function DemonMark({ className }: { className: string }) {
-  const nodes = [
-    [50, 16, 0], [69, 21, 30], [82, 37, 60], [86, 56, 90],
-    [78, 74, 120], [65, 87, 150], [50, 92, 180], [35, 87, 210],
-    [22, 74, 240], [14, 56, 270], [18, 37, 300], [31, 21, 330],
-  ] as const
-
+function ThemeEmblem({ src, title, className }: { src: string; title: string; className: string }) {
+  const [failed, setFailed] = useState(false)
+  useEffect(() => setFailed(false), [src])
+  const fallback = title.split(/[^A-Z0-9]+/i).filter(Boolean).slice(0, 2).map((word) => word[0]).join('')
   return (
-    <svg className={className} viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-      <circle className="demon-emblem-chain" cx="50" cy="56" r="35" />
-      {nodes.map(([x, y, angle], index) => (
-        <g className="demon-emblem-node" key={index} transform={`translate(${x} ${y})`}>
-          <path className="demon-emblem-spike" transform={`rotate(${angle})`} d="M0 -5.4 2.5 -11.5 0 -10.2 -2.5 -11.5Z" />
-          <circle className="demon-emblem-eye" r="6.2" />
-          <circle className="demon-emblem-eye-core" r="3.7" />
-          <circle className="demon-emblem-eye-pupil" r="1.7" />
-        </g>
-      ))}
-      <path className="demon-emblem-dragon" d="M49 35 44 29 39 31 36 24 32 29 27 27 29 34 23 33 28 40 22 40 29 46 24 49 34 52 30 57 39 57 37 63 44 60 46 68 51 62 57 66 56 59 63 61 59 54 66 50 59 46 64 40 57 42 58 34 52 38Z" />
-      <path className="demon-emblem-horn" d="M42 34 38 20 47 30M51 35 60 19 57 37M32 42 21 38 29 48" />
-    </svg>
+    failed
+      ? <span className={`${className} theme-emblem-fallback`} aria-hidden="true">{fallback || 'SYS'}</span>
+      : <img className={className} src={src} alt="" aria-hidden="true" onError={() => setFailed(true)} />
   )
 }
 
@@ -473,7 +460,19 @@ function App() {
   } as CSSProperties
   const clockZone = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop()?.replaceAll('_', ' ') ?? 'LOCAL TIME'
   const animeStatus = THEME_STATUS[theme]
-  const themeSignature = THEME_SYSTEMS.find((system) => system.id === theme)?.signature ?? 'none'
+  const activeThemeSystem = THEME_SYSTEMS.find((system) => system.id === theme)
+  const stealthIdentity = nightStealth || mode === 'STEALTH'
+  const activePresentation: ThemeActivationPresentation = stealthIdentity
+    ? STEALTH_PRESENTATION
+    : activeThemeSystem?.activationPresentation ?? STEALTH_PRESENTATION
+  const activationLines = stealthIdentity
+    ? ['SIGNATURE .............. SUPPRESSED', 'LOW-LIGHT PROFILE ...... ACTIVE', 'SYSTEM READY ........... STEALTH']
+    : activeThemeSystem?.activationResponse.slice(1, 4) ?? []
+  const activationStyle = {
+    '--activation-accent': activePresentation.accent,
+    '--activation-secondary': activePresentation.secondary,
+  } as CSSProperties
+  const themeSignature = activeThemeSystem?.signature ?? 'none'
 
   useEffect(() => {
     let active = true
@@ -999,7 +998,7 @@ function App() {
         setNightStealth(false)
         setSpecialEffect(selectedSystem.activationEffect
           ? { kind: selectedSystem.activationEffect, id: ++effectIdRef.current }
-          : null)
+          : { kind: 'theme-activation', id: ++effectIdRef.current })
         if (selectedSystem.defaultWidgetLayout) setWidgetLayout(selectedSystem.defaultWidgetLayout)
         report(selectedSystem.activationResponse)
         setStatus(`${selectedSystem.label} ACTIVATED`)
@@ -1010,12 +1009,14 @@ function App() {
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
       setNightStealth(false)
+      setSpecialEffect({ kind: 'theme-activation', id: ++effectIdRef.current })
       report(['NIGHT FURY', 'ELUCIDATOR // TOOTHLESS PROTOCOL', 'ONLINE', 'PLASMA CORE // STANDBY', 'NIGHT FURY SIGNATURE DETECTED'])
       setStatus('NIGHT FURY PROTOCOL ACTIVATED')
     } else if (domain === 'stealth' && args.length === 1) {
       setTheme('dragon')
       const activate = !nightStealth
       setNightStealth(activate)
+      setSpecialEffect({ kind: 'theme-activation', id: ++effectIdRef.current })
       report(activate
         ? ['NIGHT FURY STEALTH', 'SIGNATURE .............. SUPPRESSED', 'LOW-LIGHT PROFILE ...... ACTIVE', 'WIDGET ARRAY ........... HIDDEN · CLICK COMMAND INPUT TO RESTORE']
         : ['NIGHT FURY STEALTH', 'SIGNATURE .............. RESTORED', 'WIDGET ARRAY ........... ONLINE'])
@@ -1023,6 +1024,7 @@ function App() {
     } else if (domain === 'grimoire' && args.length === 1) {
       setNightStealth(false)
       setTheme('grimoire')
+      setSpecialEffect({ kind: 'theme-activation', id: ++effectIdRef.current })
       report(['FIVE-LEAF GRIMOIRE DETECTED', 'CRIMSON SYSTEM .......... ONLINE', 'ANTI-MAGIC SEAL ........ STANDBY'])
       setStatus('GRIMOIRE PROTOCOL ACTIVATED')
     } else if (domain === 'anti-magic' && args.length === 1) {
@@ -1216,6 +1218,7 @@ function App() {
       if (!requested) report(['SYSTEM MODES', ...modes.map((item) => `${item === mode ? '●' : '○'} ${item}`), 'USAGE · SYS MODE <MODE>'])
       else if (modes.includes(requested)) {
         setMode(requested)
+        if (requested === 'STEALTH') setSpecialEffect({ kind: 'theme-activation', id: ++effectIdRef.current })
         report(['OPERATING MODE UPDATED', `MODE .................. ${requested}`, requested === 'STEALTH' ? 'VISUAL OUTPUT .......... REDUCED' : requested === 'COMBAT' ? 'SCAN PROFILE ........... HIGH INTENSITY' : requested === 'DIAGNOSTIC' ? 'SYSTEM TELEMETRY ....... ENABLED' : 'SYSTEM PROFILE ......... ACTIVE'])
         setStatus(`OPERATING MODE · ${requested}`)
       } else report(['MODE ERROR', `UNKNOWN MODE · ${action?.toUpperCase()}`, 'AVAILABLE · NORMAL / STEALTH / COMBAT / IDLE / DIAGNOSTIC'])
@@ -1557,8 +1560,30 @@ function App() {
           )}
           {(specialEffect.kind === 'demon' || specialEffect.kind === 'demon-mark') && (
             <div className="demon-mark-activation">
-              <DemonMark className="demon-mark-large" />
+              <ThemeEmblem
+                className="demon-mark-large theme-emblem-image"
+                src={THEME_SYSTEMS.find((system) => system.id === 'demon-mode')?.emblemAsset ?? './assets/emblems/dragon-sin-of-wrath.png'}
+                title="DRAGON SIN OF WRATH"
+              />
               <span>DEMON MARK // MAGIC POWER UNRESTRICTED</span>
+            </div>
+          )}
+          {['theme-activation', 'arise', 'anti-magic', 'domain', 'limitless', 'breathing-sun'].includes(specialEffect.kind) && (
+            <div className="theme-activation-card" style={activationStyle}>
+              <ThemeEmblem
+                className="theme-activation-emblem theme-emblem-image"
+                src={stealthIdentity ? STEALTH_PRESENTATION.emblemAsset : activeThemeSystem?.emblemAsset ?? STEALTH_PRESENTATION.emblemAsset}
+                title={activePresentation.title}
+              />
+              <div className="theme-activation-copy">
+                <small>ELUCIDATOR // SYSTEM INITIALISING</small>
+                <strong>{activePresentation.title}</strong>
+                <span>{activePresentation.subtitle}</span>
+                <div className="theme-activation-progress"><i /></div>
+                <div className="theme-activation-lines">
+                  {activationLines.map((line) => <p key={line}>{line}</p>)}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1722,16 +1747,30 @@ function App() {
         onPointerUp={() => { draggingConsoleRef.current = null }}
         onPointerCancel={() => { draggingConsoleRef.current = null }}
       >
-        {themeSignature === 'aincrad' && (
+        {themeSignature === 'aincrad' && !stealthIdentity && (
           <div className="console-theme-signature signature-aincrad" aria-hidden="true">
-            <span className="aincrad-signature-ring"><i /><i /><i /><i /></span>
+            <ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title="LINK START" />
             <span><b>AINCRAD SYSTEM</b><small>LINK STABLE · FLOOR 01</small></span>
           </div>
         )}
-        {themeSignature === 'demon-mark' && (
+        {themeSignature === 'demon-mark' && !stealthIdentity && (
           <div className="console-theme-signature signature-demon-mark" aria-hidden="true">
-            <DemonMark className="demon-mark-small" />
+              <ThemeEmblem className="demon-mark-small theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? STEALTH_PRESENTATION.emblemAsset} title="DRAGON SIN OF WRATH" />
             <span><b>DEMON MARK</b><small>POWER UNSEALED</small></span>
+          </div>
+        )}
+        {(themeSignature === 'none' || stealthIdentity) && (
+          <div
+            className={`console-theme-signature signature-${stealthIdentity ? 'stealth' : theme}`}
+            style={{ '--signature-accent': activePresentation.accent, '--signature-secondary': activePresentation.secondary } as CSSProperties}
+            aria-hidden="true"
+          >
+            <ThemeEmblem
+              className="theme-signature-emblem theme-emblem-image"
+              src={stealthIdentity ? STEALTH_PRESENTATION.emblemAsset : activeThemeSystem?.emblemAsset ?? STEALTH_PRESENTATION.emblemAsset}
+              title={activePresentation.title}
+            />
+            <span><b>{activePresentation.title}</b><small>{activePresentation.subtitle}</small></span>
           </div>
         )}
         <div className="console-output" aria-live="polite">
