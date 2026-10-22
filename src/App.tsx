@@ -94,6 +94,7 @@ const THEME_PREF_KEY = 'project-elucidator-theme'
 const DEFAULT_THEME_PREF_KEY = 'project-elucidator-default-theme'
 const VISUAL_THEME_PREF_KEY = 'project-elucidator-visual-theme'
 const WALLPAPER_FIT_PREF_KEY = 'project-elucidator-wallpaper-fit'
+const ANIMATION_MIRROR_KEY = 'project-elucidator-animation-mirror'
 const WALLPAPER_FITS: WallpaperFit[] = ['cover', 'contain', 'stretch', 'span']
 const VISUAL_THEMES: VisualTheme[] = ['off', 'haze', 'rain', 'lightning', 'particles', 'vignette']
 const THEME_IDS = THEME_SYSTEMS.map((system) => system.id)
@@ -315,6 +316,16 @@ function HardwareGauge({ label, percent, value, detail }: { label: string; perce
   )
 }
 
+async function detectConnectedMonitorCount(token: string): Promise<number | null> {
+  if (!token) return null
+  try {
+    const result = await readBrightnessMonitors(token)
+    return result.monitors.length
+  } catch {
+    return null
+  }
+}
+
 const COMMAND_COMPLETIONS = [
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
   'sys wallpaper default', 'sys wallpaper default set', 'sys wallpaper default select', 'sys wallpaper default clear',
@@ -322,7 +333,7 @@ const COMMAND_COMPLETIONS = [
   'sys wallpaper next', 'sys wallpaper previous', 'sys wallpaper scan', 'sys hardware', 'sys time', 'sys audio',
   'sys mode', 'sys mode normal', 'sys mode stealth', 'sys mode combat', 'sys mode idle', 'sys mode diagnostic',
   'sys session', 'sys anime',
-  'sys widgets', 'sys widgets all on', 'sys widgets all off',
+  'sys widgets', 'sys widgets all on', 'sys widgets all off', 'sys animation mirror', 'sys animation mirror on', 'sys animation mirror off', 'sys animation mirror status',
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
   'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
@@ -346,6 +357,8 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0) {
   if (/^sys theme default select\s+$/.test(prefix)) return THEME_CHOICES.map((choice) => `sys theme default select ${choice.command}`)
   if (/^sys theme activate\s+$/.test(prefix)) return THEME_CHOICES.map((choice) => `sys theme activate ${choice.command}`)
   if (/^sys wallpaper fit\s+$/.test(prefix)) return WALLPAPER_FITS.map((fit) => `sys wallpaper fit ${fit}`)
+  if (/^sys animation\s+$/.test(prefix)) return ['sys animation mirror', 'sys animation mirror on', 'sys animation mirror off', 'sys animation mirror status']
+  if (/^sys animation mirror\s+$/.test(prefix)) return ['on', 'off', 'status'].map((action) => `sys animation mirror ${action}`)
   if (/^sys brightness\s+$/.test(prefix)) return ['sys brightness status', 'sys brightness list', 'sys brightness help']
   if (/^sys brightness monitor\s+$/.test(prefix)) return ['sys brightness monitor 1 ', 'sys brightness monitor 2 ']
   if (/^sys brightness monitor \d+\s+$/.test(prefix)) return [0, 20, 40, 60, 80, 100].map((value) => `sys brightness monitor ${prefix.match(/^sys brightness monitor (\d+)/)?.[1]} ${value}`)
@@ -403,6 +416,10 @@ function App() {
       return saved && WALLPAPER_FITS.includes(saved) ? saved : 'cover'
     } catch { return 'cover' }
   })
+  const [animationMirror, setAnimationMirror] = useState<boolean>(() => {
+    try { return localStorage.getItem(ANIMATION_MIRROR_KEY) === 'true' } catch { return false }
+  })
+  const [connectedMonitorCount, setConnectedMonitorCount] = useState<number | null>(null)
   const [visualTheme, setVisualTheme] = useState<VisualTheme>(() => {
     try {
       const saved = localStorage.getItem(VISUAL_THEME_PREF_KEY) as VisualTheme | null
@@ -710,8 +727,24 @@ function App() {
   }, [wallpaperFit])
 
   useEffect(() => {
+    try { localStorage.setItem(ANIMATION_MIRROR_KEY, String(animationMirror)) } catch { /* Preference is optional. */ }
+  }, [animationMirror])
+
+  useEffect(() => {
+    let active = true
+    if (!brightnessToken) {
+      setConnectedMonitorCount(null)
+      return () => { active = false }
+    }
+    void detectConnectedMonitorCount(brightnessToken).then((count) => {
+      if (active) setConnectedMonitorCount(count)
+    })
+    return () => { active = false }
+  }, [brightnessToken])
+
+  useEffect(() => {
     if (!specialEffect) return
-    const duration = specialEffect.kind === 'grimoire' ? 2050 : specialEffect.kind === 'breathing-sun' || specialEffect.kind === 'link-start' || specialEffect.kind === 'tokyo-ghoul' ? 1900 : 1700
+    const duration = specialEffect.kind === 'demon' ? 2200 : specialEffect.kind === 'grimoire' ? 2050 : specialEffect.kind === 'breathing-sun' || specialEffect.kind === 'link-start' || specialEffect.kind === 'tokyo-ghoul' ? 1900 : 1700
     const timer = window.setTimeout(() => setSpecialEffect(null), duration)
     return () => window.clearTimeout(timer)
   }, [specialEffect])
@@ -897,6 +930,7 @@ function App() {
         } else {
           try {
             const result = await readBrightnessMonitors(brightnessToken)
+            setConnectedMonitorCount(result.monitors.length)
             report(['MONITOR BRIGHTNESS STATUS', ...listMonitors(result.monitors), 'COMMAND · SYS BRIGHTNESS <0–100>', 'PER DISPLAY · SYS BRIGHTNESS MONITOR <ID> <0–100>'])
             setStatus('DDC/CI STATUS · ' + result.monitors.length + ' MONITOR(S)')
           } catch (error) {
@@ -1004,8 +1038,32 @@ function App() {
         report(selectedSystem.activationResponse)
         setStatus(`${selectedSystem.label} ACTIVATED`)
       }
+    } else if (domain === 'animation' && action === 'mirror' && args.length <= 3 && (!args[2] || ['on', 'off', 'status'].includes(args[2]))) {
+      if (args[2] === 'off') {
+        setAnimationMirror(false)
+        report(['ACTIVATION MIRROR DISABLED', 'THEME ANIMATIONS WILL PLAY ONCE PER ACTIVATION.'])
+        setStatus('ACTIVATION MIRROR DISABLED')
+      } else {
+        const monitorCount = await detectConnectedMonitorCount(brightnessToken)
+        setConnectedMonitorCount(monitorCount)
+        if (args[2] === 'status') {
+          const state = animationMirror
+            ? monitorCount === 2 ? 'READY ON TWO DISPLAYS' : monitorCount === null ? 'WAITING FOR DDC/CI DISPLAY COUNT' : `INACTIVE · ${monitorCount} DISPLAY(S) DETECTED`
+            : 'DISABLED'
+          report(['ACTIVATION MIRROR STATUS', `SETTING ................. ${animationMirror ? 'ON' : 'OFF'}`, `DDC/CI DISPLAYS ......... ${monitorCount ?? 'UNKNOWN'}`, `MIRROR STATE ............ ${state}`])
+          setStatus(`ACTIVATION MIRROR · ${state}`)
+        } else {
+          const nextMirror = args[2] === 'on' ? true : !animationMirror
+          setAnimationMirror(nextMirror)
+          const state = !nextMirror ? 'DISABLED' : monitorCount === 2
+            ? 'READY WHEN WALLPAPER SPANS BOTH DISPLAYS'
+            : monitorCount === null ? 'ARMED · PAIR DDC/CI TO VERIFY DISPLAY COUNT' : `ARMED · WAITING FOR EXACTLY 2 DISPLAYS (FOUND ${monitorCount})`
+          report(['ACTIVATION MIRROR', `SETTING ................. ${nextMirror ? 'ON' : 'OFF'}`, `DDC/CI DISPLAYS ......... ${monitorCount ?? 'UNKNOWN'}`, `MIRROR STATE ............ ${state}`])
+          setStatus(`ACTIVATION MIRROR · ${state}`)
+        }
+      }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       activateTheme('dragon', 'night-fury-stealth')
@@ -1556,24 +1614,9 @@ function App() {
     if (event.animationName === 'decode-wallpaper') setRevealComplete(true)
   }
 
-  const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
-
-  return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`}>
-      {wallpaperUrl && (
-        <img
-          key={bootToken}
-          className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready ? ' is-loading' : booting ? ' is-booting' : ' is-ready'}`}
-          src={wallpaperUrl}
-          alt={wallpaperName}
-          onAnimationEnd={handleWallpaperAnimationEnd}
-          onError={() => setRevealComplete(true)}
-        />
-      )}
-
-      {specialEffect && (
-        <div key={specialEffect.id} className={`special-effect effect-${specialEffect.kind}`} aria-hidden="true">
-          {specialEffect.kind === 'link-start' && (
+  const renderActivationScene = (activationKind: string, stageId: string) => (
+    <>
+          {activationKind === 'link-start' && (
             <div className="sao-activation-interface">
               <div className="sao-activation-flare">
                 <svg className="sao-flare-geometry" viewBox="0 0 600 600" aria-hidden="true">
@@ -1593,22 +1636,37 @@ function App() {
               </div>
             </div>
           )}
-          {specialEffect.kind === 'demon' && (
-            <div className="demon-mark-activation">
-              <ThemeEmblem
-                className="demon-mark-large theme-emblem-image"
-                src={THEME_SYSTEMS.find((system) => system.id === 'demon-mode')?.emblemAsset ?? './assets/emblems/dragon-sin-of-wrath.png'}
-                title="DRAGON SIN OF WRATH"
-              />
-              <span>DEMON MARK // MAGIC POWER UNRESTRICTED</span>
+          {activationKind === 'demon' && (
+            <div className="demon-mode-activation">
+              <div className="demon-activation-aura" />
+              <svg className="demon-activation-frame" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+                <path className="demon-frame-outer" d="M96 34H904L966 96V504L904 566H96L34 504V96Z" />
+                <path className="demon-frame-inner" d="M116 54H884L946 116V484L884 546H116L54 484V116Z" />
+                <path className="demon-frame-locks" d="M96 84H208M792 84H904M96 516H208M792 516H904" />
+              </svg>
+              <img className="demon-activation-clasp clasp-top-left" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+              <img className="demon-activation-clasp clasp-top-right" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+              <img className="demon-activation-clasp clasp-bottom-left" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+              <img className="demon-activation-clasp clasp-bottom-right" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+              <img className="demon-activation-fissure fissure-upper" src="./assets/emblems/demon-fissure-trimmed.png" alt="" />
+              <img className="demon-activation-fissure fissure-lower" src="./assets/emblems/demon-fissure-trimmed.png" alt="" />
+              <img className="demon-activation-dragon" src={THEME_SYSTEMS.find((system) => system.id === 'demon-mode')?.emblemAsset ?? './assets/emblems/dragon-sin-of-wrath.png'} alt="" />
+              <img className="demon-activation-crescent" src="./assets/emblems/demon-crescent-trimmed.png" alt="" />
+              <div className="demon-activation-copy"><strong>DEMON MODE</strong><span>DRAGON SIN OF WRATH // MELIODAS</span></div>
+              <div className="demon-activation-state"><img src="./assets/emblems/demon-seal-gem-trimmed.png" alt="" /><span>POWER UNSEALED</span></div>
+              <div className="demon-activation-rule">
+                <img className="demon-rule-segments" src="./assets/emblems/demon-underline-segments.png" alt="" />
+                <span />
+                <img className="demon-rule-tip" src="./assets/emblems/demon-underline-tip.png" alt="" />
+              </div>
             </div>
           )}
-          {specialEffect.kind === 'grimoire' && (
+          {activationKind === 'grimoire' && (
             <div className="grimoire-seal-activation">
               <div className="grimoire-seal-cover">
                 <svg className="grimoire-seal-lines" viewBox="0 0 640 400" preserveAspectRatio="none" aria-hidden="true">
                   <defs>
-                    <g id="grimoire-seal-leaf-corner">
+                    <g id={`grimoire-seal-leaf-corner-${stageId}`}>
                       <path d="M8 9C18 16 25 25 31 37C39 52 49 62 64 72" />
                       <path d="M24 28C14 27 8 21 7 13C16 14 23 19 27 26Z" />
                       <path d="M39 48C30 48 24 43 22 35C31 36 38 40 42 47Z" />
@@ -1617,10 +1675,10 @@ function App() {
                   </defs>
                   <path className="grimoire-cover-outline" d="M32 4H608L636 32V368L608 396H32L4 368V32Z" />
                   <path className="grimoire-cover-inner" d="M42 15H598L625 42V358L598 385H42L15 358V42Z" />
-                  <use className="grimoire-cover-flourish" href="#grimoire-seal-leaf-corner" transform="translate(20 22) scale(.78)" />
-                  <use className="grimoire-cover-flourish" href="#grimoire-seal-leaf-corner" transform="translate(620 22) scale(-.78 .78)" />
-                  <use className="grimoire-cover-flourish" href="#grimoire-seal-leaf-corner" transform="translate(20 378) scale(.78 -.78)" />
-                  <use className="grimoire-cover-flourish" href="#grimoire-seal-leaf-corner" transform="translate(620 378) scale(-.78 -.78)" />
+                  <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(20 22) scale(.78)" />
+                  <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(620 22) scale(-.78 .78)" />
+                  <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(20 378) scale(.78 -.78)" />
+                  <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(620 378) scale(-.78 -.78)" />
                   <path className="grimoire-cover-fissures" d="M74 37L91 29L101 20M566 363L550 371L540 380" />
                 </svg>
                 <div className="grimoire-seal-content">
@@ -1635,7 +1693,7 @@ function App() {
               </div>
             </div>
           )}
-          {specialEffect.kind === 'breathing-sun' && (
+          {activationKind === 'breathing-sun' && (
             <div className="hinokami-activation">
               <div className="hinokami-warmth" />
               <svg className="hinokami-arc" viewBox="0 0 1000 700" preserveAspectRatio="none">
@@ -1648,7 +1706,7 @@ function App() {
               <div className="hinokami-activation-copy"><strong>HINOKAMI KAGURA</strong><span>SUN BREATHING // IGNITED</span></div>
             </div>
           )}
-          {specialEffect.kind === 'tokyo-ghoul' && (
+          {activationKind === 'tokyo-ghoul' && (
             <div className="kagune-activation">
               <div className="kagune-activation-glow" />
               <svg className="kagune-activation-sigil" viewBox="0 0 600 600" aria-hidden="true">
@@ -1664,7 +1722,27 @@ function App() {
               <div className="kagune-activation-copy"><strong>TOKYO GHOUL</strong><span>ONE-EYED KING // KANEKI PROTOCOL</span></div>
             </div>
           )}
-          {['theme-activation', 'arise', 'limitless', 'night-fury-stealth'].includes(specialEffect.kind) && (
+          {activationKind === 'night-fury-stealth' && (
+            <div className="night-fury-activation" style={activationStyle}>
+              <div className="night-fury-activation-aura" />
+              <svg className="night-fury-flight-path" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+                <path className="night-fury-flight-orbit" d="M90 350C178 145 354 74 537 118c164 39 277 180 358 99" />
+                <path className="night-fury-flight-streak" d="M110 403c174-92 339-100 491-49 100 34 193 31 279-15" />
+                <path className="night-fury-flight-glint" d="M220 160c134-90 318-75 427 13" />
+              </svg>
+              <img className="night-fury-flight-tail" src="./assets/emblems/night-fury-header-tail-trimmed.png" alt="" />
+              <img className="night-fury-flight-wings" src="./assets/emblems/night-fury-corner-fins-trimmed.png" alt="" />
+              <img className="night-fury-flight-lower" src="./assets/emblems/night-fury-bottom-tail-trimmed.png" alt="" />
+              <ThemeEmblem
+                className="night-fury-activation-emblem theme-emblem-image"
+                src={activeThemeSystem?.emblemAsset ?? './assets/emblems/night-fury.png'}
+                title="NIGHT FURY"
+              />
+              <div className="night-fury-activation-copy"><strong>NIGHT FURY</strong><span>HTTYD // TOOTHLESS PROTOCOL</span></div>
+              <div className="night-fury-activation-status"><i /> ALPHA CLASS // LINKED</div>
+            </div>
+          )}
+          {['theme-activation', 'arise', 'limitless'].includes(activationKind) && (
             <div className={`theme-emblem-activation activation-${theme}`} style={activationStyle}>
               <ThemeEmblem
                 className="theme-emblem-activation-image theme-emblem-image"
@@ -1673,6 +1751,36 @@ function App() {
               />
               <span>{stealthIdentity ? activePresentation.title : activeThemeSystem?.activationPresentation.title ?? activePresentation.title}</span>
             </div>
+          )}
+    </>
+  )
+
+  const shouldMirrorActivation = animationMirror && connectedMonitorCount === 2
+  const animationMirrorClass = shouldMirrorActivation ? ' activation-mirror-enabled' : ''
+  const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
+
+  return (
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`}>
+      {wallpaperUrl && (
+        <img
+          key={bootToken}
+          className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready ? ' is-loading' : booting ? ' is-booting' : ' is-ready'}`}
+          src={wallpaperUrl}
+          alt={wallpaperName}
+          onAnimationEnd={handleWallpaperAnimationEnd}
+          onError={() => setRevealComplete(true)}
+        />
+      )}
+
+      {specialEffect && (
+        <div key={specialEffect.id} className={`special-effect effect-${specialEffect.kind}${animationMirrorClass}`} aria-hidden="true">
+          <div className="activation-world-ripple" />
+          <div className="activation-scene-normal">{renderActivationScene(specialEffect.kind, 'normal')}</div>
+          {shouldMirrorActivation && (
+            <>
+              <div className="activation-dual-stage activation-dual-left">{renderActivationScene(specialEffect.kind, 'left')}</div>
+              <div className="activation-dual-stage activation-dual-right">{renderActivationScene(specialEffect.kind, 'right')}</div>
+            </>
           )}
         </div>
       )}
@@ -1999,7 +2107,7 @@ function App() {
               <img className="night-fury-corner-fins" src="./assets/emblems/night-fury-corner-fins-trimmed.png" alt="" />
             </div>
             <header className="night-fury-header" onPointerDown={startConsoleDrag}>
-              <img className="night-fury-header-emblem" src="./assets/emblems/night-fury-header-emblem-trimmed.png" alt="Night Fury" />
+              <img className="night-fury-header-emblem" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/night-fury.png'} alt="Night Fury" />
               <span className="night-fury-header-title"><strong>NIGHT FURY</strong><small>HTTYD // TOOTHLESS PROTOCOL</small></span>
               <span className="night-fury-header-state"><i />ALPHA CLASS // LINKED</span>
               <img className="night-fury-header-tail" src="./assets/emblems/night-fury-header-tail-trimmed.png" alt="" aria-hidden="true" />
