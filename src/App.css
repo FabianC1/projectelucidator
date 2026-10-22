@@ -2414,9 +2414,9 @@
 .demon-corner-top-right { top: .12rem; right: .12rem; transform: scaleX(-1); }
 .demon-corner-bottom-left { bottom: .12rem; left: .12rem; transform: scaleY(-1); }
 .demon-corner-bottom-right { right: .12rem; bottom: .12rem; transform: scale(-1); }
-.demon-fissure-art { position: absolute; display: block; width: 2.8rem; height: auto; opacity: .2; object-fit: contain; }
-.demon-fissure-upper-right { top: .25rem; right: .4rem; }
-.demon-fissure-lower-left { bottom: 2.1rem; left: .4rem; transform: rotate(180deg); }
+.demon-fissure-art { position: absolute; display: block; width: 4.2rem; height: auto; opacity: .28; object-fit: contain; }
+.demon-fissure-upper-right { top: .08rem; right: .12rem; }
+.demon-fissure-lower-left { bottom: 1.8rem; left: .08rem; transform: rotate(180deg); }
 .demon-console-header { position: relative; z-index: 1; margin: 0; padding: .18rem .3rem 0; cursor: grab; touch-action: none; user-select: none; }
 .demon-console-header:active { cursor: grabbing; }
 .demon-header-main { position: relative; height: 6.65rem; }
@@ -2424,11 +2424,11 @@
 .demon-console-title { position: absolute; top: .82rem; right: 7.2rem; left: 5.65rem; display: grid; gap: .28rem; min-width: 0; color: #f0dfb4; }
 .demon-console-title strong { overflow: hidden; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.25rem, 2.5vw, 1.72rem); font-weight: 600; letter-spacing: .13em; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
 .demon-console-title small { overflow: hidden; color: #d6c59e; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(.42rem, .82vw, .55rem); letter-spacing: .15em; text-overflow: ellipsis; white-space: nowrap; }
-.demon-console-state { position: absolute; top: .32rem; right: 3.9rem; display: flex; align-items: center; gap: .36rem; color: #dfc36d; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(.42rem, .72vw, .52rem); letter-spacing: .12em; white-space: nowrap; }
+.demon-console-state { position: absolute; top: 1.12rem; right: 1.35rem; display: flex; align-items: center; gap: .36rem; color: #dfc36d; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(.42rem, .72vw, .52rem); letter-spacing: .12em; white-space: nowrap; }
 .demon-console-state img { display: block; width: 1.05rem; height: 1.5rem; object-fit: contain; filter: drop-shadow(0 0 5px rgb(139 92 246 / 34%)); }
 .demon-header-underline { position: absolute; z-index: 4; right: 0; bottom: .75rem; left: 0; width: 100%; height: 1.55rem; overflow: visible; pointer-events: none; }
-.demon-crescent-art { position: absolute; bottom: 0; left: 2.5%; display: block; width: auto; max-width: 19%; height: 100%; object-fit: contain; object-position: left center; }
-.demon-underline-track { position: absolute; top: 50%; right: 1.8%; left: 22.5%; display: flex; align-items: center; height: 100%; transform: translateY(-50%); }
+.demon-crescent-art { position: absolute; bottom: 0; left: .05rem; display: block; width: 5.35rem; max-width: none; height: auto; object-fit: contain; object-position: center; }
+.demon-underline-track { position: absolute; top: 50%; right: 1.8%; left: 18.5%; display: flex; align-items: center; height: 100%; transform: translateY(-50%); }
 .demon-underline-segments { display: block; flex: 0 1 auto; width: auto; max-width: 24%; height: 100%; object-fit: contain; }
 .demon-underline-rule { position: relative; display: block; flex: 1 1 auto; height: 100%; min-width: 0; }
 .demon-underline-rule::before,
@@ -2461,7 +2461,7 @@
 @media (max-width: 520px) {
   .command-console.demon-mode-console { padding-inline: .72rem; }
   .demon-corner-art { width: 1.8rem; height: 1.75rem; }
-  .demon-fissure-art { width: 2.1rem; }
+  .demon-fissure-art { width: 2.8rem; }
   .demon-header-main { height: 5.9rem; }
   .demon-console-emblem { width: 4.5rem; height: 4.5rem; }
   .demon-console-title { top: .84rem; right: .25rem; left: 4.65rem; }
