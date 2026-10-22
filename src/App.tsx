@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
 import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, saveBrightnessToken, type BrightnessMonitor } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
@@ -83,7 +83,10 @@ const DATABASE = 'project-elucidator-wallpaper'
 const STORE = 'selection'
 const KEY = 'active'
 const DEFAULT_WALLPAPER_KEY = 'default'
-const DEFAULT_WALLPAPER_URL = 'sword-art-online-3840x2160-10492.jpg'
+const DEFAULT_WALLPAPER_VERSION_KEY = 'default-version'
+const DEFAULT_WALLPAPER_VERSION = '3d-render-bloom-3840x1080-27150'
+const DEFAULT_WALLPAPER_URL = '3d-render-bloom-3840x1080-27150.jpg'
+const DEFAULT_WALLPAPER_NAME = '3d-render-bloom-3840x1080-27150.jpg'
 const WIDGET_PREF_KEY = 'project-elucidator-widgets'
 const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
 const WIDGET_SCALE_KEY = 'project-elucidator-widget-scales'
@@ -95,6 +98,7 @@ const DEFAULT_THEME_PREF_KEY = 'project-elucidator-default-theme'
 const VISUAL_THEME_PREF_KEY = 'project-elucidator-visual-theme'
 const WALLPAPER_FIT_PREF_KEY = 'project-elucidator-wallpaper-fit'
 const ANIMATION_MIRROR_KEY = 'project-elucidator-animation-mirror'
+const STORAGE_PREF_KEYS = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, WIDGET_LAYOUT_KEY, CONSOLE_FRAME_KEY, LAYOUT_PRESETS_KEY, THEME_PREF_KEY, DEFAULT_THEME_PREF_KEY, VISUAL_THEME_PREF_KEY, WALLPAPER_FIT_PREF_KEY, ANIMATION_MIRROR_KEY] as const
 const WALLPAPER_FITS: WallpaperFit[] = ['cover', 'contain', 'stretch', 'span']
 const VISUAL_THEMES: VisualTheme[] = ['off', 'haze', 'rain', 'lightning', 'particles', 'vignette']
 const THEME_IDS = THEME_SYSTEMS.map((system) => system.id)
@@ -171,11 +175,60 @@ function createBootTimeline(hasWallpaper: boolean): BootTimeline {
 
 function openWallpaperDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
+    if (!('indexedDB' in window)) {
+      reject(new Error('IndexedDB is not available in this host'))
+      return
+    }
     const request = indexedDB.open(DATABASE, 1)
     request.onupgradeneeded = () => request.result.createObjectStore(STORE)
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)
+    request.onblocked = () => reject(new Error('IndexedDB open was blocked by another connection'))
   })
+}
+
+function describeStorageError(error: unknown) {
+  if (error instanceof DOMException || error instanceof Error) return `${error.name}: ${error.message}`
+  return String(error)
+}
+
+const startupStorageErrors: Record<string, string> = {}
+
+function readEnabledWidgetPreferences() {
+  try {
+    const saved = localStorage.getItem(WIDGET_PREF_KEY)
+    if (saved === null) return [...WIDGET_IDS]
+    const stored = JSON.parse(saved) as unknown
+    const legacyIds = Array.isArray(stored)
+      ? stored.filter((id): id is number => Number.isInteger(id) && WIDGET_IDS.includes(id as typeof WIDGET_IDS[number]))
+      : null
+    const currentIds = stored && typeof stored === 'object' && !Array.isArray(stored)
+      ? (stored as { version?: unknown; enabled?: unknown }).version === 2
+        && Array.isArray((stored as { enabled?: unknown }).enabled)
+        ? (stored as { enabled: unknown[] }).enabled.filter((id): id is number => Number.isInteger(id) && WIDGET_IDS.includes(id as typeof WIDGET_IDS[number]))
+        : null
+      : null
+    return currentIds ?? (legacyIds?.length ? legacyIds : [...WIDGET_IDS])
+  } catch (error) {
+    startupStorageErrors['widget visibility restore'] = describeStorageError(error)
+    return [...WIDGET_IDS]
+  }
+}
+
+function readWidgetPositionPreferences(): WidgetPositions {
+  try {
+    const stored = JSON.parse(localStorage.getItem(WIDGET_POSITION_KEY) ?? '{}') as unknown
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {}
+    return Object.fromEntries(Object.entries(stored).flatMap(([id, value]) => {
+      const position = value as WidgetPosition
+      return WIDGET_IDS.includes(Number(id) as typeof WIDGET_IDS[number]) && Number.isFinite(position?.x) && Number.isFinite(position?.y)
+        ? [[Number(id), { x: Math.min(100, Math.max(0, position.x)), y: Math.min(100, Math.max(0, position.y)) }]]
+        : []
+    })) as WidgetPositions
+  } catch (error) {
+    startupStorageErrors['widget positions restore'] = describeStorageError(error)
+    return {}
+  }
 }
 
 async function readSavedWallpaper() {
@@ -193,6 +246,28 @@ async function readDefaultWallpaper() {
     const request = database.transaction(STORE, 'readonly').objectStore(STORE).get(DEFAULT_WALLPAPER_KEY)
     request.onsuccess = () => { database.close(); resolve(request.result as SavedWallpaper | undefined) }
     request.onerror = () => { database.close(); reject(request.error) }
+  })
+}
+
+async function readDefaultWallpaperVersion() {
+  const database = await openWallpaperDatabase()
+  return new Promise<string | undefined>((resolve, reject) => {
+    const request = database.transaction(STORE, 'readonly').objectStore(STORE).get(DEFAULT_WALLPAPER_VERSION_KEY)
+    request.onsuccess = () => { database.close(); resolve(request.result as string | undefined) }
+    request.onerror = () => { database.close(); reject(request.error) }
+  })
+}
+
+async function writeBundledDefaultWallpaper(selection: SavedWallpaper, version: string) {
+  const database = await openWallpaperDatabase()
+  return new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(STORE, 'readwrite')
+    const store = transaction.objectStore(STORE)
+    store.put(selection, DEFAULT_WALLPAPER_KEY)
+    store.put(version, DEFAULT_WALLPAPER_VERSION_KEY)
+    transaction.oncomplete = () => { database.close(); resolve() }
+    transaction.onerror = () => { database.close(); reject(transaction.error) }
+    transaction.onabort = () => { database.close(); reject(transaction.error) }
   })
 }
 
@@ -222,7 +297,10 @@ function readThemePreference(key: string): ThemeId | null {
   try {
     const value = localStorage.getItem(key) as ThemeId | null
     return value && THEME_IDS.includes(value) ? value : null
-  } catch { return null }
+  } catch (error) {
+    startupStorageErrors[`${key} read`] = describeStorageError(error)
+    return null
+  }
 }
 
 function resolveThemeChoice(value: string): ThemeId | null {
@@ -328,6 +406,7 @@ async function detectConnectedMonitorCount(token: string): Promise<number | null
 
 const COMMAND_COMPLETIONS = [
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
+  'sys storage status',
   'sys wallpaper default', 'sys wallpaper default set', 'sys wallpaper default select', 'sys wallpaper default clear',
   'sys theme list', 'sys theme activate', 'sys theme default', 'sys theme default set', 'sys theme default select',
   'sys wallpaper next', 'sys wallpaper previous', 'sys wallpaper scan', 'sys hardware', 'sys time', 'sys audio',
@@ -398,6 +477,7 @@ function App() {
   const [wallpaperName, setWallpaperName] = useState('NO WALLPAPER SELECTED')
   const [defaultWallpaperName, setDefaultWallpaperName] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  const storageErrorsRef = useRef<Record<string, string>>({})
   const [booting, setBooting] = useState(true)
   const [bootElapsed, setBootElapsed] = useState(0)
   const [revealComplete, setRevealComplete] = useState(false)
@@ -408,23 +488,24 @@ function App() {
   const [brightnessHelperOnline, setBrightnessHelperOnline] = useState(false)
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
   const [mode, setMode] = useState<SystemMode>('NORMAL')
-  const [defaultTheme, setDefaultTheme] = useState<ThemeId | null>(() => readThemePreference(DEFAULT_THEME_PREF_KEY))
-  const [theme, setTheme] = useState<ThemeId>(() => readThemePreference(DEFAULT_THEME_PREF_KEY) ?? readThemePreference(THEME_PREF_KEY) ?? 'sao')
+  const [defaultTheme, setDefaultTheme] = useState<ThemeId | null>(() => readThemePreference(DEFAULT_THEME_PREF_KEY) ?? 'tokyo-ghoul')
+  const [theme, setTheme] = useState<ThemeId>(() => readThemePreference(DEFAULT_THEME_PREF_KEY) ?? readThemePreference(THEME_PREF_KEY) ?? 'tokyo-ghoul')
   const [wallpaperFit, setWallpaperFit] = useState<WallpaperFit>(() => {
     try {
       const saved = localStorage.getItem(WALLPAPER_FIT_PREF_KEY) as WallpaperFit | null
       return saved && WALLPAPER_FITS.includes(saved) ? saved : 'cover'
-    } catch { return 'cover' }
+    } catch (error) { startupStorageErrors['wallpaper fit restore'] = describeStorageError(error); return 'cover' }
   })
   const [animationMirror, setAnimationMirror] = useState<boolean>(() => {
-    try { return localStorage.getItem(ANIMATION_MIRROR_KEY) === 'true' } catch { return false }
+    try { return localStorage.getItem(ANIMATION_MIRROR_KEY) === 'true' } catch (error) { startupStorageErrors['animation preference restore'] = describeStorageError(error); return false }
   })
   const [connectedMonitorCount, setConnectedMonitorCount] = useState<number | null>(null)
   const [visualTheme, setVisualTheme] = useState<VisualTheme>(() => {
     try {
       const saved = localStorage.getItem(VISUAL_THEME_PREF_KEY) as VisualTheme | null
       return saved && VISUAL_THEMES.includes(saved) ? saved : 'off'
-    } catch {
+    } catch (error) {
+      startupStorageErrors['visual theme restore'] = describeStorageError(error)
       return 'off'
     }
   })
@@ -435,10 +516,10 @@ function App() {
   const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(null)
   const [nowPlayingStatus, setNowPlayingStatus] = useState<NowPlayingStatus>('waiting')
   const [wallpaperLibrary, setWallpaperLibrary] = useState<Array<{ id: string; wallpaper: SavedWallpaper }>>([])
-  const [enabledWidgets, setEnabledWidgets] = useState<number[]>([])
-  const [renderedWidgets, setRenderedWidgets] = useState<number[]>([])
+  const [enabledWidgets, setEnabledWidgets] = useState<number[]>(readEnabledWidgetPreferences)
+  const [renderedWidgets, setRenderedWidgets] = useState<number[]>(readEnabledWidgetPreferences)
   const [leavingWidgetIds, setLeavingWidgetIds] = useState<number[]>([])
-  const [widgetPositions, setWidgetPositions] = useState<WidgetPositions>({})
+  const [widgetPositions, setWidgetPositions] = useState<WidgetPositions>(readWidgetPositionPreferences)
   const [widgetScales, setWidgetScales] = useState<WidgetScales>(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(WIDGET_SCALE_KEY) ?? '{}') as unknown
@@ -448,22 +529,26 @@ function App() {
           ? [[Number(id), scale as WidgetScale]]
           : [],
       )) as WidgetScales
-    } catch { return {} }
+    } catch (error) { startupStorageErrors['widget scales restore'] = describeStorageError(error); return {} }
   })
   const [widgetLayout, setWidgetLayout] = useState<WidgetLayout>(() => {
     try {
       const saved = localStorage.getItem(WIDGET_LAYOUT_KEY) as WidgetLayout | null
       return saved && ['free', 'left', 'right', 'top', 'bottom'].includes(saved) ? saved : 'right'
-    } catch { return 'right' }
+    } catch (error) { startupStorageErrors['widget layout restore'] = describeStorageError(error); return 'right' }
   })
   const [consoleFrame, setConsoleFrame] = useState<ConsoleFrame | null>(null)
   const [layoutPresets, setLayoutPresets] = useState<Record<string, LayoutSnapshot>>(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(LAYOUT_PRESETS_KEY) ?? '{}') as unknown
       return stored && typeof stored === 'object' && !Array.isArray(stored) ? stored as Record<string, LayoutSnapshot> : {}
-    } catch { return {} }
+    } catch (error) { startupStorageErrors['layout presets restore'] = describeStorageError(error); return {} }
   })
   const [clockNow, setClockNow] = useState(() => new Date())
+  const setStorageIssue = useCallback((area: string, error: unknown | null) => {
+    if (error === null) delete storageErrorsRef.current[area]
+    else storageErrorsRef.current[area] = describeStorageError(error)
+  }, [])
   const [consoleLines, setConsoleLines] = useState<string[]>(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
   const timeline = createBootTimeline(Boolean(wallpaperUrl))
   const progress = Math.min(1, bootElapsed / timeline.duration)
@@ -512,15 +597,24 @@ function App() {
     let cancelled = false
     const restore = async () => {
       try {
-        const [savedDefault, saved, library] = await Promise.all([
+        const [savedDefault, saved, library, defaultVersion] = await Promise.all([
           readDefaultWallpaper(),
           readSavedWallpaper(),
           readWallpaperLibrary(),
+          readDefaultWallpaperVersion(),
         ])
         if (cancelled) return
         setWallpaperLibrary(library)
-        setDefaultWallpaperName(savedDefault?.name ?? null)
-        const startupWallpaper = savedDefault?.blob ? savedDefault : saved
+        let activeDefault = savedDefault
+        if (defaultVersion !== DEFAULT_WALLPAPER_VERSION) {
+          const response = await fetch(DEFAULT_WALLPAPER_URL)
+          if (!response.ok) throw new Error(`Bundled default wallpaper could not be loaded (${response.status})`)
+          const bundledDefault = { blob: await response.blob(), name: DEFAULT_WALLPAPER_NAME }
+          await writeBundledDefaultWallpaper(bundledDefault, DEFAULT_WALLPAPER_VERSION)
+          activeDefault = bundledDefault
+        }
+        setDefaultWallpaperName(activeDefault?.name ?? null)
+        const startupWallpaper = activeDefault?.blob ? activeDefault : saved
         if (startupWallpaper?.blob) {
           const url = URL.createObjectURL(startupWallpaper.blob)
           objectUrlRef.current = url
@@ -531,18 +625,24 @@ function App() {
         } else {
           wallpaperStartedAt.current = Date.now()
           setWallpaperUrl(DEFAULT_WALLPAPER_URL)
-          setWallpaperName('sword-art-online-3840x2160-10492.jpg')
-          setStatus('DEFAULT WALLPAPER LOADED · SWORD ART ONLINE')
+          setWallpaperName(DEFAULT_WALLPAPER_NAME)
+          setStatus('DEFAULT WALLPAPER LOADED · 3D RENDER')
         }
-      } catch {
-        if (!cancelled) setStatus('CACHE UNAVAILABLE · USING FILE SELECTOR')
+      } catch (error) {
+        if (!cancelled) {
+          setStorageIssue('wallpaper restore', error)
+          wallpaperStartedAt.current = Date.now()
+          setWallpaperUrl(DEFAULT_WALLPAPER_URL)
+          setWallpaperName(DEFAULT_WALLPAPER_NAME)
+        }
+        if (!cancelled) setStatus('WALLPAPER RESTORE ERROR · BUNDLED 3D RENDER ACTIVE')
       } finally {
         if (!cancelled) setReady(true)
       }
     }
     void restore()
     return () => { cancelled = true }
-  }, [])
+  }, [setStorageIssue])
 
   useEffect(() => {
     const browserTimer = window.setTimeout(() => {
@@ -574,63 +674,24 @@ function App() {
   }, [])
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(WIDGET_PREF_KEY)
-      if (saved === null) {
-        setEnabledWidgets([...WIDGET_IDS])
-        setRenderedWidgets([...WIDGET_IDS])
-      } else {
-        const stored = JSON.parse(saved) as unknown
-        const legacyIds = Array.isArray(stored)
-          ? stored.filter((id): id is number => Number.isInteger(id) && WIDGET_IDS.includes(id as typeof WIDGET_IDS[number]))
-          : null
-        const currentIds = stored && typeof stored === 'object' && !Array.isArray(stored)
-          ? (stored as { version?: unknown; enabled?: unknown }).version === 2
-            && Array.isArray((stored as { enabled?: unknown }).enabled)
-            ? ((stored as { enabled: unknown[] }).enabled.filter((id): id is number => Number.isInteger(id) && WIDGET_IDS.includes(id as typeof WIDGET_IDS[number])))
-            : null
-          : null
-        const ids = currentIds ?? (legacyIds?.length ? legacyIds : [...WIDGET_IDS])
-        setEnabledWidgets(ids)
-        setRenderedWidgets(ids)
-      }
-    } catch {
-      // Keep the default right-side widgets available if preferences are unavailable.
-      setEnabledWidgets([...WIDGET_IDS])
-      setRenderedWidgets([...WIDGET_IDS])
-    }
-  }, [])
+    try { localStorage.setItem(WIDGET_PREF_KEY, JSON.stringify({ version: 2, enabled: enabledWidgets })); setStorageIssue('widget visibility write', null) }
+    catch (error) { setStorageIssue('widget visibility write', error) }
+  }, [enabledWidgets, setStorageIssue])
 
   useEffect(() => {
-    try { localStorage.setItem(WIDGET_PREF_KEY, JSON.stringify({ version: 2, enabled: enabledWidgets })) } catch { /* Preferences are optional. */ }
-  }, [enabledWidgets])
+    try { localStorage.setItem(WIDGET_POSITION_KEY, JSON.stringify(widgetPositions)); setStorageIssue('widget positions write', null) }
+    catch (error) { setStorageIssue('widget positions write', error) }
+  }, [setStorageIssue, widgetPositions])
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(WIDGET_POSITION_KEY) ?? '{}') as unknown
-      if (stored && typeof stored === 'object') {
-        const valid = Object.fromEntries(Object.entries(stored).flatMap(([id, value]) => {
-          const position = value as WidgetPosition
-          return WIDGET_IDS.includes(Number(id) as typeof WIDGET_IDS[number]) && Number.isFinite(position?.x) && Number.isFinite(position?.y)
-            ? [[Number(id), { x: Math.min(100, Math.max(0, position.x)), y: Math.min(100, Math.max(0, position.y)) }]]
-            : []
-        })) as WidgetPositions
-        setWidgetPositions(valid)
-      }
-    } catch { /* Default positions are used if preferences are unavailable. */ }
-  }, [])
+    try { localStorage.setItem(WIDGET_SCALE_KEY, JSON.stringify(widgetScales)); setStorageIssue('widget scale write', null) }
+    catch (error) { setStorageIssue('widget scale write', error) }
+  }, [setStorageIssue, widgetScales])
 
   useEffect(() => {
-    try { localStorage.setItem(WIDGET_POSITION_KEY, JSON.stringify(widgetPositions)) } catch { /* Preferences are optional. */ }
-  }, [widgetPositions])
-
-  useEffect(() => {
-    try { localStorage.setItem(WIDGET_SCALE_KEY, JSON.stringify(widgetScales)) } catch { /* Preferences are optional. */ }
-  }, [widgetScales])
-
-  useEffect(() => {
-    try { localStorage.setItem(WIDGET_LAYOUT_KEY, widgetLayout) } catch { /* Preferences are optional. */ }
-  }, [widgetLayout])
+    try { localStorage.setItem(WIDGET_LAYOUT_KEY, widgetLayout); setStorageIssue('widget layout write', null) }
+    catch (error) { setStorageIssue('widget layout write', error) }
+  }, [setStorageIssue, widgetLayout])
 
   useEffect(() => {
     try {
@@ -646,23 +707,25 @@ function App() {
           anchor: stored.anchor === 'bottom' ? 'bottom' : 'top',
         })
       }
-    } catch { /* Use the default console dimensions if preferences are unavailable. */ }
-  }, [])
+    } catch (error) { setStorageIssue('console frame restore', error) }
+  }, [setStorageIssue])
 
   useEffect(() => {
-    try { localStorage.setItem(LAYOUT_PRESETS_KEY, JSON.stringify(layoutPresets)) } catch { /* Saved layouts are optional. */ }
-  }, [layoutPresets])
+    try { localStorage.setItem(LAYOUT_PRESETS_KEY, JSON.stringify(layoutPresets)); setStorageIssue('layout presets write', null) }
+    catch (error) { setStorageIssue('layout presets write', error) }
+  }, [layoutPresets, setStorageIssue])
 
   useEffect(() => {
-    try { localStorage.setItem(THEME_PREF_KEY, theme) } catch { /* Theme preference is optional. */ }
-  }, [theme])
+    try { localStorage.setItem(THEME_PREF_KEY, theme); setStorageIssue('theme preference write', null) }
+    catch (error) { setStorageIssue('theme preference write', error) }
+  }, [setStorageIssue, theme])
 
   useEffect(() => {
     try {
       if (defaultTheme) localStorage.setItem(DEFAULT_THEME_PREF_KEY, defaultTheme)
       else localStorage.removeItem(DEFAULT_THEME_PREF_KEY)
-    } catch { /* Theme default is optional if browser storage is unavailable. */ }
-  }, [defaultTheme])
+    } catch (error) { setStorageIssue('default theme preference write', error) }
+  }, [defaultTheme, setStorageIssue])
 
   useEffect(() => {
     let receivedValidData = false
@@ -719,16 +782,19 @@ function App() {
   }, [])
 
   useEffect(() => {
-    try { localStorage.setItem(VISUAL_THEME_PREF_KEY, visualTheme) } catch { /* Visual preference is optional. */ }
-  }, [visualTheme])
+    try { localStorage.setItem(VISUAL_THEME_PREF_KEY, visualTheme); setStorageIssue('visual theme preference write', null) }
+    catch (error) { setStorageIssue('visual theme preference write', error) }
+  }, [setStorageIssue, visualTheme])
 
   useEffect(() => {
-    try { localStorage.setItem(WALLPAPER_FIT_PREF_KEY, wallpaperFit) } catch { /* Wallpaper fit preference is optional. */ }
-  }, [wallpaperFit])
+    try { localStorage.setItem(WALLPAPER_FIT_PREF_KEY, wallpaperFit); setStorageIssue('wallpaper fit preference write', null) }
+    catch (error) { setStorageIssue('wallpaper fit preference write', error) }
+  }, [setStorageIssue, wallpaperFit])
 
   useEffect(() => {
-    try { localStorage.setItem(ANIMATION_MIRROR_KEY, String(animationMirror)) } catch { /* Preference is optional. */ }
-  }, [animationMirror])
+    try { localStorage.setItem(ANIMATION_MIRROR_KEY, String(animationMirror)); setStorageIssue('animation preference write', null) }
+    catch (error) { setStorageIssue('animation preference write', error) }
+  }, [animationMirror, setStorageIssue])
 
   useEffect(() => {
     let active = true
@@ -758,8 +824,9 @@ function App() {
   useEffect(() => {
     try {
       if (consoleFrame) localStorage.setItem(CONSOLE_FRAME_KEY, JSON.stringify(consoleFrame))
-    } catch { /* The default position remains usable without storage. */ }
-  }, [consoleFrame])
+      setStorageIssue('console frame write', null)
+    } catch (error) { setStorageIssue('console frame write', error) }
+  }, [consoleFrame, setStorageIssue])
 
   useEffect(() => {
     if (!enabledWidgets.some((id) => id === 2 || id === 3)) return
@@ -899,6 +966,63 @@ function App() {
           setStatus('WINDOWS LOCK FAILED')
         }
       }
+    } else if (domain === 'storage' && action === 'status' && args.length === 2) {
+      let localStorageError: string | null = null
+      try {
+        const probeKey = `__elucidator_storage_probe_${Date.now()}_${Math.random().toString(36).slice(2)}`
+        localStorage.setItem(probeKey, 'ok')
+        if (localStorage.getItem(probeKey) !== 'ok') throw new Error('Storage probe value did not round-trip')
+        localStorage.removeItem(probeKey)
+      } catch (error) {
+        localStorageError = describeStorageError(error)
+      }
+
+      let savedDefault: SavedWallpaper | undefined
+      let databaseStatus = 'OPEN FAILED'
+      let databaseError: string | null = null
+      try {
+        const database = await openWallpaperDatabase()
+        databaseStatus = 'OPEN'
+        database.close()
+        const result = await readDefaultWallpaper()
+        savedDefault = result
+        databaseStatus = 'OPEN · READ OK'
+      } catch (error) {
+        databaseError = describeStorageError(error)
+      }
+
+      const localRead = (key: string) => {
+        try { return localStorage.getItem(key) }
+        catch (error) { localStorageError ??= describeStorageError(error); return null }
+      }
+      const tokenExists = Boolean(localRead('project-elucidator-brightness-token'))
+      const savedThemeExists = Boolean(localRead(DEFAULT_THEME_PREF_KEY) ?? localRead(THEME_PREF_KEY))
+      const widgetKeys = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, WIDGET_LAYOUT_KEY, LAYOUT_PRESETS_KEY]
+      const widgetPrefsExist = widgetKeys.some((key) => Boolean(localRead(key)))
+      const savedPrefCount = STORAGE_PREF_KEYS.filter((key) => Boolean(localRead(key))).length
+      const restoreIssues = { ...startupStorageErrors, ...storageErrorsRef.current }
+      if (localStorageError) restoreIssues['localStorage diagnostic'] = localStorageError
+      if (databaseError) {
+        restoreIssues['IndexedDB diagnostic'] = databaseError
+        setStorageIssue('IndexedDB diagnostic', databaseError)
+      } else setStorageIssue('IndexedDB diagnostic', null)
+      const issueLines = Object.entries(restoreIssues).map(([area, error]) => `ERROR · ${area.toUpperCase()} · ${error}`)
+
+      report([
+        'STORAGE STATUS · TOKEN VALUES ARE NEVER SHOWN',
+        `ORIGIN ................. ${window.location.origin || 'FILE ORIGIN'}`,
+        `PAGE PATH .............. ${window.location.pathname}`,
+        `LOCAL STORAGE .......... ${localStorageError ? 'READ/WRITE FAILED' : 'READ/WRITE OK'}`,
+        `INDEXEDDB .............. ${databaseStatus}`,
+        `PAIRING TOKEN .......... ${tokenExists ? 'PRESENT' : 'MISSING'}`,
+        `DEFAULT WALLPAPER ...... ${savedDefault?.name ?? 'NOT STORED'}`,
+        `STORED IMAGE ........... ${savedDefault?.blob instanceof Blob && savedDefault.blob.size > 0 ? `AVAILABLE · ${savedDefault.blob.size} BYTES` : 'MISSING'}`,
+        `SAVED THEME PREF ....... ${savedThemeExists ? 'AVAILABLE' : 'MISSING'}`,
+        `WIDGET PREFS ........... ${widgetPrefsExist ? 'AVAILABLE' : 'MISSING'}`,
+        `SAVED PREFS ............ ${savedPrefCount}/${STORAGE_PREF_KEYS.length} KEYS PRESENT`,
+        `RESTORE ERRORS ......... ${issueLines.length ? issueLines.join(' · ') : 'NONE REPORTED'}`,
+      ])
+      setStatus(`STORAGE DIAGNOSTIC · ${localStorageError || databaseError ? 'ERROR' : 'READY'}`)
     } else if (domain === 'brightness') {
       const listMonitors = (monitors: BrightnessMonitor[]) => monitors.length
         ? monitors.map((monitor) => `DISPLAY ${monitor.id} · ${monitor.name.toUpperCase()} · ${monitor.supported && monitor.brightness !== null ? `${monitor.brightness}%` : 'DDC/CI UNAVAILABLE'}`)
@@ -1063,7 +1187,7 @@ function App() {
         }
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       activateTheme('dragon', 'night-fury-stealth')
@@ -1182,14 +1306,14 @@ function App() {
           try {
             await clearDefaultWallpaper()
             setDefaultWallpaperName(null)
-            report(['DEFAULT WALLPAPER CLEARED', 'STARTUP FALLBACK ........ LAST ACTIVE IMAGE, THEN BUNDLED SAO IMAGE'])
+            report(['DEFAULT WALLPAPER CLEARED', 'STARTUP FALLBACK ........ LAST ACTIVE IMAGE, THEN BUNDLED 3D RENDER'])
             setStatus('STARTUP WALLPAPER DEFAULT CLEARED')
           } catch {
             report(['DEFAULT WALLPAPER CLEAR FAILED', 'BROWSER STORAGE IS UNAVAILABLE.'])
             setStatus('DEFAULT WALLPAPER CLEAR FAILED')
           }
         } else {
-          report(['WALLPAPER DEFAULT', `ACTIVE DEFAULT ......... ${defaultWallpaperName?.toUpperCase() ?? 'NONE · USE LAST IMAGE / BUNDLED SAO'}`, 'USE · SET | SELECT | CLEAR'])
+          report(['WALLPAPER DEFAULT', `ACTIVE DEFAULT ......... ${defaultWallpaperName?.toUpperCase() ?? 'NONE · USE LAST IMAGE / BUNDLED 3D RENDER'}`, 'USE · SET | SELECT | CLEAR'])
           setStatus(defaultWallpaperName ? `STARTUP WALLPAPER · ${defaultWallpaperName.toUpperCase()}` : 'NO CUSTOM STARTUP WALLPAPER')
         }
       } else if (action === 'fit' && args.length === 2) {
@@ -1919,7 +2043,7 @@ function App() {
           <article className={`system-widget widget-5${leavingWidgetIds.includes(5) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(5)} style={positionWidget(5)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 5)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>05 / ANIME STATUS</span><i>THEME LINKED</i><button className="widget-close" onClick={() => closeWidget(5)} aria-label="Close anime status widget">×</button></header>
             <div className="anime-status-heading">
-              <span className="anime-status-orb" aria-hidden="true" />
+              <ThemeEmblem className="anime-status-orb theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title={`${activeThemeSystem?.label ?? 'Theme'} emblem`} />
               <div><small>{theme.replaceAll('-', ' ').toUpperCase()} PROTOCOL</small><strong>{animeStatus.title}</strong></div>
             </div>
             <p className="anime-status-state">{animeStatus.state}</p>

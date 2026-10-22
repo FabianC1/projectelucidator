@@ -921,33 +921,6 @@
   caret-color: #d8aaff;
 }
 
-.theme-arise .system-widget {
-  border-color: rgb(176 116 255 / 42%);
-  border-left-color: #c27aff;
-  background: linear-gradient(110deg, rgb(39 10 69 / 86%), rgb(14 5 29 / 82%) 76%), rgb(12 3 25 / 90%);
-  box-shadow: inset 0 0 22px rgb(144 58 227 / 14%), 0 0 20px rgb(133 53 207 / 16%);
-  color: #d7bbf2;
-  text-shadow: 0 0 9px rgb(178 105 255 / 30%);
-}
-
-.theme-arise .system-widget header,
-.theme-arise .system-widget p b {
-  color: #d2a5ff;
-}
-
-.theme-arise .system-widget header i {
-  color: #f0b8ff;
-}
-
-.theme-arise .system-widget strong {
-  color: #f1e3ff;
-}
-
-.theme-arise .system-widget::after {
-  background: #e4baff;
-  box-shadow: 0 0 10px #b76cff;
-}
-
 .theme-arise .boot-scan {
   background: linear-gradient(
     to bottom,
@@ -990,18 +963,6 @@
   color: #ff5365;
 }
 
-.theme-grimoire .system-widget {
-  border-color: rgb(225 52 68 / 43%);
-  border-left-color: #fb344d;
-  background: linear-gradient(110deg, rgb(54 8 16 / 88%), rgb(20 4 9 / 84%) 76%);
-  box-shadow: inset 0 0 20px rgb(214 21 39 / 12%), 0 0 18px rgb(206 20 37 / 14%);
-}
-
-.theme-grimoire .system-widget header,
-.theme-grimoire .system-widget p b {
-  color: #ff8790;
-}
-
 .theme-grimoire .boot-scan {
   background: linear-gradient(to bottom, transparent, rgb(180 0 18 / 4%) 55%, rgb(255 29 46 / 18%) 88%, rgb(255 104 115 / 82%));
   filter: drop-shadow(0 0 16px rgb(234 24 44 / 76%));
@@ -1019,29 +980,19 @@
   text-shadow: 0 0 10px rgb(105 101 255 / 48%);
 }
 
-.theme-limitless .system-widget {
-  border-color: rgb(129 132 255 / 46%);
-  border-left-color: #9c7aff;
-  background: linear-gradient(110deg, rgb(22 21 65 / 88%), rgb(8 8 31 / 84%) 76%);
-  box-shadow: inset 0 0 20px rgb(86 95 255 / 14%), 0 0 18px rgb(80 98 255 / 15%);
-}
-
 .theme-limitless .boot-scan {
   background: linear-gradient(to bottom, transparent, rgb(50 40 184 / 5%) 55%, rgb(103 88 255 / 18%) 88%, rgb(215 218 255 / 88%));
   filter: drop-shadow(0 0 16px rgb(95 94 255 / 82%));
 }
 
-.theme-breathing-sun .command-console,
-.theme-breathing-sun .system-widget {
+.theme-breathing-sun .command-console {
   border-color: rgb(255 145 54 / 56%);
   background: linear-gradient(110deg, rgb(62 24 6 / 90%), rgb(27 10 3 / 87%) 76%), rgb(22 8 2 / 92%);
   box-shadow: 0 0 25px rgb(255 112 21 / 22%);
 }
 
 .theme-breathing-sun .console-output,
-.theme-breathing-sun .command-line,
-.theme-breathing-sun .system-widget header,
-.theme-breathing-sun .system-widget p b {
+.theme-breathing-sun .command-line {
   color: #ffb05c;
   text-shadow: 0 0 10px rgb(255 121 28 / 40%);
 }
@@ -1064,22 +1015,8 @@
 }
 
 .theme-demon-mode .console-heading,
-.theme-demon-mode .command-prefix,
-.theme-demon-mode .system-widget header i {
+.theme-demon-mode .command-prefix {
   color: #c49bff;
-}
-
-.theme-demon-mode .system-widget {
-  border-color: rgb(231 198 90 / 48%);
-  border-left-color: #e7c65a;
-  background: linear-gradient(110deg, rgb(38 24 48 / 91%), rgb(13 8 20 / 88%) 76%);
-  box-shadow: inset 0 0 20px rgb(139 92 246 / 13%), 0 0 18px rgb(231 198 90 / 12%);
-}
-
-.theme-demon-mode .system-widget header,
-.theme-demon-mode .system-widget p b,
-.theme-demon-mode .system-widget strong {
-  color: #f2d877;
 }
 
 .theme-demon-mode .boot-scan {
@@ -1100,27 +1037,8 @@
 }
 
 .theme-dragon .console-heading,
-.theme-dragon .command-prefix,
-.theme-dragon .system-widget header i {
+.theme-dragon .command-prefix {
   color: #70e8ff;
-}
-
-.theme-dragon .system-widget {
-  border-color: rgb(168 178 193 / 28%);
-  border-left-color: #70e8ff;
-  background: linear-gradient(110deg, rgb(13 18 26 / 94%), rgb(8 11 16 / 94%) 76%), rgb(8 11 16 / 94%);
-  box-shadow: inset 0 0 18px rgb(82 101 216 / 8%), 0 0 15px rgb(112 232 255 / 8%);
-}
-
-.theme-dragon .system-widget header,
-.theme-dragon .system-widget p b,
-.theme-dragon .system-widget strong {
-  color: #a8b2c1;
-}
-
-.theme-dragon .system-widget::after {
-  background: #70e8ff;
-  box-shadow: 0 0 9px rgb(112 232 255 / 60%);
 }
 
 .theme-dragon .boot-scan {
@@ -1292,6 +1210,10 @@
   --theme-panel: #100b0e;
 }
 
+.wallpaper-experience .system-widgets.widget-layout-right {
+  --widget-stack-fit: clamp(.94, calc((100dvh - 20px) / 916px), 1);
+}
+
 /* Tokyo Ghoul / Kagune console: tendril artwork stays in reserved frame bands. */
 .command-console.tokyo-ghoul-console {
   box-sizing: border-box;
@@ -1421,20 +1343,6 @@
 }
 .wallpaper-experience .tokyo-ghoul-console .console-heading { color: #f1eff1; }
 .wallpaper-experience .tokyo-ghoul-console .command-line button { color: #e32940; }
-
-.wallpaper-experience .system-widget {
-  border-color: rgb(var(--theme-primary-rgb) / 43%);
-  border-left-color: var(--theme-primary);
-  background: linear-gradient(110deg, rgb(var(--theme-primary-rgb) / 13%), rgb(var(--theme-tertiary-rgb) / 10%) 76%), var(--theme-panel);
-  box-shadow: inset 0 0 20px rgb(var(--theme-tertiary-rgb) / 12%), 0 0 18px rgb(var(--theme-primary-rgb) / 11%);
-  color: var(--theme-text);
-  text-shadow: 0 0 8px rgb(var(--theme-primary-rgb) / 18%);
-}
-
-.wallpaper-experience .system-widget::after {
-  background: var(--theme-secondary);
-  box-shadow: 0 0 9px rgb(var(--theme-primary-rgb) / 75%);
-}
 
 .wallpaper-experience .system-widget .widget-close {
   color: var(--theme-primary);
@@ -2786,6 +2694,546 @@
   .hinokami-arc { right: auto; width: var(--activation-stage-width); }
   .hinokami-fireblade-wrap { width: min(42vw, 110rem, 170vh); }
   .hinokami-activation-copy { max-width: 45vw; }
+}
+
+/* SAO widget review set: five distinct instruments built from the live widget
+   markup, with a shared Aincrad palette and crossed-swords insignia. */
+.wallpaper-experience.theme-sao .system-widget {
+  --sao-cyan: #00d8ff;
+  --sao-ice: #eafcff;
+  --sao-muted: #8198aa;
+  box-sizing: border-box;
+  max-height: min(12.5rem, calc(100vh - 1rem));
+  padding: 0.68rem 0.78rem 0.62rem;
+  border: 1px solid rgb(180 220 237 / 42%);
+  border-left: 2px solid var(--sao-cyan);
+  background: linear-gradient(145deg, rgb(7 24 38 / 96%), rgb(2 10 19 / 96%) 72%);
+  box-shadow: inset 0 0 0 1px rgb(88 155 185 / 8%), 0 5px 20px rgb(0 0 0 / 26%);
+  color: var(--sao-ice);
+  font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
+  text-shadow: none;
+  clip-path: none;
+}
+
+.wallpaper-experience.theme-sao .system-widget::after {
+  top: auto;
+  right: 0.78rem;
+  bottom: 0;
+  width: 2.6rem;
+  height: 2px;
+  background: linear-gradient(90deg, var(--sao-cyan) 0 58%, var(--sao-ice) 58% 72%, transparent 72%);
+  box-shadow: none;
+}
+
+.wallpaper-experience.theme-sao .system-widget header {
+  position: relative;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 1.25rem;
+  gap: 0.35rem;
+  margin: 0 0 0.48rem;
+  padding: 0 0 0.38rem 1.12rem;
+  border-bottom: 1px solid rgb(116 169 193 / 35%);
+  color: var(--sao-ice);
+  font-size: 0.58rem;
+  letter-spacing: 0.13em;
+}
+
+.wallpaper-experience.theme-sao .system-widget header > span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.wallpaper-experience.theme-sao .system-widget header > span::before {
+  position: absolute;
+  top: 0.12rem;
+  left: 0.08rem;
+  width: 0.68rem;
+  height: 0.68rem;
+  background: none;
+  content: '';
+}
+
+.wallpaper-experience.theme-sao .system-widget header i {
+  margin-left: auto;
+  color: var(--sao-cyan);
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* Assign a different small header marker to each instrument; the actual swords
+   appear only on Hardware and as the larger Anime Status crest. */
+.wallpaper-experience.theme-sao .system-widget.widget-1 header > span { padding-left: 0.26rem; }
+.wallpaper-experience.theme-sao .system-widget.widget-1 header > span::before {
+  top: -0.48rem;
+  left: -1.48rem;
+  width: 4.3rem;
+  height: 2.4rem;
+  background: url('/assets/emblems/link-start-crossed-swords.png') center / contain no-repeat;
+}
+
+.wallpaper-experience.theme-sao .system-widget.widget-2 header > span::before {
+  border: 1px solid var(--sao-cyan);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--sao-ice) 0 1px, transparent 1.5px);
+}
+
+.wallpaper-experience.theme-sao .system-widget.widget-3 header > span::before {
+  top: 0.26rem;
+  width: 0.7rem;
+  height: 0.26rem;
+  border-top: 1px solid #a5c0ce;
+  border-bottom: 1px solid var(--sao-cyan);
+}
+
+.wallpaper-experience.theme-sao .system-widget.widget-4 header > span::before {
+  top: -0.02rem;
+  width: 0.9rem;
+  height: 0.95rem;
+  border-left: 1px solid var(--sao-cyan);
+  color: var(--sao-ice);
+  content: '♫';
+  font-size: 0.7rem;
+  line-height: 0.9rem;
+  text-align: center;
+}
+
+.wallpaper-experience.theme-sao .system-widget.widget-5 header > span::before {
+  top: 0.2rem;
+  left: 0.22rem;
+  width: 0.44rem;
+  height: 0.44rem;
+  border: 1px solid var(--sao-cyan);
+  background: rgb(0 216 255 / 12%);
+  transform: rotate(45deg);
+}
+
+.wallpaper-experience.theme-sao .system-widget .widget-close {
+  margin: -0.18rem -0.25rem -0.18rem 0.05rem;
+  color: var(--sao-muted);
+}
+
+.wallpaper-experience.theme-sao .system-widget strong { color: var(--sao-ice); }
+.wallpaper-experience.theme-sao .system-widget small { color: var(--sao-muted); }
+.wallpaper-experience.theme-sao .system-widget p b { color: var(--sao-cyan); }
+
+/* Hardware: wide instrument bank with compact angular meter windows. */
+.wallpaper-experience.theme-sao .system-widget.widget-1 {
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: min(15rem, calc(100vh - 1rem));
+  padding-bottom: 0.75rem;
+  border-left-width: 3px;
+  background: linear-gradient(110deg, rgb(5 28 43 / 97%), rgb(2 12 22 / 98%) 76%);
+}
+
+.wallpaper-experience.theme-sao .widget-1 .hardware-host {
+  margin: 0.15rem 0 0.45rem;
+  color: #a7bfcc;
+  font-size: 0.54rem;
+  letter-spacing: 0.035em;
+}
+
+.wallpaper-experience.theme-sao .widget-1 .hardware-gauge-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.42rem 0.35rem;
+  margin: 0.1rem 0 0.55rem;
+}
+
+.wallpaper-experience.theme-sao .widget-1 .hardware-gauge {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  justify-items: stretch;
+  gap: 0.1rem 0.25rem;
+  padding: 0.22rem 0.3rem;
+  border: 1px solid rgb(98 158 185 / 31%);
+  background: linear-gradient(90deg, rgb(0 216 255 / 7%), transparent 80%);
+  text-align: left;
+}
+
+.wallpaper-experience.theme-sao .widget-1 .hardware-gauge-ring {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 0.24rem;
+  min-height: 0;
+  aspect-ratio: auto;
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--sao-cyan) var(--gauge-value), rgb(100 143 162 / 25%) var(--gauge-value));
+  box-shadow: none;
+}
+
+.wallpaper-experience.theme-sao .widget-1 .hardware-gauge-ring::before { display: none; }
+.wallpaper-experience.theme-sao .widget-1 .hardware-gauge-ring span {
+  position: absolute;
+  top: -0.72rem;
+  right: 0;
+  z-index: 1;
+  display: block;
+  color: var(--sao-ice);
+  font-size: 0.48rem;
+  line-height: 1;
+}
+.wallpaper-experience.theme-sao .widget-1 .hardware-gauge b { color: #a9c3d0; font-size: 0.46rem; }
+.wallpaper-experience.theme-sao .widget-1 .hardware-gauge small { margin: 0; color: #748d9e; font-size: 0.43rem; }
+.wallpaper-experience.theme-sao .widget-1 > p { margin: 0; color: #91abba; font-size: 0.54rem; }
+.wallpaper-experience.theme-sao .widget-1 > small { margin-top: 0.3rem; font-size: 0.44rem; }
+
+/* Clock: compact round dial above a centered digital readout. */
+.wallpaper-experience.theme-sao .system-widget.widget-2 {
+  width: min(13rem, calc(100vw - 2rem));
+  min-height: 12rem;
+  padding: 0.62rem 0.72rem 0.58rem;
+  border-left: 1px solid rgb(180 220 237 / 42%);
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 68%, rgb(0 117 164 / 17%), transparent 58%), linear-gradient(150deg, #071827, #020a13 78%);
+  clip-path: none;
+  border-radius: 0.65rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.wallpaper-experience.theme-sao .widget-2 header { text-align: left; }
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-display { flex: 1; flex-direction: column; justify-content: center; gap: 0.32rem; padding: 0; }
+.wallpaper-experience.theme-sao .widget-2 .clock-face { flex-basis: 3.85rem; width: 3.85rem; box-shadow: none; }
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy { width: 100%; }
+.wallpaper-experience.theme-sao .widget-2 .widget-clock { margin: 0; color: var(--sao-ice); font-size: 1.27rem; letter-spacing: 0.1em; }
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy p { justify-content: center; margin: 0.05rem 0; color: var(--sao-cyan); font-size: 0.52rem; }
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy small { margin-top: 0.18rem; color: var(--sao-muted); font-size: 0.44rem; }
+
+/* Session: low-profile status strip with two values and a separate image line. */
+.wallpaper-experience.theme-sao .system-widget.widget-3 {
+  width: min(18rem, calc(100vw - 2rem));
+  padding: 0.56rem 0.72rem 0.52rem;
+  border: 1px solid rgb(104 151 175 / 30%);
+  border-top: 2px solid #7198b2;
+  background: linear-gradient(90deg, rgb(17 43 62 / 94%), rgb(3 13 23 / 97%) 64%);
+}
+
+.wallpaper-experience.theme-sao .widget-3 header { min-height: 1rem; margin-bottom: 0.35rem; padding-bottom: 0.26rem; }
+.wallpaper-experience.theme-sao .widget-3 .session-metrics { gap: 0.35rem; margin: 0 0 0.32rem; }
+.wallpaper-experience.theme-sao .widget-3 .session-metrics > div { padding: 0.28rem 0.38rem; border: 0; border-left: 1px solid rgb(0 216 255 / 58%); background: rgb(5 19 31 / 68%); }
+.wallpaper-experience.theme-sao .widget-3 .session-metrics small { color: #829aab; }
+.wallpaper-experience.theme-sao .widget-3 .session-metrics strong { color: var(--sao-ice); font-size: 0.82rem; }
+.wallpaper-experience.theme-sao .widget-3 .session-wallpaper-name { justify-content: flex-start; margin: 0; color: #8da8b8; font-size: 0.49rem; }
+.wallpaper-experience.theme-sao .widget-3 .session-wallpaper-name b { color: var(--sao-cyan); text-align: left; }
+
+/* Audio: art-forward plaque with a framed square and resilient title line. */
+.wallpaper-experience.theme-sao .system-widget.widget-4 {
+  width: min(18rem, calc(100vw - 2rem));
+  border: 1px solid rgb(0 216 255 / 43%);
+  border-right: 3px solid rgb(113 151 177 / 64%);
+  background: linear-gradient(125deg, rgb(0 70 100 / 24%), transparent 53%), #03111d;
+  clip-path: none;
+}
+
+.wallpaper-experience.theme-sao .widget-4 .audio-now-playing { grid-template-columns: 4rem minmax(0, 1fr); gap: 0.65rem; margin: 0.12rem 0 0.3rem; }
+.wallpaper-experience.theme-sao .widget-4 .audio-now-playing > img,
+.wallpaper-experience.theme-sao .widget-4 .audio-art-placeholder { width: 4rem; border: 1px solid #92c6da; box-shadow: 3px 3px 0 rgb(0 216 255 / 22%); }
+.wallpaper-experience.theme-sao .widget-4 .audio-art-placeholder { background: linear-gradient(145deg, #0c4560, #06111d); color: var(--sao-ice); }
+.wallpaper-experience.theme-sao .widget-4 .audio-track-copy strong { display: -webkit-box; max-height: 3.6em; white-space: normal; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.wallpaper-experience.theme-sao .widget-4 > strong { margin-top: 0.4rem; }
+.wallpaper-experience.theme-sao .widget-4 > p { color: #91abba; }
+.wallpaper-experience.theme-sao .widget-4 .audio-controls-note { margin-top: 0.32rem; font-size: 0.43rem; }
+.wallpaper-experience.theme-sao .widget-4:not(:has(.audio-now-playing))::before {
+  position: absolute;
+  top: 2.75rem;
+  left: 0.78rem;
+  display: grid;
+  width: 2.45rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgb(146 198 218 / 62%);
+  background: linear-gradient(145deg, rgb(0 216 255 / 12%), rgb(4 16 27 / 82%));
+  color: var(--sao-ice);
+  content: '♪';
+  font-size: 1.3rem;
+  box-shadow: 3px 3px 0 rgb(0 216 255 / 18%);
+}
+.wallpaper-experience.theme-sao .widget-4:not(:has(.audio-now-playing)) > strong,
+.wallpaper-experience.theme-sao .widget-4:not(:has(.audio-now-playing)) > p,
+.wallpaper-experience.theme-sao .widget-4:not(:has(.audio-now-playing)) > small:not(.audio-controls-note) {
+  margin-left: 3.2rem;
+}
+.wallpaper-experience.theme-sao .widget-4:not(:has(.audio-now-playing)) > p { justify-content: flex-start; }
+
+/* Anime Status: its own emblem plaque, with the signal retained as a small meter. */
+.wallpaper-experience.theme-sao .system-widget.widget-5 {
+  width: min(16rem, calc(100vw - 2rem));
+  max-height: none;
+  overflow: visible;
+  padding: 0.65rem 0.78rem 0.72rem;
+  border: 1px solid rgb(135 182 204 / 46%);
+  border-top: 2px solid var(--sao-cyan);
+  background: radial-gradient(ellipse at 24% 58%, rgb(0 216 255 / 12%), transparent 43%), linear-gradient(140deg, #081b2b, #020a13 76%);
+  clip-path: none;
+}
+
+.wallpaper-experience.theme-sao .widget-5 .anime-status-heading { display: grid; grid-template-columns: 1fr; justify-items: center; gap: 0.38rem; margin: 0.22rem 0 0.35rem; text-align: center; }
+.wallpaper-experience.theme-sao .widget-5 .anime-status-orb { flex: 0 0 auto; width: 14.4rem; max-width: 100%; height: 8.1rem; aspect-ratio: auto; border: 0; border-radius: 0; object-fit: contain; object-position: center; background: none; box-shadow: none; }
+.wallpaper-experience.theme-sao .widget-5 .anime-status-orb::after { display: none; }
+.wallpaper-experience.theme-sao .widget-5 .anime-status-heading > div { width: 100%; text-align: center; }
+.wallpaper-experience.theme-sao .widget-5 .anime-status-heading strong { white-space: normal; }
+.wallpaper-experience.theme-sao .widget-5 .anime-status-heading small { color: #7f9bad; font-size: 0.48rem; }
+.wallpaper-experience.theme-sao .widget-5 .anime-status-heading strong { font-size: 0.69rem; }
+.wallpaper-experience.theme-sao .widget-5 .anime-status-state { margin-left: 0; color: #a8c1ce; }
+.wallpaper-experience.theme-sao .widget-5 .anime-signal { height: 0.72rem; margin: 0.28rem 0 0.18rem; }
+.wallpaper-experience.theme-sao .widget-5 .anime-signal i { animation: none; box-shadow: none; }
+.wallpaper-experience.theme-sao .widget-5 .anime-status-metric { margin-left: 0; font-size: 0.5rem; }
+
+.wallpaper-experience.theme-sao .system-widgets.widget-layout-right {
+  --widget-stack-fit: clamp(.94, calc((100dvh - 20px) / 916px), 1);
+}
+
+.wallpaper-experience.theme-sao .system-widget.widget-1 { animation: sao-hardware-arrive 420ms cubic-bezier(.18,.68,.25,1) both; }
+.wallpaper-experience.theme-sao .system-widget.widget-2 { animation: sao-clock-arrive 480ms cubic-bezier(.18,.68,.25,1) 45ms both; }
+.wallpaper-experience.theme-sao .system-widget.widget-3 { animation: sao-session-arrive 390ms ease-out 90ms both; }
+.wallpaper-experience.theme-sao .system-widget.widget-4 { animation: sao-audio-arrive 430ms ease-out 135ms both; }
+.wallpaper-experience.theme-sao .system-widget.widget-5 { animation: sao-status-arrive 460ms cubic-bezier(.2,.7,.25,1) 180ms both; }
+.wallpaper-experience.theme-sao .system-widget.widget-leaving { animation: widget-depart 260ms cubic-bezier(.55,0,.8,.35) both; }
+
+@keyframes sao-hardware-arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sao-clock-arrive { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes sao-session-arrive { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes sao-audio-arrive { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes sao-status-arrive { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .wallpaper-experience.theme-sao .system-widget { animation-duration: 1ms !important; animation-delay: 0ms !important; }
+}
+
+/* Seven companion widget suites. Each theme shares its console palette and
+   emblem, while each widget keeps a different instrument composition. */
+.wallpaper-experience.theme-arise {
+  --widget-accent: #ad70ff; --widget-bright: #f1e4ff; --widget-soft: #a98cc3;
+  --widget-dim: #70558e; --widget-panel: #10081b; --widget-edge: #59377c;
+  --widget-emblem: url('/assets/emblems/arise-shadow-monarch.png');
+}
+.wallpaper-experience.theme-grimoire {
+  --widget-accent: #e63946; --widget-bright: #fff1e7; --widget-soft: #d9b7a7;
+  --widget-dim: #896c61; --widget-panel: #12080a; --widget-edge: #75402e;
+  --widget-emblem: url('/assets/emblems/grimoire.png');
+}
+.wallpaper-experience.theme-limitless {
+  --widget-accent: #60a5fa; --widget-bright: #eff8ff; --widget-soft: #aabbd1;
+  --widget-dim: #657c9b; --widget-panel: #07101f; --widget-edge: #395b91;
+  --widget-emblem: url('/assets/emblems/limitless1.png');
+}
+.wallpaper-experience.theme-breathing-sun {
+  --widget-accent: #f05a32; --widget-bright: #fff5e6; --widget-soft: #c6b8a8;
+  --widget-dim: #82796e; --widget-panel: #17120f; --widget-edge: #7c3324;
+  --widget-emblem: url('/assets/emblems/hinokami-kagura.png');
+}
+.wallpaper-experience.theme-demon-mode {
+  --widget-accent: #e7c65a; --widget-bright: #fff6da; --widget-soft: #c5b78e;
+  --widget-dim: #877b5e; --widget-panel: #120c19; --widget-edge: #6e5a32;
+  --widget-emblem: url('/assets/emblems/dragon-emblem.png');
+}
+.wallpaper-experience.theme-dragon {
+  --widget-accent: #70e8ff; --widget-bright: #effbff; --widget-soft: #a8b8c5;
+  --widget-dim: #718398; --widget-panel: #080b10; --widget-edge: #475b6d;
+  --widget-emblem: url('/assets/emblems/night-fury-header-emblem-trimmed.png');
+}
+.wallpaper-experience.theme-tokyo-ghoul {
+  --widget-accent: #ed3347; --widget-bright: #fff3f4; --widget-soft: #c6c2c6;
+  --widget-dim: #817c80; --widget-panel: #100b0e; --widget-edge: #71404a;
+  --widget-emblem: url('/assets/kagune/kagune-header-emblem-trimmed.png');
+}
+
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget {
+  --widget-edge: color-mix(in srgb, var(--widget-accent) 55%, #ffffff 8%);
+  box-sizing: border-box;
+  max-height: none;
+  overflow: hidden;
+  padding: .64rem .76rem .62rem;
+  border: 1px solid color-mix(in srgb, var(--widget-accent) 38%, transparent);
+  border-left: 2px solid var(--widget-accent);
+  border-radius: 2px;
+  background: linear-gradient(125deg, color-mix(in srgb, var(--widget-accent) 12%, transparent), transparent 52%), var(--widget-panel);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 3%), 0 5px 16px rgb(0 0 0 / 26%);
+  color: var(--widget-soft);
+  text-shadow: none;
+  font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
+}
+
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget::after {
+  top: auto; right: .76rem; bottom: 0; width: 2.2rem; height: 2px;
+  background: linear-gradient(90deg, var(--widget-accent), transparent); box-shadow: none;
+}
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget header {
+  position: relative; align-items: center; justify-content: flex-start; gap: .35rem;
+  min-height: 1.12rem; margin: 0 0 .46rem; padding: 0 0 .34rem 1.05rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--widget-accent) 28%, transparent);
+  color: var(--widget-bright); font-size: .57rem; letter-spacing: .11em;
+}
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget header > span {
+  display: flex; min-width: 0; align-items: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget header > span::before {
+  position: absolute; top: .17rem; left: .08rem; width: .62rem; height: .62rem; content: ''; background: none;
+}
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget header i {
+  margin-left: auto; color: var(--widget-accent); font-size: .49rem; letter-spacing: .07em; white-space: nowrap;
+}
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget .widget-close { color: var(--widget-dim); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget strong { color: var(--widget-bright); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget small { color: var(--widget-dim); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget p b { color: var(--widget-accent); }
+
+/* Hardware: broad instrument bank, with three readable rectangular meters. */
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-1 {
+  width: min(22rem, calc(100vw - 2rem)); max-height: min(15rem, calc(100vh - 1rem));
+  padding-bottom: .72rem; border-left-width: 3px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--widget-accent) 12%, var(--widget-panel)), var(--widget-panel) 76%);
+}
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 header > span::before { background: var(--widget-emblem) center / contain no-repeat; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-host { margin: .1rem 0 .42rem; color: var(--widget-dim); font-size: .53rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: .38rem; margin: .1rem 0 .52rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge { display: grid; grid-template-columns: minmax(0,1fr) auto; justify-items: stretch; align-items: center; gap: .13rem .25rem; padding: .23rem .3rem; border: 1px solid color-mix(in srgb, var(--widget-accent) 30%, transparent); background: linear-gradient(90deg,color-mix(in srgb,var(--widget-accent) 8%,transparent),transparent); text-align: left; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-ring { grid-column: 1/-1; width: 100%; height: .22rem; min-height: 0; aspect-ratio: auto; border-radius: 0; background: linear-gradient(90deg,var(--widget-accent) var(--gauge-value),color-mix(in srgb,var(--widget-accent) 16%,transparent) var(--gauge-value)); box-shadow: none; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-ring::before { display: none; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-ring span { position: absolute; top: -.72rem; right: 0; z-index: 1; display: block; color: var(--widget-bright); font-size: .48rem; line-height: 1; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge b { color: var(--widget-soft); font-size: .46rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge small { margin: 0; font-size: .43rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 > p { margin: 0; font-size: .53rem; }
+
+/* Clock: centered timepiece case, independent of the meter grid. */
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-2 {
+  display: flex; flex-direction: column; width: min(13rem, calc(100vw - 2rem)); min-height: 12rem;
+  padding: .62rem .72rem .58rem; border-left: 1px solid color-mix(in srgb,var(--widget-accent) 38%,transparent);
+  border-radius: 3px; text-align: center;
+  background: radial-gradient(ellipse at 50% 66%,color-mix(in srgb,var(--widget-accent) 16%,transparent),transparent 56%),var(--widget-panel);
+}
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-2 header { text-align: left; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-2 header > span::before { border: 1px solid var(--widget-accent); border-radius: 50%; background: radial-gradient(circle,var(--widget-bright) 0 1px,transparent 1.5px); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-2 .clock-widget-display { flex: 1; flex-direction: column; justify-content: center; gap: .3rem; padding: 0; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-2 .clock-face { flex-basis: 3.8rem; width: 3.8rem; border-color: color-mix(in srgb,var(--widget-accent) 68%,transparent); background: radial-gradient(circle,var(--widget-panel) 57%,transparent 59%),repeating-conic-gradient(from -1deg,color-mix(in srgb,var(--widget-bright) 72%,transparent) 0deg 1deg,transparent 1deg 30deg); box-shadow: 0 0 14px color-mix(in srgb,var(--widget-accent) 22%,transparent),inset 0 0 12px color-mix(in srgb,var(--widget-accent) 12%,transparent); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-2 .clock-widget-copy { width: 100%; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-2 .widget-clock { margin: 0; color: var(--widget-bright); font-size: 1.23rem; letter-spacing: .08em; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-2 .clock-widget-copy p { justify-content: center; margin: .05rem 0; color: var(--widget-accent); font-size: .51rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-2 .clock-widget-copy small { margin-top: .17rem; font-size: .43rem; }
+
+/* Session: low horizontal ledger with its own narrow wallpaper line. */
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-3 {
+  width: min(18rem, calc(100vw - 2rem)); padding: .54rem .72rem .5rem;
+  border: 1px solid color-mix(in srgb,var(--widget-accent) 26%,transparent); border-top: 2px solid var(--widget-accent);
+  background: linear-gradient(90deg,color-mix(in srgb,var(--widget-accent) 10%,var(--widget-panel)),var(--widget-panel) 70%);
+}
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-3 header { min-height: 1rem; margin-bottom: .34rem; padding-bottom: .25rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-3 header > span::before { top: .27rem; width: .7rem; height: .24rem; border-top: 1px solid var(--widget-soft); border-bottom: 1px solid var(--widget-accent); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-3 .session-metrics { gap: .32rem; margin: 0 0 .3rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-3 .session-metrics > div { padding: .27rem .38rem; border: 0; border-left: 1px solid var(--widget-accent); background: color-mix(in srgb,var(--widget-accent) 5%,transparent); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-3 .session-metrics strong { color: var(--widget-bright); font-size: .8rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-3 .session-wallpaper-name { justify-content: flex-start; gap: .35rem; margin: 0; font-size: .48rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-3 .session-wallpaper-name b { color: var(--widget-accent); text-align: left; }
+
+/* Audio: square artwork window and flexible two-line track plaque. */
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-4 {
+  width: min(18rem, calc(100vw - 2rem)); border: 1px solid color-mix(in srgb,var(--widget-accent) 42%,transparent);
+  border-right: 3px solid var(--widget-accent);
+  background: linear-gradient(125deg,color-mix(in srgb,var(--widget-accent) 12%,transparent),transparent 54%),var(--widget-panel);
+}
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-4 header > span::before { top: .05rem; width: .72rem; height: .86rem; border-left: 1px solid var(--widget-accent); color: var(--widget-bright); content: '♫'; font-size: .66rem; line-height: .82rem; text-align: center; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-4 .audio-now-playing { grid-template-columns: 3.8rem minmax(0,1fr); gap: .62rem; margin: .12rem 0 .3rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-4 .audio-now-playing > img,
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-4 .audio-art-placeholder { width: 3.8rem; border-color: color-mix(in srgb,var(--widget-accent) 70%,white 15%); box-shadow: 3px 3px 0 color-mix(in srgb,var(--widget-accent) 23%,transparent); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-4 .audio-track-copy strong { display: -webkit-box; max-height: 3.6em; overflow-wrap: anywhere; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-4 > strong { margin-top: .32rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-4 .audio-controls-note { margin-top: .3rem; font-size: .43rem; }
+
+/* Anime Status: centered emblem seal, separate from every technical card. */
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-5 {
+  display: flex; flex-direction: column; width: min(16rem, calc(100vw - 2rem));
+  padding: .62rem .78rem .68rem; border: 1px solid color-mix(in srgb,var(--widget-accent) 48%,transparent);
+  border-top: 2px solid var(--widget-accent);
+  background: radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--widget-accent) 14%,transparent),transparent 48%),var(--widget-panel);
+}
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 header > span::before { top: .18rem; left: .18rem; width: .43rem; height: .43rem; border: 1px solid var(--widget-accent); background: color-mix(in srgb,var(--widget-accent) 12%,transparent); transform: rotate(45deg); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 .anime-status-heading { flex-direction: column; align-items: center; gap: .3rem; margin: .12rem 0 .34rem; text-align: center; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 .anime-status-orb { flex: 0 0 auto; width: 10.5rem; max-width: 100%; height: 5.9rem; border: 0; border-radius: 0; object-fit: contain; object-position: center; background: none; box-shadow: none; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 .anime-status-orb::after { display: none; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 .anime-status-heading > div { width: 100%; text-align: center; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 .anime-status-heading small { margin: 0 0 .16rem !important; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 .anime-status-heading strong { margin: 0; overflow: visible; white-space: normal; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 .anime-status-state { margin: .12rem 0; text-align: center; color: var(--widget-soft); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 .anime-signal { height: .72rem; margin: .22rem 0 .16rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 .anime-signal i { animation: none; box-shadow: none; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-5 .anime-status-metric { margin: 0; font-size: .5rem; }
+
+/* Emblem markers and instrument finishes are theme-specific; no skewed cards. */
+.wallpaper-experience.theme-arise .widget-1 { border-left-color: #a866f3; background-image: linear-gradient(90deg,rgb(126 61 184 / 12%) 0 5px,transparent 5px),linear-gradient(125deg,#251333,#10081b 68%); }
+.wallpaper-experience.theme-arise .widget-2 .clock-face { border-width: 2px; box-shadow: 0 0 20px rgb(155 93 229 / 24%),inset 0 0 18px rgb(155 93 229 / 16%); }
+.wallpaper-experience.theme-arise .widget-3 { border-top-style: double !important; }
+.wallpaper-experience.theme-arise .widget-4 { border-radius: 0 8px 0 8px; }
+.wallpaper-experience.theme-arise .widget-5 { box-shadow: inset 0 0 24px rgb(155 93 229 / 12%),0 5px 18px #0008; }
+
+.wallpaper-experience.theme-grimoire .system-widget { font-family: Georgia,'Times New Roman',serif; letter-spacing: .015em; }
+.wallpaper-experience.theme-grimoire .system-widget header,.wallpaper-experience.theme-grimoire .system-widget p,.wallpaper-experience.theme-grimoire .system-widget small { font-family: ui-monospace,Consolas,monospace; }
+.wallpaper-experience.theme-grimoire .widget-1 { background-image: repeating-linear-gradient(0deg,transparent 0 18px,rgb(230 57 70 / 7%) 19px 20px),linear-gradient(110deg,#210c11,#100709 78%); border-color: #75402e; }
+.wallpaper-experience.theme-grimoire .widget-2 { border-radius: 50% 50% 3px 3px !important; }
+.wallpaper-experience.theme-grimoire .widget-2 .clock-face { box-shadow: 0 0 0 4px rgb(230 57 70 / 9%),0 0 0 7px rgb(230 57 70 / 5%); }
+.wallpaper-experience.theme-grimoire .widget-3 { border-top: 1px solid #b58b68 !important; border-bottom: 2px double #b58b68 !important; background-image: repeating-linear-gradient(0deg,transparent 0 20px,rgb(181 139 104 / 9%) 21px 22px),linear-gradient(90deg,#1c0c0e,#100709); }
+.wallpaper-experience.theme-grimoire .widget-4 { border: 2px double #8e5c42 !important; }
+.wallpaper-experience.theme-grimoire .widget-5 { border: 2px double #8e5c42 !important; }
+
+.wallpaper-experience.theme-limitless .widget-1 { background-image: linear-gradient(90deg,transparent 0 92%,rgb(96 165 250 / 18%) 92%),linear-gradient(120deg,#0c1a2e,#07101f 76%); }
+.wallpaper-experience.theme-limitless .widget-2 .clock-face { border-radius: 50%; box-shadow: 0 0 0 4px rgb(96 165 250 / 9%),0 0 0 8px rgb(196 181 253 / 7%),0 0 20px rgb(96 165 250 / 20%); }
+.wallpaper-experience.theme-limitless .widget-3 { border-inline: 0 !important; border-bottom: 1px solid #4b69a4 !important; background: linear-gradient(90deg,transparent,#101a32 20%,#101a32 80%,transparent) !important; }
+.wallpaper-experience.theme-limitless .widget-4 { border-radius: 0 0 12px 0; border-left-width: 1px !important; }
+.wallpaper-experience.theme-limitless .widget-5 { background-image: radial-gradient(ellipse at center, rgb(96 165 250 / 12%),transparent 58%),linear-gradient(145deg,#0c1a2e,#07101f 76%); }
+
+.wallpaper-experience.theme-breathing-sun .widget-1 { background-image: linear-gradient(0deg,transparent 0 96%,rgb(63 147 122 / 25%) 96%),linear-gradient(120deg,#27201b,#17120f 72%); }
+.wallpaper-experience.theme-breathing-sun .widget-1 .hardware-gauge:nth-child(2) .hardware-gauge-ring { background: linear-gradient(90deg,#db4932 var(--gauge-value),#47241d var(--gauge-value)); }
+.wallpaper-experience.theme-breathing-sun .widget-2 .clock-face { background: radial-gradient(circle,#17120f 57%,transparent 59%),repeating-conic-gradient(from -1deg,#ffb15b 0deg 1.2deg,transparent 1.2deg 30deg); }
+.wallpaper-experience.theme-breathing-sun .widget-3 { border-top-color: #4c9275 !important; }
+.wallpaper-experience.theme-breathing-sun .widget-3::after { position: static; display: block; width: 74%; height: auto; aspect-ratio: 8 / 1; margin: .22rem 0 0 auto; background: url('/assets/emblems/flame-short-trimmed.png') center / contain no-repeat; opacity: .82; }
+.wallpaper-experience.theme-breathing-sun .widget-4 { border-color: #53856d !important; background-image: linear-gradient(125deg,rgb(74 137 105 / 12%),transparent 54%),#17120f !important; }
+.wallpaper-experience.theme-breathing-sun .widget-5 { border-top-color: #d94931 !important; background-image: radial-gradient(ellipse at center,rgb(239 92 43 / 18%),transparent 50%),#17120f !important; }
+
+.wallpaper-experience.theme-demon-mode .widget-1 { border-color: #78653b; background-image: linear-gradient(90deg,rgb(231 198 90 / 11%) 0 5px,transparent 5px),linear-gradient(120deg,#241c28,#120c19 72%); }
+.wallpaper-experience.theme-demon-mode .widget-2 { border-radius: 50% 50% 3px 3px !important; }
+.wallpaper-experience.theme-demon-mode .widget-2 .clock-face { box-shadow: 0 0 0 4px rgb(231 198 90 / 9%),0 0 0 7px rgb(168 121 255 / 10%); }
+.wallpaper-experience.theme-demon-mode .widget-3 { border-block: 1px solid #8e7540 !important; background: repeating-linear-gradient(90deg,transparent 0 34px,rgb(231 198 90 / 6%) 35px 36px),#120c19 !important; }
+.wallpaper-experience.theme-demon-mode .widget-4 header > span::before { top: .06rem; width: .82rem; height: .82rem; border: 0; background: url('/assets/emblems/demon-seal-gem-trimmed.png') center / contain no-repeat; content: ''; }
+.wallpaper-experience.theme-demon-mode .widget-4 { border-right-color: #a879ff !important; }
+.wallpaper-experience.theme-demon-mode .widget-5::after { width: 5.2rem; height: .85rem; right: calc(50% - 2.6rem); bottom: -.08rem; background: url('/assets/emblems/demon-crescent-trimmed.png') center / contain no-repeat; opacity: .68; }
+.wallpaper-experience.theme-demon-mode .widget-5 { box-shadow: inset 0 0 0 1px rgb(231 198 90 / 13%),inset 0 0 24px rgb(168 121 255 / 12%); }
+
+.wallpaper-experience.theme-dragon .widget-1 { border-color: #64798a; background-image: repeating-linear-gradient(90deg,transparent 0 23px,rgb(112 232 255 / 6%) 24px 25px),linear-gradient(120deg,#13212b,#080b10 74%); }
+.wallpaper-experience.theme-dragon .widget-2 .clock-face { box-shadow: 0 0 0 4px rgb(112 232 255 / 8%),0 0 0 8px rgb(82 101 216 / 9%); }
+.wallpaper-experience.theme-dragon .widget-3 { border-top: 1px solid #70e8ff !important; border-bottom: 1px solid #70e8ff !important; }
+.wallpaper-experience.theme-dragon .widget-3::after { position: static; display: block; width: 76%; height: auto; aspect-ratio: 14 / 1; margin: .22rem 0 0 auto; background: url('/assets/emblems/night-fury-bottom-tail-trimmed.png') center / contain no-repeat; opacity: .8; }
+.wallpaper-experience.theme-dragon .widget-4 { border-radius: 0 8px 8px 0; }
+.wallpaper-experience.theme-dragon .widget-5 { background-image: radial-gradient(ellipse at center,rgb(112 232 255 / 12%),transparent 55%),#080b10 !important; }
+
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 { border-color: #6c555a; background-image: linear-gradient(90deg,rgb(229 57 70 / 10%) 0 5px,transparent 5px),linear-gradient(120deg,#211014,#100b0e 72%); }
+.wallpaper-experience.theme-tokyo-ghoul .widget-2 .clock-face { border-color: #e53946; background: radial-gradient(circle,#100b0e 57%,transparent 59%),repeating-conic-gradient(from -1deg,#e8e8ed 0deg 1deg,transparent 1deg 30deg); box-shadow: 0 0 0 4px rgb(229 57 70 / 9%); }
+.wallpaper-experience.theme-tokyo-ghoul .widget-3 { border-top: 0 !important; border-bottom: 2px solid #e53946 !important; background: linear-gradient(90deg,#211014,#100b0e 72%) !important; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-3::after { position: static; display: block; width: 72%; height: auto; aspect-ratio: 12 / 1; margin: .22rem 0 0 auto; background: url('/assets/kagune/kagune-bottom-tendril-trimmed.png') center / contain no-repeat; opacity: .78; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-4 { border-radius: 0 9px 0 0; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-5 { border-left: 2px solid #e53946 !important; }
+
+/* One-shot entrances follow the function of each instrument. */
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-1 { animation: instrument-reveal 430ms ease-out both; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-2 { animation: timepiece-resolve 480ms cubic-bezier(.2,.65,.3,1) 45ms both; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-3 { animation: session-sweep 390ms ease-out 80ms both; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-4 { animation: media-materialise 430ms ease-out 120ms both; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-5 { animation: emblem-seal 470ms cubic-bezier(.2,.7,.25,1) 165ms both; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-leaving { animation: widget-depart 260ms cubic-bezier(.55,0,.8,.35) both; }
+@keyframes instrument-reveal { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes timepiece-resolve { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes session-sweep { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes media-materialise { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes emblem-seal { from { opacity: 0; transform: translateY(7px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (max-width: 1000px) and (max-height: 760px) {
+  .system-widgets.widget-layout-right { bottom: min(14rem, 36vh); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget { animation-duration: 1ms !important; animation-delay: 0ms !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
