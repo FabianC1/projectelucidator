@@ -1490,19 +1490,6 @@
   animation: theme-activation-flare 1.7s ease-out both;
 }
 
-.effect-link-start::before {
-  position: absolute;
-  top: 50%;
-  left: var(--activation-center-x);
-  width: 9vmin;
-  height: 9vmin;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  content: '';
-  transform: translate(-50%, -50%);
-  animation: theme-activation-ring 1.55s cubic-bezier(.14,.64,.28,1) both;
-}
-
 .effect-arise::after {
   position: absolute;
   top: -35vh;
@@ -1516,26 +1503,12 @@
 }
 
 .effect-link-start {
-  background: linear-gradient(180deg, transparent 0%, rgb(28 163 255 / 3%) 46%, rgb(51 203 255 / 21%) 49%, rgb(210 250 255 / 75%) 50%, rgb(37 177 255 / 20%) 51%, transparent 57%);
-  animation: link-start-flare 1.65s ease-out both;
+  background: radial-gradient(ellipse at var(--activation-center-x) 50%, rgb(0 124 171 / 9%), transparent 58%);
+  animation: sao-activation-overlay 1.85s ease both;
 }
 
-.effect-link-start::after {
-  position: absolute;
-  top: -18vh;
-  left: 0;
-  width: 100%;
-  height: 22vh;
-  background: linear-gradient(180deg, transparent, rgb(83 206 255 / 5%) 65%, rgb(138 233 255 / 55%) 98%, transparent);
-  filter: drop-shadow(0 0 12px rgb(49 182 255 / 60%));
-  content: '';
-  animation: link-start-scan 1.4s cubic-bezier(.18,.64,.38,1) both;
-}
-
-.effect-link-start::before {
-  color: rgb(119 232 255 / 96%);
-  box-shadow: 0 0 25px rgb(55 203 255 / 58%), inset 0 0 17px rgb(76 197 255 / 25%);
-}
+.effect-link-start::before,
+.effect-link-start::after { content: none; }
 
 .effect-limitless::before,
 .effect-limitless::after,
@@ -1791,42 +1764,49 @@
   .sao-console .command-line { margin-inline: -0.82rem; padding-inline: 0.9rem; }
 }
 
-.sao-activation-interface { position: absolute; inset: 0; color: #9feeff; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; }
-.sao-hud-frame { position: absolute; inset: clamp(1rem, 4vw, 3.5rem); animation: sao-hud-frame-in 1.65s ease-out both; }
-.sao-hud-frame i { position: absolute; width: clamp(1.4rem, 3vw, 2.8rem); height: clamp(1.4rem, 3vw, 2.8rem); border-color: rgb(94 223 255 / 74%); border-style: solid; }
-.sao-hud-frame i:nth-child(1) { top: 0; left: 0; border-width: 1px 0 0 1px; }
-.sao-hud-frame i:nth-child(2) { top: 0; right: 0; border-width: 1px 1px 0 0; }
-.sao-hud-frame i:nth-child(3) { right: 0; bottom: 0; border-width: 0 1px 1px 0; }
-.sao-hud-frame i:nth-child(4) { bottom: 0; left: 0; border-width: 0 0 1px 1px; }
-
-.sao-cross-lines { position: absolute; inset: 0; overflow: hidden; }
-.sao-cross-lines i { position: absolute; top: 50%; left: 50%; width: min(74vw, 110vh); height: 2px; background: linear-gradient(90deg, transparent, rgb(0 157 255 / 10%), #d8fbff 49%, #74eaff 51%, transparent); box-shadow: 0 0 8px rgb(42 194 255 / 85%); transform-origin: center; animation: sao-sword-cross 1.15s cubic-bezier(.18,.68,.24,1) both; }
-.sao-cross-lines i:first-child { --sao-angle: 42deg; }
-.sao-cross-lines i:last-child { --sao-angle: -42deg; animation-delay: 90ms; }
-
-.sao-holo-menu {
+.sao-activation-interface { position: absolute; inset: 0; color: #dceef7; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; }
+.sao-activation-panel {
   position: absolute;
   top: 50%;
-  left: 50%;
-  display: grid;
-  gap: 0.7rem;
-  width: min(24rem, calc(100vw - 3rem));
-  padding: 1rem 1.15rem 0.8rem;
-  border: 1px solid rgb(112 226 255 / 68%);
-  border-left: 2px solid #8feeff;
-  background: linear-gradient(115deg, rgb(2 24 42 / 94%), rgb(1 8 18 / 91%));
-  box-shadow: inset 0 0 18px rgb(48 176 255 / 13%), 0 0 26px rgb(27 163 255 / 22%);
-  text-shadow: 0 0 8px rgb(66 204 255 / 44%);
+  left: var(--activation-center-x);
+  width: min(38rem, calc(var(--activation-stage-width) - 2rem));
+  aspect-ratio: 2.45;
+  box-sizing: border-box;
+  padding: 1.05rem 1.2rem;
+  overflow: hidden;
+  background: linear-gradient(120deg, rgb(2 16 28 / 96%), rgb(3 11 20 / 96%) 64%, rgb(2 22 35 / 96%));
   transform: translate(-50%, -50%);
-  animation: sao-menu-deploy 1.65s cubic-bezier(.2,.7,.25,1) both;
+  animation: sao-activation-panel 1.85s ease both;
 }
-
-.sao-holo-menu b { color: #e6fbff; font-size: 0.76rem; letter-spacing: 0.16em; }
-.sao-holo-menu > span { color: #71dfff; font-size: 0.59rem; letter-spacing: 0.1em; }
-.sao-holo-menu > div { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
-.sao-holo-menu > div i { padding: 0.36rem 0.15rem; border: 1px solid rgb(101 212 255 / 43%); color: #c3f4ff; font-size: 0.48rem; font-style: normal; text-align: center; }
-.sao-holo-menu > div i:first-child { background: rgb(0 177 255 / 20%); }
-.sao-holo-menu small { justify-self: end; color: #77dff9; font-size: 0.48rem; letter-spacing: 0.12em; }
+.sao-activation-frame { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.sao-activation-frame-line,
+.sao-activation-rails,
+.sao-activation-orange,
+.sao-activation-ticks { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: square; stroke-linejoin: bevel; }
+.sao-activation-frame-line { stroke: #d7e9f0; stroke-width: 1px; stroke-dasharray: 2600; stroke-dashoffset: 2600; animation: sao-activation-frame-draw 520ms ease-out 80ms both; }
+.sao-activation-rails { stroke: #d7e9f0; stroke-width: 1.4px; opacity: 0; animation: sao-activation-copy-in 180ms ease-out 260ms both; }
+.sao-activation-orange { stroke: #ff8b24; stroke-width: 3px; stroke-dasharray: 72; stroke-dashoffset: 72; animation: sao-activation-accent 400ms ease-out 260ms both; }
+.sao-activation-ticks { stroke: #15d5f1; stroke-width: 2px; stroke-dasharray: 42; stroke-dashoffset: 42; animation: sao-activation-accent 380ms ease-out 380ms both; }
+.sao-activation-header { position: relative; z-index: 1; display: grid; grid-template-columns: 5rem minmax(0, 1fr) auto; align-items: center; gap: .72rem; height: 52%; padding: 0 2%; }
+.sao-activation-header > img { display: block; width: 4.6rem; height: 3.25rem; object-fit: contain; filter: none; clip-path: inset(100% 0 0); animation: sao-activation-swords 640ms cubic-bezier(.2,.7,.25,1) 220ms both; }
+.sao-activation-header > span { display: grid; gap: .24rem; min-width: 0; opacity: 0; animation: sao-activation-copy-in 320ms ease-out 420ms both; }
+.sao-activation-header strong { overflow: hidden; color: #f2f8fc; font-family: 'Arial', 'Segoe UI', sans-serif; font-size: clamp(1.05rem, 2.1vw, 1.5rem); font-weight: 400; letter-spacing: .16em; text-overflow: ellipsis; white-space: nowrap; }
+.sao-activation-header small { overflow: hidden; color: #aebfcb; font-family: 'Arial', 'Segoe UI', sans-serif; font-size: clamp(.48rem, .85vw, .62rem); letter-spacing: .13em; text-overflow: ellipsis; white-space: nowrap; }
+.sao-activation-floor { display: flex; align-items: center; gap: .55rem; color: #d9e7ef; font-family: 'Arial', 'Segoe UI', sans-serif; font-size: clamp(.48rem, .8vw, .58rem); font-weight: 400; letter-spacing: .16em; white-space: nowrap; opacity: 0; animation: sao-activation-copy-in 260ms ease-out 540ms both; }
+.sao-activation-floor i { width: .48rem; height: .48rem; border: 1px solid #ff8b24; transform: rotate(45deg); }
+.sao-activation-underline { position: absolute; top: 41%; left: 2%; width: 96%; height: 19%; overflow: visible; }
+.sao-activation-underline path { fill: none; stroke: #e5f4f8; stroke-width: 1.35px; stroke-dasharray: 1600; stroke-dashoffset: 1600; stroke-linecap: square; stroke-linejoin: bevel; vector-effect: non-scaling-stroke; animation: sao-activation-rule 620ms ease-out 360ms both; }
+.sao-activation-underline .secondary { stroke: #4ca6c1; stroke-width: .8px; animation-delay: 420ms; }
+.sao-activation-underline .cyan { stroke: #15d5f1; stroke-width: 2px; animation-delay: 580ms; }
+.sao-activation-underline .end { fill: #061421; stroke: #e5f4f8; stroke-width: 1.3px; animation-delay: 650ms; }
+.sao-activation-status { position: absolute; right: 7%; bottom: 11%; left: 7%; display: grid; gap: .26rem; color: #e9f0f3; font-size: clamp(.56rem, .95vw, .72rem); letter-spacing: .055em; }
+.sao-activation-status > b { margin-bottom: .18rem; color: #f2f8fc; font-size: .95em; font-weight: 500; letter-spacing: .08em; opacity: 0; animation: sao-activation-copy-in 240ms ease-out 580ms both; }
+.sao-activation-status p { display: grid; grid-template-columns: minmax(5rem, 13rem) minmax(2.5rem, 1fr) auto; gap: .42rem; margin: 0; white-space: nowrap; opacity: 0; animation: sao-activation-copy-in 240ms ease-out both; }
+.sao-activation-status p:nth-child(2) { animation-delay: 660ms; }
+.sao-activation-status p:nth-child(3) { animation-delay: 740ms; }
+.sao-activation-status p:nth-child(4) { animation-delay: 820ms; }
+.sao-activation-status i { overflow: hidden; color: #9aabb7; font-style: normal; letter-spacing: .12em; }
+.sao-activation-status strong { color: #15d5f1; font-weight: 500; }
 
 /* Grimoire console: engraved book-cover frame and restrained seal awakening. */
 .command-console.grimoire-console {
@@ -2213,17 +2193,13 @@
 }
 
 
-@keyframes link-start-flare {
-  0% { opacity: 0; }
-  15% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-@keyframes link-start-scan {
-  from { top: -18vh; opacity: 0; }
-  8% { opacity: 1; }
-  to { top: 100vh; opacity: 0; }
-}
+@keyframes sao-activation-overlay { 0%, 100% { opacity: 0; } 12%, 78% { opacity: 1; } }
+@keyframes sao-activation-panel { 0% { opacity: 0; } 14%, 78% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes sao-activation-frame-draw { to { stroke-dashoffset: 0; } }
+@keyframes sao-activation-accent { to { stroke-dashoffset: 0; } }
+@keyframes sao-activation-rule { to { stroke-dashoffset: 0; } }
+@keyframes sao-activation-copy-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sao-activation-swords { 0% { opacity: 0; clip-path: inset(100% 0 0); } 100% { opacity: 1; clip-path: inset(0); } }
 
 @keyframes theme-ripple {
   from { width: 8vmin; height: 8vmin; opacity: 0.95; }
@@ -2233,26 +2209,6 @@
 @keyframes signature-power-on {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes sao-hud-frame-in {
-  0% { opacity: 0; }
-  20%, 72% { opacity: .9; }
-  100% { opacity: 0; }
-}
-
-@keyframes sao-sword-cross {
-  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--sao-angle)) scaleX(.35); }
-  24% { opacity: 1; }
-  46% { opacity: .86; transform: translate(-50%, -50%) rotate(var(--sao-angle)) scaleX(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--sao-angle)) scaleX(.9); }
-}
-
-@keyframes sao-menu-deploy {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(.88); }
-  18% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  68% { opacity: .96; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.035); }
 }
 
 @keyframes demon-mark-reveal {

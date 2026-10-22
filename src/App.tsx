@@ -710,7 +710,7 @@ function App() {
 
   useEffect(() => {
     if (!specialEffect) return
-    const duration = specialEffect.kind === 'grimoire' ? 2050 : specialEffect.kind === 'breathing-sun' ? 1850 : 1700
+    const duration = specialEffect.kind === 'grimoire' ? 2050 : specialEffect.kind === 'breathing-sun' || specialEffect.kind === 'link-start' ? 1850 : 1700
     const timer = window.setTimeout(() => setSpecialEffect(null), duration)
     return () => window.clearTimeout(timer)
   }, [specialEffect])
@@ -1533,14 +1533,31 @@ function App() {
         <div key={specialEffect.id} className={`special-effect effect-${specialEffect.kind}`} aria-hidden="true">
           {specialEffect.kind === 'link-start' && (
             <div className="sao-activation-interface">
-              <div className="sao-hud-frame"><i /><i /><i /><i /></div>
-              <div className="sao-cross-lines"><i /><i /></div>
-              <div className="sao-holo-menu">
-                <b>AINCRAD // MAIN MENU</b>
-                <span>PLAYER STATUS&nbsp;&nbsp; 100%</span>
-                <div><i>STATUS</i><i>MAP</i><i>EQUIPMENT</i><i>SKILLS</i></div>
-                <small>SYSTEM LINK ESTABLISHED</small>
-              </div>
+              <section className="sao-activation-panel">
+                <svg className="sao-activation-frame" viewBox="0 0 1000 360" preserveAspectRatio="none" aria-hidden="true">
+                  <path className="sao-activation-frame-line" d="M22 2H948L998 48V312L950 358H22L2 338V22Z" />
+                  <path className="sao-activation-rails" d="M916 3L997 86M938 3L998 64M960 3L998 42M951 356L998 305M972 356L998 330" />
+                  <path className="sao-activation-orange" d="M11 36V104" />
+                  <path className="sao-activation-ticks" d="M11 116l7 7M11 131l7 7M11 146l7 7" />
+                </svg>
+                <header className="sao-activation-header">
+                  <img src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} alt="" />
+                  <span><strong>AINCRAD SYSTEM</strong><small>SWORD ART ONLINE // LINK START</small></span>
+                  <b className="sao-activation-floor">FLOOR 01<i /></b>
+                </header>
+                <svg className="sao-activation-underline" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M18 67H132L170 22H438L451 34H790L804 39H963" />
+                  <path className="secondary" d="M18 70H134L173 26H439L453 38H786" />
+                  <path className="cyan" d="M806 35H842M856 35H887M902 35H929" />
+                  <path className="end" d="M963 27L972 35L963 43L954 35Z" />
+                </svg>
+                <div className="sao-activation-status">
+                  <b>ELUCIDATOR // AINCRAD SYSTEM</b>
+                  <p><span>SYSTEM LINK</span><i>..............</i><strong>ESTABLISHED</strong></p>
+                  <p><span>HOLO-MENU</span><i>.............</i><strong>SYNCHRONIZED</strong></p>
+                  <p><span>WORLD STATE</span><i>.............</i><strong>STABLE</strong></p>
+                </div>
+              </section>
             </div>
           )}
           {specialEffect.kind === 'demon' && (
