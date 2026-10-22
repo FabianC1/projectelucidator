@@ -708,7 +708,8 @@ function App() {
 
   useEffect(() => {
     if (!specialEffect) return
-    const timer = window.setTimeout(() => setSpecialEffect(null), 1700)
+    const duration = specialEffect.kind === 'grimoire' ? 2050 : 1700
+    const timer = window.setTimeout(() => setSpecialEffect(null), duration)
     return () => window.clearTimeout(timer)
   }, [specialEffect])
 
@@ -1550,7 +1551,29 @@ function App() {
               <span>DEMON MARK // MAGIC POWER UNRESTRICTED</span>
             </div>
           )}
-          {['theme-activation', 'arise', 'grimoire', 'limitless', 'breathing-sun', 'night-fury-stealth', 'tokyo-ghoul'].includes(specialEffect.kind) && (
+          {specialEffect.kind === 'grimoire' && (
+            <div className="grimoire-seal-activation">
+              <div className="grimoire-seal-cover">
+                <svg className="grimoire-seal-lines" viewBox="0 0 640 400" preserveAspectRatio="none" aria-hidden="true">
+                  <path className="grimoire-cover-outline" d="M32 4H608L636 32V368L608 396H32L4 368V32Z" />
+                  <path className="grimoire-cover-inner" d="M42 15H598L625 42V358L598 385H42L15 358V42Z" />
+                  <path className="grimoire-cover-flourish" d="M24 112C55 108 44 69 71 40C76 68 106 63 113 31C130 62 112 81 91 90C76 96 66 106 63 126M616 112C585 108 596 69 569 40C564 68 534 63 527 31C510 62 528 81 549 90C564 96 574 106 577 126M24 288C55 292 44 331 71 360C76 332 106 337 113 369C130 338 112 319 91 310C76 304 66 294 63 274M616 288C585 292 596 331 569 360C564 332 534 337 527 369C510 338 528 319 549 310C564 304 574 294 577 274" />
+                  <path className="grimoire-cover-leaves" d="M57 62Q36 46 32 33Q53 36 66 55M73 84Q51 75 44 61Q67 62 80 75M583 62Q604 46 608 33Q587 36 574 55M567 84Q589 75 596 61Q573 62 560 75M57 338Q36 354 32 367Q53 364 66 345M583 338Q604 354 608 367Q587 364 574 345" />
+                  <path className="grimoire-cover-fissures" d="M104 90L126 72L136 49L157 38M536 292L516 312L506 337L484 356M104 90L111 112L100 130M536 292L528 272L540 254" />
+                </svg>
+                <div className="grimoire-seal-content">
+                  <ThemeEmblem className="grimoire-seal-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/grimoire.png'} title="Five-leaf grimoire" />
+                  <strong>BLACK CLOVER</strong>
+                  <small>SYSTEM SEAL</small>
+                </div>
+                <div className="grimoire-seal-messages">
+                  <span>FIVE-LEAF GRIMOIRE DETECTED</span>
+                  <span>ANTI-MAGIC AWAKENED</span>
+                </div>
+              </div>
+            </div>
+          )}
+          {['theme-activation', 'arise', 'limitless', 'breathing-sun', 'night-fury-stealth', 'tokyo-ghoul'].includes(specialEffect.kind) && (
             <div className={`theme-emblem-activation activation-${theme}`} style={activationStyle}>
               <ThemeEmblem
                 className="theme-emblem-activation-image theme-emblem-image"
@@ -1708,7 +1731,7 @@ function App() {
       </aside>
 
       <section
-        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}`}
+        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}`}
         aria-label="Elucidator system console"
         style={consoleFrame ? {
           left: consoleFrame.x,
@@ -1757,13 +1780,38 @@ function App() {
             </header>
           </>
         )}
+        {theme === 'grimoire' && (
+          <>
+            <svg className="grimoire-frame-ornaments" viewBox="0 0 1000 460" preserveAspectRatio="none" aria-hidden="true">
+              <path className="grimoire-frame-outer" d="M20 3H980L997 20V440L980 457H20L3 440V20Z" />
+              <path className="grimoire-frame-inner" d="M25 9H975L991 25V435L975 451H25L9 435V25Z" />
+              <path className="grimoire-spine" d="M23 30V430M29 30V430" />
+              <path className="grimoire-corners" d="M12 75C28 72 22 46 43 28C48 49 71 45 78 23C91 44 76 60 60 66C47 71 41 80 39 94M988 75C972 72 978 46 957 28C952 49 929 45 922 23C909 44 924 60 940 66C953 71 959 80 961 94M12 385C28 388 22 414 43 432C48 411 71 415 78 437C91 416 76 400 60 394C47 389 41 380 39 366M988 385C972 388 978 414 957 432C952 411 929 415 922 437C909 416 924 400 940 394C953 389 959 380 961 366" />
+              <path className="grimoire-leaves" d="M36 49Q20 39 18 29Q34 31 45 43M52 65Q33 58 28 48Q47 48 58 57M964 49Q980 39 982 29Q966 31 955 43M948 65Q967 58 972 48Q953 48 942 57M36 411Q20 421 18 431Q34 429 45 417M964 411Q980 421 982 431Q966 429 955 417" />
+              <path className="grimoire-fissures" d="M75 40L88 30L94 18M923 420L912 430L906 442M80 421L88 408L86 396M920 39L912 52L915 64" />
+              <path className="grimoire-input-rule" d="M4 385H996" />
+            </svg>
+            <header className="grimoire-console-header" onPointerDown={startConsoleDrag}>
+              <ThemeEmblem className="grimoire-console-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/grimoire.png'} title="Five-leaf grimoire" />
+              <span className="grimoire-console-title"><strong>GRIMOIRE</strong><small>BLACK CLOVER SYSTEM</small></span>
+              <span className="grimoire-console-mark">FIVE-LEAF // ANTI-MAGIC</span>
+              <svg className="grimoire-header-underline" viewBox="0 0 1000 110" preserveAspectRatio="none" aria-hidden="true">
+                <path className="grimoire-underline-secondary" d="M24 91C71 91 88 81 112 59Q132 41 153 58C171 73 177 81 194 81H476Q489 81 496 72Q503 81 516 81H955" />
+                <path className="grimoire-underline-main" d="M24 86C72 86 88 76 113 54Q132 36 154 53C172 68 179 76 196 76H477Q490 76 496 67Q502 76 515 76H955" />
+                <path className="grimoire-underline-accent" d="M210 76H304M319 76H408M585 76H652M670 76H731" />
+                <path className="grimoire-underline-diamond" d="M496 57L507 72L496 87L485 72Z" />
+                <path className="grimoire-underline-leaf" d="M24 86Q47 69 72 83Q54 83 43 92Q35 95 24 86M955 76Q932 59 907 73Q925 73 936 82Q944 85 955 76" />
+              </svg>
+            </header>
+          </>
+        )}
         {themeSignature === 'demon-mark' && (
           <div className="console-theme-signature signature-demon-mark" style={{ '--signature-accent': activeThemeSystem?.activationPresentation.secondary ?? '#E7C65A', '--signature-secondary': activeThemeSystem?.activationPresentation.accent ?? '#A879FF' } as CSSProperties} aria-hidden="true">
             <span className="theme-signature-emblem-frame"><ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/dragon-sin-of-wrath.png'} title="DRAGON SIN OF WRATH" /></span>
             <span><b>DEMON MARK</b><small>POWER UNSEALED</small></span>
           </div>
         )}
-        {themeSignature === 'none' && (
+        {themeSignature === 'none' && theme !== 'grimoire' && (
           <div
             className={`console-theme-signature signature-${theme}`}
             style={{ '--signature-accent': activeThemeSystem?.activationPresentation.accent ?? STEALTH_PRESENTATION.accent, '--signature-secondary': activeThemeSystem?.activationPresentation.secondary ?? STEALTH_PRESENTATION.secondary } as CSSProperties}
@@ -1779,10 +1827,10 @@ function App() {
         )}
         <div className="console-output" aria-live="polite">
           {consoleLines.map((line, index) => {
-            const saoStatus = themeSignature === 'aincrad' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
+            const highlightedStatus = themeSignature === 'aincrad' || theme === 'grimoire' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
             return (
               <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''} onPointerDown={index === 0 ? startConsoleDrag : undefined}>
-                {saoStatus ? <><span>{saoStatus[1]}</span><span className="sao-output-leader">{saoStatus[2]}</span><span className="sao-output-value">{saoStatus[3]}</span></> : line}
+                {highlightedStatus ? <><span>{highlightedStatus[1]}</span><span className={theme === 'grimoire' ? 'grimoire-output-leader' : 'sao-output-leader'}>{highlightedStatus[2]}</span><span className={theme === 'grimoire' ? 'grimoire-output-value' : 'sao-output-value'}>{highlightedStatus[3]}</span></> : line}
               </p>
             )
           })}
