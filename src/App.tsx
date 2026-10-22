@@ -996,7 +996,7 @@ function App() {
       setTheme('dragon')
       setNightStealth(false)
       setSpecialEffect({ kind: 'night-fury-stealth', id: ++effectIdRef.current })
-      report(['NIGHT FURY', 'ELUCIDATOR // TOOTHLESS PROTOCOL', 'ONLINE', 'PLASMA CORE // STANDBY', 'NIGHT FURY SIGNATURE DETECTED'])
+      report(['NIGHT FURY SYSTEM', 'ALPHA SIGNATURE ......... LINKED', 'PLASMA CORE ............. STANDBY', 'FLIGHT PROTOCOL .......... READY'])
       setStatus('NIGHT FURY PROTOCOL ACTIVATED')
     } else if (domain === 'stealth' && args.length === 1) {
       setTheme('dragon')
@@ -1756,7 +1756,7 @@ function App() {
       </aside>
 
       <section
-        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}${theme === 'demon-mode' ? ' demon-mode-console' : ''}`}
+        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}${theme === 'demon-mode' ? ' demon-mode-console' : ''}${theme === 'dragon' ? ' night-fury-console' : ''}`}
         aria-label="Elucidator system console"
         style={consoleFrame ? {
           left: consoleFrame.x,
@@ -1920,7 +1920,29 @@ function App() {
             </header>
           </>
         )}
-        {themeSignature === 'none' && theme !== 'grimoire' && theme !== 'limitless' && theme !== 'breathing-sun' && (
+        {theme === 'dragon' && (
+          <>
+            <svg className="night-fury-frame" viewBox="0 0 1000 460" preserveAspectRatio="none" aria-hidden="true">
+              <path className="night-fury-frame-outer" d="M22 4H978L996 22V438L978 456H22L4 438V22Z" />
+            </svg>
+            <div className="night-fury-ornaments" aria-hidden="true">
+              <img className="night-fury-corner night-fury-corner-tl" src="./assets/emblems/night-fury-corner-trimmed.png" alt="" />
+              <img className="night-fury-corner night-fury-corner-tr" src="./assets/emblems/night-fury-corner-trimmed.png" alt="" />
+              <img className="night-fury-corner night-fury-corner-bl" src="./assets/emblems/night-fury-corner-trimmed.png" alt="" />
+              <img className="night-fury-corner night-fury-corner-br" src="./assets/emblems/night-fury-corner-trimmed.png" alt="" />
+              <img className="night-fury-corner-fins" src="./assets/emblems/night-fury-corner-fins-trimmed.png" alt="" />
+              <img className="night-fury-notches night-fury-notches-tr" src="./assets/emblems/night-fury-notches-trimmed.png" alt="" />
+              <img className="night-fury-notches night-fury-notches-bl" src="./assets/emblems/night-fury-notches-trimmed.png" alt="" />
+            </div>
+            <header className="night-fury-header" onPointerDown={startConsoleDrag}>
+              <img className="night-fury-header-emblem" src="./assets/emblems/night-fury-header-emblem-trimmed.png" alt="Night Fury" />
+              <span className="night-fury-header-title"><strong>NIGHT FURY</strong><small>HTTYD // TOOTHLESS PROTOCOL</small></span>
+              <span className="night-fury-header-state"><i />ALPHA CLASS // LINKED</span>
+              <img className="night-fury-header-tail" src="./assets/emblems/night-fury-header-tail-trimmed.png" alt="" aria-hidden="true" />
+            </header>
+          </>
+        )}
+        {themeSignature === 'none' && theme !== 'grimoire' && theme !== 'limitless' && theme !== 'breathing-sun' && theme !== 'dragon' && (
           <div
             className={`console-theme-signature signature-${theme}`}
             style={{ '--signature-accent': activeThemeSystem?.activationPresentation.accent ?? STEALTH_PRESENTATION.accent, '--signature-secondary': activeThemeSystem?.activationPresentation.secondary ?? STEALTH_PRESENTATION.secondary } as CSSProperties}
@@ -1936,15 +1958,18 @@ function App() {
         )}
         <div className="console-output" aria-live="polite">
           {consoleLines.map((line, index) => {
-            const highlightedStatus = themeSignature === 'aincrad' || theme === 'grimoire' || theme === 'limitless' || theme === 'breathing-sun' || theme === 'demon-mode' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
-            const outputTone = theme === 'grimoire' ? 'grimoire' : theme === 'limitless' ? 'limitless' : theme === 'breathing-sun' ? 'hinokami' : theme === 'demon-mode' ? 'demon-mode' : 'sao'
+            const highlightedStatus = themeSignature === 'aincrad' || theme === 'grimoire' || theme === 'limitless' || theme === 'breathing-sun' || theme === 'demon-mode' || theme === 'dragon' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
+            const outputTone = theme === 'grimoire' ? 'grimoire' : theme === 'limitless' ? 'limitless' : theme === 'breathing-sun' ? 'hinokami' : theme === 'demon-mode' ? 'demon-mode' : theme === 'dragon' ? 'night-fury' : 'sao'
             return (
               <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''} onPointerDown={index === 0 ? startConsoleDrag : undefined}>
-                {highlightedStatus ? <><span>{highlightedStatus[1]}</span><span className={`${outputTone}-output-leader`}>{highlightedStatus[2]}</span><span className={`${outputTone}-output-value${theme === 'limitless' && /STABLE/i.test(highlightedStatus[3]) ? ' stable' : ''}${theme === 'demon-mode' && /AWAKENING|UNRESTRICTED/i.test(highlightedStatus[3]) ? ' awakening' : ''}`}>{highlightedStatus[3]}</span></> : line}
+                {highlightedStatus ? <><span>{highlightedStatus[1]}</span><span className={`${outputTone}-output-leader`}>{highlightedStatus[2]}</span><span className={`${outputTone}-output-value${(theme === 'limitless' || theme === 'dragon') && /STABLE|STANDBY/i.test(highlightedStatus[3]) ? ' stable' : ''}${theme === 'demon-mode' && /AWAKENING|UNRESTRICTED/i.test(highlightedStatus[3]) ? ' awakening' : ''}`}>{highlightedStatus[3]}</span></> : line}
               </p>
             )
           })}
         </div>
+        {theme === 'dragon' && (
+            <img className="night-fury-bottom-tail" src="./assets/emblems/night-fury-bottom-tail-trimmed.png" alt="" aria-hidden="true" />
+        )}
         <form className="command-line" onSubmit={submitCommand}>
           <span className="command-prefix">C:\ELUCIDATOR\SYSTEM&gt;</span>
           <input

@@ -1126,6 +1126,63 @@
   filter: drop-shadow(0 0 13px rgb(112 232 255 / 52%));
 }
 
+.theme-dragon .command-console.night-fury-console {
+  overflow: hidden;
+  padding: .52rem .72rem .3rem;
+  border-color: transparent;
+  border-radius: 0;
+  background: rgb(7 10 15 / 94%);
+  box-shadow: 0 0 20px rgb(15 24 39 / 26%);
+}
+.theme-dragon .command-console.night-fury-console:focus-within { border-color: transparent; background: rgb(7 10 15 / 96%); }
+.night-fury-frame { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
+.night-fury-frame-outer { fill: none; vector-effect: non-scaling-stroke; }
+.night-fury-frame-outer { stroke: rgb(173 185 198 / 88%); stroke-width: 1px; }
+.night-fury-ornaments { position: absolute; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; }
+.night-fury-corner { position: absolute; display: block; width: 1.9rem; height: 1.9rem; object-fit: contain; }
+.night-fury-corner-tl { top: -.02rem; left: -.02rem; }
+.night-fury-corner-tr { top: -.02rem; right: -.02rem; transform: scaleX(-1); }
+.night-fury-corner-bl { bottom: -.02rem; left: -.02rem; transform: scaleY(-1); }
+.night-fury-corner-br { right: -.02rem; bottom: -.02rem; transform: scale(-1); }
+.night-fury-corner-fins { position: absolute; top: .16rem; right: .16rem; display: block; width: 2.9rem; height: 2.5rem; object-fit: contain; }
+.night-fury-notches { position: absolute; display: block; width: 2.5rem; height: 1.2rem; object-fit: contain; }
+.night-fury-notches-tr { top: 2.45rem; right: .25rem; }
+.night-fury-notches-bl { bottom: 2.1rem; left: .25rem; transform: rotate(180deg); }
+.night-fury-header { position: relative; z-index: 1; height: 5.55rem; margin: 0; padding: 0; cursor: grab; touch-action: none; user-select: none; }
+.night-fury-header:active { cursor: grabbing; }
+.night-fury-header-emblem { position: absolute; top: .12rem; left: .42rem; display: block; width: 4.45rem; height: 3.55rem; object-fit: contain; filter: drop-shadow(0 0 5px rgb(57 174 225 / 14%)); pointer-events: none; }
+.night-fury-header-title { position: absolute; top: .82rem; left: 5.2rem; display: grid; gap: .24rem; min-width: 0; color: #e5e8ed; }
+.night-fury-header-title strong { overflow: hidden; font-family: 'Arial Narrow', 'Segoe UI', sans-serif; font-size: clamp(1.18rem, 2.5vw, 1.72rem); font-weight: 600; letter-spacing: .16em; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
+.night-fury-header-title small { overflow: hidden; color: #8996a7; font-family: 'Segoe UI', sans-serif; font-size: clamp(.43rem, .8vw, .55rem); letter-spacing: .16em; text-overflow: ellipsis; white-space: nowrap; }
+.night-fury-header-state { position: absolute; top: 1.15rem; right: 3.1rem; display: flex; align-items: center; gap: .35rem; color: #8795a7; font-family: 'Segoe UI', sans-serif; font-size: clamp(.4rem, .7vw, .5rem); letter-spacing: .09em; white-space: nowrap; }
+.night-fury-header-state i { display: block; width: .38rem; height: .38rem; border-radius: 50%; background: #70e8ff; box-shadow: 0 0 6px rgb(112 232 255 / 52%); }
+.night-fury-header-tail { position: absolute; right: .25rem; bottom: -.02rem; left: .25rem; display: block; width: calc(100% - .5rem); height: auto; object-fit: contain; object-position: center; pointer-events: none; }
+.night-fury-console .console-output { position: relative; z-index: 1; margin: .12rem .25rem .35rem; padding: 0 .3rem; color: #d1d6dd; font-size: clamp(.65rem, 1.03vw, .76rem); line-height: 1.45; text-shadow: 0 0 5px rgb(112 232 255 / 8%); }
+.night-fury-console .console-output .console-heading { color: #f0f1f3; }
+.night-fury-output-leader { color: rgb(184 193 204 / 70%); }
+.night-fury-output-value { color: #70e8ff; }
+.night-fury-output-value.stable { color: #8793d6; }
+.night-fury-bottom-tail { position: relative; z-index: 1; display: block; width: 100%; height: auto; margin: -.08rem 0 .08rem; object-fit: contain; pointer-events: none; }
+.night-fury-console .command-line { position: relative; z-index: 1; min-height: 1.8rem; margin: 0; padding: .28rem 2.2rem 0 2rem; border-top: 0; color: #b7c0cd; text-shadow: none; }
+.night-fury-console .command-line::before { position: absolute; inset: 0 .18rem; border: 1px solid rgb(87 112 140 / 72%); clip-path: polygon(0 14%, 2.2% 0, 97.8% 0, 100% 14%, 100% 86%, 97.8% 100%, 2.2% 100%, 0 86%); content: ''; pointer-events: none; }
+.night-fury-console .command-prefix { color: #70e8ff; }
+.night-fury-console .command-line input { color: #d7dce3; caret-color: #70e8ff; }
+.night-fury-console .command-line input::placeholder { color: rgb(145 157 172 / 54%); }
+.night-fury-console .command-line button { color: #70e8ff; }
+@media (max-width: 520px) {
+  .theme-dragon .command-console.night-fury-console { padding-inline: .55rem; }
+  .night-fury-header { height: 5.15rem; }
+  .night-fury-header-emblem { left: .22rem; width: 3.65rem; height: 3rem; }
+  .night-fury-header-title { top: .68rem; left: 4.15rem; }
+  .night-fury-header-title strong { font-size: 1.03rem; letter-spacing: .1em; }
+  .night-fury-header-title small { font-size: .37rem; letter-spacing: .09em; }
+  .night-fury-header-state { display: none; }
+  .night-fury-corner-fins { width: 2rem; height: 1.7rem; }
+  .night-fury-notches { width: 1.9rem; height: .95rem; }
+  .night-fury-bottom-tail { margin-top: -.04rem; }
+  .night-fury-console .command-line { padding-inline: 1.45rem 1.8rem; }
+}
+
 .night-stealth-active.theme-dragon .command-console,
 .night-stealth-active.theme-dragon .system-widget {
   filter: brightness(.52) saturate(.55);
