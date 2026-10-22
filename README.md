@@ -9,7 +9,7 @@ Project Elucidator is a full-screen, SAO-inspired wallpaper launcher. A short sy
 3. The wallpaper settles into a full-screen view.
 4. A minimal command line remains available in the lower-left corner.
 
-The boot sequence runs on each app launch and when a different wallpaper is selected. On a fresh install with no saved wallpaper, the bundled `sword-art-online-3840x2160-10492.jpg` image is loaded as the default. A wallpaper previously selected in the app takes precedence on later launches.
+The boot sequence runs on each app launch and when a different wallpaper is selected. On a fresh install with no saved wallpaper, the bundled `sword-art-online-3840x2160-10492.jpg` image is loaded. The last active wallpaper and theme are restored on later launches unless an explicit startup default is set; explicit defaults take precedence until cleared or changed.
 
 ## System console
 
@@ -23,6 +23,9 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys wallpaper` / `sys wallpaper current` | Show the active wallpaper |
 | `sys wallpaper select` | Open the system file picker and choose an image |
 | `sys wallpaper list` | List wallpapers saved through the app |
+| `sys wallpaper default set` | Save the currently active image as the startup wallpaper |
+| `sys wallpaper default select` | List saved images; append a number or filename to choose the startup wallpaper |
+| `sys wallpaper default clear` | Remove the explicit default and return to last-active / bundled startup behavior |
 | `sys wallpaper next` / `previous` | Switch between saved wallpapers |
 | `sys wallpaper scan` | Replay the coordinated wallpaper reveal and scan |
 | `sys wallpaper fit` | Show the current image fit mode |
@@ -52,6 +55,8 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys standby` | Return the console output to the `ELUCIDATOR // MAINFRAME` home screen |
 | `sys arise` | Activate the persistent Solo Leveling purple interface |
 | `sys link start` | Restore the standard cyan interface |
+| `sys theme default set` | Save the currently active system theme as the startup theme |
+| `sys theme default select` | List themes; append a number or theme name to choose the startup theme |
 | `sys grimoire` / `sys anti-magic` | Activate Black Clover crimson themes; anti-magic also pulses across the screen |
 | `sys domain expansion` / `sys limitless` | Activate Jujutsu Kaisen violet-blue themes and spatial ripple effects |
 | `sys breathing water` | Activate Tanjiro-inspired deep blue Water Breathing |
@@ -114,7 +119,7 @@ All presets adapt to the current viewport and arrange every active widget with c
 | `sys layout right` | Vertical stack | Right edge, centred vertically |
 | `sys layout top` | Horizontal row | Centred along the top edge |
 | `sys layout bottom` | Horizontal row | Centred along the bottom edge |
-The active image and images selected through the app are stored in IndexedDB in the browser profile and restored on the next launch. The wallpaper fit mode is saved separately in local storage and applies to all imported images. `span` uses the full combined viewport supplied by Lively when its display placement is set to Span across screens, and fits the entire source image within that viewport. A source image that is not wide enough may leave black space; the mode cannot create missing artwork. `cover` fills the combined viewport but may crop the image. The page cannot scan arbitrary folders directly; the file picker is the browser-approved way to add a saved image. If the browser blocks persistent storage, the selected image still works for the current session. In a regular browser, `sys hardware` reports BROWSER MODE and unavailable values. Lively's system-information feed supplies CPU usage, GPU 3D usage, RAM total/available, and network adapter throughput; it does not provide temperatures or frame rate. Audio controls still need a supported player integration.
+The active image, saved images, and explicit startup wallpaper are stored in IndexedDB in the Lively browser profile. The active theme and explicit startup theme are stored in local storage. These preferences survive Lively reloads and PC restarts without rebuilding or reimporting the wallpaper, as long as the same Lively wallpaper profile and its site data are retained. `sys wallpaper default set` saves the current image; `sys wallpaper default select` lists saved images, then use `sys wallpaper default select 2` (or a filename) to choose one. `sys wallpaper default clear` returns startup to the last active image, then the bundled SAO image if there is no saved selection. `sys theme default set` saves the active theme; `sys theme default select` lists available themes, then use a number or theme command/name such as `sys theme default select httyd`. Changing a default does not change the current display; it takes effect the next time Elucidator starts. The wallpaper fit mode is saved separately in local storage and applies to all imported images. `span` uses the full combined viewport supplied by Lively when its display placement is set to Span across screens, and fits the entire source image within that viewport. A source image that is not wide enough may leave black space; the mode cannot create missing artwork. `cover` fills the combined viewport but may crop the image. The page cannot scan arbitrary folders directly; the file picker is the browser-approved way to add a saved image. If the browser blocks persistent storage, the selected image still works for the current session. In a regular browser, `sys hardware` reports BROWSER MODE and unavailable values. Lively's system-information feed supplies CPU usage, GPU 3D usage, RAM total/available, and network adapter throughput; it does not provide temperatures or frame rate. Audio controls still need a supported player integration.
 
 ### Lively Wallpaper
 

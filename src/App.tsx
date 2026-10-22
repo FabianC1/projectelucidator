@@ -82,6 +82,7 @@ function parseNowPlaying(data: unknown): NowPlayingTrack | null | undefined {
 const DATABASE = 'project-elucidator-wallpaper'
 const STORE = 'selection'
 const KEY = 'active'
+const DEFAULT_WALLPAPER_KEY = 'default'
 const DEFAULT_WALLPAPER_URL = 'sword-art-online-3840x2160-10492.jpg'
 const WIDGET_PREF_KEY = 'project-elucidator-widgets'
 const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
@@ -90,10 +91,24 @@ const WIDGET_LAYOUT_KEY = 'project-elucidator-widget-layout'
 const CONSOLE_FRAME_KEY = 'project-elucidator-console-frame'
 const LAYOUT_PRESETS_KEY = 'project-elucidator-layout-presets'
 const THEME_PREF_KEY = 'project-elucidator-theme'
+const DEFAULT_THEME_PREF_KEY = 'project-elucidator-default-theme'
 const VISUAL_THEME_PREF_KEY = 'project-elucidator-visual-theme'
 const WALLPAPER_FIT_PREF_KEY = 'project-elucidator-wallpaper-fit'
 const WALLPAPER_FITS: WallpaperFit[] = ['cover', 'contain', 'stretch', 'span']
 const VISUAL_THEMES: VisualTheme[] = ['off', 'haze', 'rain', 'lightning', 'particles', 'vignette']
+const THEME_IDS: ThemeId[] = ['sao', 'arise', 'grimoire', 'anti-magic', 'domain-expansion', 'limitless', 'breathing-water', 'breathing-sun', 'demon-mode', 'dragon']
+const THEME_CHOICES: Array<{ id: ThemeId; label: string; command: string }> = [
+  { id: 'sao', label: 'SWORD ART ONLINE / AINCRAD', command: 'link start' },
+  { id: 'arise', label: 'SOLO LEVELING / SHADOW MONARCH', command: 'arise' },
+  { id: 'grimoire', label: 'BLACK CLOVER / GRIMOIRE', command: 'grimoire' },
+  { id: 'anti-magic', label: 'BLACK CLOVER / ANTI-MAGIC', command: 'anti-magic' },
+  { id: 'domain-expansion', label: 'JUJUTSU KAISEN / DOMAIN EXPANSION', command: 'domain expansion' },
+  { id: 'limitless', label: 'JUJUTSU KAISEN / LIMITLESS', command: 'limitless' },
+  { id: 'breathing-water', label: 'DEMON SLAYER / WATER BREATHING', command: 'breathing water' },
+  { id: 'breathing-sun', label: 'DEMON SLAYER / HINOKAMI KAGURA', command: 'hinokami kagura' },
+  { id: 'demon-mode', label: 'SEVEN DEADLY SINS / DEMON MODE', command: 'demon mode' },
+  { id: 'dragon', label: 'HTTYD / NIGHT FURY', command: 'httyd' },
+]
 const TYPE_RATE = 185
 const LINE_GAP = 0.035
 const PHASE_PAUSE = 0.2
@@ -182,6 +197,57 @@ async function readSavedWallpaper() {
   })
 }
 
+async function readDefaultWallpaper() {
+  const database = await openWallpaperDatabase()
+  return new Promise<SavedWallpaper | undefined>((resolve, reject) => {
+    const request = database.transaction(STORE, 'readonly').objectStore(STORE).get(DEFAULT_WALLPAPER_KEY)
+    request.onsuccess = () => { database.close(); resolve(request.result as SavedWallpaper | undefined) }
+    request.onerror = () => { database.close(); reject(request.error) }
+  })
+}
+
+async function writeDefaultWallpaper(selection: SavedWallpaper) {
+  const database = await openWallpaperDatabase()
+  return new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(STORE, 'readwrite')
+    transaction.objectStore(STORE).put(selection, DEFAULT_WALLPAPER_KEY)
+    transaction.oncomplete = () => { database.close(); resolve() }
+    transaction.onerror = () => { database.close(); reject(transaction.error) }
+    transaction.onabort = () => { database.close(); reject(transaction.error) }
+  })
+}
+
+async function clearDefaultWallpaper() {
+  const database = await openWallpaperDatabase()
+  return new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(STORE, 'readwrite')
+    transaction.objectStore(STORE).delete(DEFAULT_WALLPAPER_KEY)
+    transaction.oncomplete = () => { database.close(); resolve() }
+    transaction.onerror = () => { database.close(); reject(transaction.error) }
+    transaction.onabort = () => { database.close(); reject(transaction.error) }
+  })
+}
+
+function readThemePreference(key: string): ThemeId | null {
+  try {
+    const value = localStorage.getItem(key) as ThemeId | null
+    return value && THEME_IDS.includes(value) ? value : null
+  } catch { return null }
+}
+
+function resolveThemeChoice(value: string): ThemeId | null {
+  const normalized = value.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+  const aliases: Record<string, ThemeId> = {
+    aincrad: 'sao', 'sword art online': 'sao', 'solo leveling': 'arise', 'shadow monarch': 'arise',
+    'black clover': 'grimoire', 'jujutsu kaisen': 'domain-expansion', 'water breathing': 'breathing-water',
+    'hinokami kagura': 'breathing-sun', 'sun breathing': 'breathing-sun', 'seven deadly sins': 'demon-mode',
+    'night fury': 'dragon', toothless: 'dragon',
+  }
+  return aliases[normalized] ?? THEME_CHOICES.find((choice) => choice.id.replace(/-/g, ' ') === normalized
+    || choice.label.toLowerCase() === normalized
+    || choice.command === normalized)?.id ?? null
+}
+
 async function readWallpaperLibrary() {
   const database = await openWallpaperDatabase()
   return new Promise<Array<{ id: string; wallpaper: SavedWallpaper }>>((resolve, reject) => {
@@ -260,6 +326,8 @@ function HardwareGauge({ label, percent, value, detail }: { label: string; perce
 
 const COMMAND_COMPLETIONS = [
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
+  'sys wallpaper default', 'sys wallpaper default set', 'sys wallpaper default select', 'sys wallpaper default clear',
+  'sys theme default', 'sys theme default set', 'sys theme default select',
   'sys wallpaper next', 'sys wallpaper previous', 'sys wallpaper scan', 'sys hardware', 'sys time', 'sys audio',
   'sys mode', 'sys mode normal', 'sys mode stealth', 'sys mode combat', 'sys mode idle', 'sys mode diagnostic',
   'sys session', 'sys anime',
@@ -274,12 +342,17 @@ const COMMAND_COMPLETIONS = [
   'visual list', 'visual haze', 'visual rain', 'visual lightning', 'visual particles', 'visual vignette', 'visual off', 'visual status',
 ]
 
-function findCommandCompletions(value: string) {
+function findCommandCompletions(value: string, savedWallpaperCount = 0) {
   const prefix = value.toLowerCase().replace(/\s+/g, ' ')
   if (/^visual\s+$/.test(prefix)) return COMMAND_COMPLETIONS.filter((candidate) => candidate.startsWith('visual '))
   if (/^sys wallpaper\s+$/.test(prefix)) {
-    return ['current', 'select', 'list', 'next', 'previous', 'scan', 'fit'].map((action) => `sys wallpaper ${action}`)
+    return ['current', 'select', 'list', 'next', 'previous', 'scan', 'fit', 'default'].map((action) => `sys wallpaper ${action}`)
   }
+  if (/^sys wallpaper default\s+$/.test(prefix)) return ['set', 'select', 'clear'].map((action) => `sys wallpaper default ${action}`)
+  if (/^sys wallpaper default select\s+$/.test(prefix)) return Array.from({ length: savedWallpaperCount }, (_, index) => `sys wallpaper default select ${index + 1}`)
+  if (/^sys theme\s+$/.test(prefix)) return ['default'].map((action) => `sys theme ${action}`)
+  if (/^sys theme default\s+$/.test(prefix)) return ['set', 'select'].map((action) => `sys theme default ${action}`)
+  if (/^sys theme default select\s+$/.test(prefix)) return THEME_CHOICES.map((choice) => `sys theme default select ${choice.command}`)
   if (/^sys wallpaper fit\s+$/.test(prefix)) return WALLPAPER_FITS.map((fit) => `sys wallpaper fit ${fit}`)
   if (/^sys brightness\s+$/.test(prefix)) return ['sys brightness status', 'sys brightness list', 'sys brightness help']
   if (/^sys brightness monitor\s+$/.test(prefix)) return ['sys brightness monitor 1 ', 'sys brightness monitor 2 ']
@@ -319,6 +392,7 @@ function App() {
   const hardwareLastPublishedRef = useRef(0)
   const [wallpaperUrl, setWallpaperUrl] = useState('')
   const [wallpaperName, setWallpaperName] = useState('NO WALLPAPER SELECTED')
+  const [defaultWallpaperName, setDefaultWallpaperName] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [booting, setBooting] = useState(true)
   const [bootElapsed, setBootElapsed] = useState(0)
@@ -330,7 +404,8 @@ function App() {
   const [brightnessHelperOnline, setBrightnessHelperOnline] = useState(false)
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
   const [mode, setMode] = useState<SystemMode>('NORMAL')
-  const [theme, setTheme] = useState<ThemeId>('sao')
+  const [defaultTheme, setDefaultTheme] = useState<ThemeId | null>(() => readThemePreference(DEFAULT_THEME_PREF_KEY))
+  const [theme, setTheme] = useState<ThemeId>(() => readThemePreference(DEFAULT_THEME_PREF_KEY) ?? readThemePreference(THEME_PREF_KEY) ?? 'sao')
   const [wallpaperFit, setWallpaperFit] = useState<WallpaperFit>(() => {
     try {
       const saved = localStorage.getItem(WALLPAPER_FIT_PREF_KEY) as WallpaperFit | null
@@ -419,17 +494,22 @@ function App() {
     let cancelled = false
     const restore = async () => {
       try {
-        const saved = await readSavedWallpaper()
-        const library = await readWallpaperLibrary()
+        const [savedDefault, saved, library] = await Promise.all([
+          readDefaultWallpaper(),
+          readSavedWallpaper(),
+          readWallpaperLibrary(),
+        ])
         if (cancelled) return
         setWallpaperLibrary(library)
-        if (saved?.blob) {
-          const url = URL.createObjectURL(saved.blob)
+        setDefaultWallpaperName(savedDefault?.name ?? null)
+        const startupWallpaper = savedDefault?.blob ? savedDefault : saved
+        if (startupWallpaper?.blob) {
+          const url = URL.createObjectURL(startupWallpaper.blob)
           objectUrlRef.current = url
           wallpaperStartedAt.current = Date.now()
           setWallpaperUrl(url)
-          setWallpaperName(saved.name)
-          setStatus(`WALLPAPER RESTORED · ${saved.name.toUpperCase()}`)
+          setWallpaperName(startupWallpaper.name)
+          setStatus(`${savedDefault?.blob ? 'DEFAULT WALLPAPER' : 'WALLPAPER'} RESTORED · ${startupWallpaper.name.toUpperCase()}`)
         } else {
           wallpaperStartedAt.current = Date.now()
           setWallpaperUrl(DEFAULT_WALLPAPER_URL)
@@ -555,16 +635,15 @@ function App() {
   }, [layoutPresets])
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(THEME_PREF_KEY) as ThemeId | null
-      const available: ThemeId[] = ['sao', 'arise', 'grimoire', 'anti-magic', 'domain-expansion', 'limitless', 'breathing-water', 'breathing-sun', 'demon-mode', 'dragon']
-      if (saved && available.includes(saved)) setTheme(saved)
-    } catch { /* Keep the default cyan theme if preferences are unavailable. */ }
-  }, [])
-
-  useEffect(() => {
     try { localStorage.setItem(THEME_PREF_KEY, theme) } catch { /* Theme preference is optional. */ }
   }, [theme])
+
+  useEffect(() => {
+    try {
+      if (defaultTheme) localStorage.setItem(DEFAULT_THEME_PREF_KEY, defaultTheme)
+      else localStorage.removeItem(DEFAULT_THEME_PREF_KEY)
+    } catch { /* Theme default is optional if browser storage is unavailable. */ }
+  }, [defaultTheme])
 
   useEffect(() => {
     let receivedValidData = false
@@ -856,8 +935,38 @@ function App() {
         report(['VISUAL COMMAND ERROR', 'USAGE Â· VISUAL [LIST|STATUS|HAZE|RAIN|LIGHTNING|PARTICLES|VIGNETTE|OFF]'])
         setStatus('VISUAL COMMAND ERROR')
       }
+    } else if (domain === 'theme' && action === 'default') {
+      const defaultAction = args[2]
+      if (defaultAction === 'set' && args.length === 3) {
+        setDefaultTheme(theme)
+        report(['DEFAULT SYSTEM THEME SAVED', `STARTUP THEME .......... ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'SAVED IN THIS LIVELY PROFILE · NO REBUILD REQUIRED'])
+        setStatus(`STARTUP THEME SET · ${theme.toUpperCase()}`)
+      } else if (defaultAction === 'select' && args.length === 3) {
+        report([
+          'SELECT STARTUP SYSTEM THEME',
+          ...THEME_CHOICES.map((choice, index) => `${String(index + 1).padStart(2, '0')} · ${choice.label} · ${choice.command.toUpperCase()}${choice.id === defaultTheme ? ' · CURRENT DEFAULT' : ''}`),
+          'SET ONE · SYS THEME DEFAULT SELECT <NUMBER OR THEME NAME>',
+        ])
+        setStatus('CHOOSE A SAVED STARTUP THEME')
+      } else if (defaultAction === 'select' && args.length > 3) {
+        const requested = args.slice(3).join(' ')
+        const number = /^\d+$/.test(requested) ? Number(requested) : 0
+        const selected = number > 0 ? THEME_CHOICES[number - 1]?.id : resolveThemeChoice(requested)
+        if (!selected) {
+          report(['DEFAULT THEME NOT FOUND', 'RUN SYS THEME DEFAULT SELECT TO VIEW AVAILABLE THEMES.'])
+          setStatus('DEFAULT THEME SELECTION INVALID')
+        } else {
+          setDefaultTheme(selected)
+          const label = THEME_CHOICES.find((choice) => choice.id === selected)?.label ?? selected.toUpperCase()
+          report(['DEFAULT SYSTEM THEME UPDATED', `STARTUP THEME .......... ${label}`, 'ACTIVE THEME UNCHANGED · NEW DEFAULT APPLIES ON NEXT START'])
+          setStatus(`STARTUP THEME SET · ${selected.toUpperCase()}`)
+        }
+      } else {
+        report(['SYSTEM THEME DEFAULT', `ACTIVE DEFAULT ......... ${defaultTheme ? defaultTheme.toUpperCase() : 'NONE · LAST ACTIVE THEME'}`, 'USE · SET | SELECT'])
+        setStatus(defaultTheme ? `STARTUP THEME · ${defaultTheme.toUpperCase()}` : 'NO CUSTOM STARTUP THEME')
+      }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
@@ -962,7 +1071,66 @@ function App() {
       ])
       setStatus('SYSTEM STATUS: NOMINAL')
     } else if (domain === 'wallpaper') {
-      if (action === 'fit' && args.length === 2) {
+      if (action === 'default') {
+        const defaultAction = args[2]
+        const entries = wallpaperLibrary.filter((entry, index, all) => all.findIndex((candidate) => candidate.wallpaper.name === entry.wallpaper.name) === index)
+        if (defaultAction === 'set' && args.length === 3) {
+          if (!wallpaperUrl) {
+            report(['DEFAULT WALLPAPER NOT SET', 'LOAD A WALLPAPER FIRST · SYS WALLPAPER SELECT'])
+            setStatus('NO ACTIVE WALLPAPER')
+          } else {
+            try {
+              const response = await fetch(wallpaperUrl)
+              if (!response.ok) throw new Error('ACTIVE IMAGE COULD NOT BE READ')
+              await writeDefaultWallpaper({ blob: await response.blob(), name: wallpaperName })
+              setDefaultWallpaperName(wallpaperName)
+              report(['DEFAULT WALLPAPER SAVED', `STARTUP IMAGE .......... ${wallpaperName.toUpperCase()}`, 'SAVED IN THIS LIVELY PROFILE · NO REBUILD REQUIRED'])
+              setStatus(`STARTUP WALLPAPER SET · ${wallpaperName.toUpperCase()}`)
+            } catch {
+              report(['DEFAULT WALLPAPER SAVE FAILED', 'BROWSER STORAGE IS UNAVAILABLE OR THE IMAGE COULD NOT BE READ.'])
+              setStatus('DEFAULT WALLPAPER SAVE FAILED')
+            }
+          }
+        } else if (defaultAction === 'select' && args.length === 3) {
+          report([
+            'SELECT STARTUP WALLPAPER',
+            ...entries.map((entry, index) => `${String(index + 1).padStart(2, '0')} · ${entry.wallpaper.name.toUpperCase()}${entry.wallpaper.name === defaultWallpaperName ? ' · CURRENT DEFAULT' : ''}`),
+            entries.length ? 'SET ONE · SYS WALLPAPER DEFAULT SELECT <NUMBER OR FILENAME>' : 'NO SAVED WALLPAPERS · USE SYS WALLPAPER SELECT FIRST',
+          ])
+          setStatus(entries.length ? 'CHOOSE A SAVED STARTUP WALLPAPER' : 'NO SAVED WALLPAPERS FOUND')
+        } else if (defaultAction === 'select' && args.length > 3) {
+          const requested = args.slice(3).join(' ').toLowerCase()
+          const number = /^\d+$/.test(requested) ? Number(requested) : 0
+          const selected = number > 0 ? entries[number - 1] : entries.find((entry) => entry.wallpaper.name.toLowerCase() === requested)
+          if (!selected) {
+            report(['DEFAULT WALLPAPER NOT FOUND', 'RUN SYS WALLPAPER DEFAULT SELECT TO VIEW SAVED IMAGES.'])
+            setStatus('DEFAULT WALLPAPER SELECTION INVALID')
+          } else {
+            try {
+              await writeDefaultWallpaper(selected.wallpaper)
+              setDefaultWallpaperName(selected.wallpaper.name)
+              report(['DEFAULT WALLPAPER UPDATED', `STARTUP IMAGE .......... ${selected.wallpaper.name.toUpperCase()}`, 'ACTIVE IMAGE UNCHANGED · NEW DEFAULT APPLIES ON NEXT START'])
+              setStatus(`STARTUP WALLPAPER SET · ${selected.wallpaper.name.toUpperCase()}`)
+            } catch {
+              report(['DEFAULT WALLPAPER SAVE FAILED', 'BROWSER STORAGE IS UNAVAILABLE.'])
+              setStatus('DEFAULT WALLPAPER SAVE FAILED')
+            }
+          }
+        } else if (defaultAction === 'clear' && args.length === 3) {
+          try {
+            await clearDefaultWallpaper()
+            setDefaultWallpaperName(null)
+            report(['DEFAULT WALLPAPER CLEARED', 'STARTUP FALLBACK ........ LAST ACTIVE IMAGE, THEN BUNDLED SAO IMAGE'])
+            setStatus('STARTUP WALLPAPER DEFAULT CLEARED')
+          } catch {
+            report(['DEFAULT WALLPAPER CLEAR FAILED', 'BROWSER STORAGE IS UNAVAILABLE.'])
+            setStatus('DEFAULT WALLPAPER CLEAR FAILED')
+          }
+        } else {
+          report(['WALLPAPER DEFAULT', `ACTIVE DEFAULT ......... ${defaultWallpaperName?.toUpperCase() ?? 'NONE · USE LAST IMAGE / BUNDLED SAO'}`, 'USE · SET | SELECT | CLEAR'])
+          setStatus(defaultWallpaperName ? `STARTUP WALLPAPER · ${defaultWallpaperName.toUpperCase()}` : 'NO CUSTOM STARTUP WALLPAPER')
+        }
+      } else if (action === 'fit' && args.length === 2) {
         report(['WALLPAPER FIT', `ACTIVE ................ ${wallpaperFit.toUpperCase()}`, 'OPTIONS ............... COVER · CONTAIN · STRETCH · SPAN'])
         setStatus(`WALLPAPER FIT · ${wallpaperFit.toUpperCase()}`)
       } else if (action === 'fit' && args.length === 3) {
@@ -992,7 +1160,7 @@ function App() {
         openFilePicker()
       } else if (action === 'list') {
         const entries = wallpaperLibrary.filter((entry, index, all) => all.findIndex((candidate) => candidate.wallpaper.name === entry.wallpaper.name) === index)
-        report(['SAVED WALLPAPERS', ...entries.map((entry, index) => `${String(index + 1).padStart(2, '0')} · ${entry.wallpaper.name.toUpperCase()}${entry.wallpaper.name === wallpaperName ? ' · ACTIVE' : ''}`), entries.length ? 'USE SYS WALLPAPER NEXT TO SWITCH.' : 'NO SAVED IMAGES FOUND.'])
+        report(['SAVED WALLPAPERS', ...entries.map((entry, index) => `${String(index + 1).padStart(2, '0')} · ${entry.wallpaper.name.toUpperCase()}${entry.wallpaper.name === wallpaperName ? ' · ACTIVE' : ''}${entry.wallpaper.name === defaultWallpaperName ? ' · STARTUP DEFAULT' : ''}`), entries.length ? 'USE SYS WALLPAPER NEXT TO SWITCH.' : 'NO SAVED IMAGES FOUND.'])
         setStatus(`${entries.length} SAVED WALLPAPER${entries.length === 1 ? '' : 'S'} FOUND`)
       } else if (action === 'next' || action === 'previous') {
         const entries = wallpaperLibrary.filter((entry, index, all) => all.findIndex((candidate) => candidate.wallpaper.name === entry.wallpaper.name) === index)
@@ -1184,7 +1352,8 @@ function App() {
         index = (previous.index + 1) % candidates.length
         completed = candidates[index]
       } else {
-        candidates = findCommandCompletions(value)
+        const savedWallpaperCount = wallpaperLibrary.filter((entry, index, all) => all.findIndex((candidate) => candidate.wallpaper.name === entry.wallpaper.name) === index).length
+        candidates = findCommandCompletions(value, savedWallpaperCount)
         if (candidates.length === 0) return
         if (candidates.length === 1) {
           completed = candidates[0]
