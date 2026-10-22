@@ -64,7 +64,7 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys hinokami kagura` | Activate the Demon Slayer / Sun Breathing theme |
 | `sys demon mode` | Activate Seven Deadly Sins gold and purple theme |
 | `sys httyd` / `sys night fury` | Activate the Toothless Night Fury theme: black `#080B10`, plasma cyan `#70E8FF`, Night Fury blue `#5265D8`, and steel grey `#A8B2C1` |
-| `sys tokyo ghoul` | Activate the Tokyo Ghoul crimson and silver theme |
+| `sys kagune` | Activate the Tokyo Ghoul crimson and silver theme |
 | `sys stealth` | Toggle persistent Night Fury stealth; clicking the command input restores the widgets and interface |
 | `visual list` / `visual status` | List visual overlays or show the active one |
 | `visual haze` / `visual rain` / `visual lightning` | Activate one lightweight atmospheric overlay |
@@ -84,7 +84,7 @@ The primary color drives the console and widget structure, the secondary color h
 | `sys hinokami kagura` | Sun orange `#F47B20` | Tanjiro blue `#5DA8FF` | Burnt orange `#9A3412` |
 | `sys demon mode` | Gold `#E7C65A` | Purple `#A879FF` | Deep violet `#51317E` |
 | `sys httyd` / `sys night fury` | Plasma cyan `#70E8FF` | Night Fury blue `#5265D8` | Steel `#A8B2C1` |
-| `sys tokyo ghoul` | Crimson `#E53946` | Silver `#E8E8ED` | Dark crimson `#721C2B` |
+| `sys kagune` | Crimson `#E53946` | Silver `#E8E8ED` | Dark crimson `#721C2B` |
 
 Theme behavior is registered in `src/themeSystems.ts`: each entry declares aliases, activation response, transition, emblem, and visual identity. `sys theme activate` uses the registry so themes reuse the existing activation framework.
 

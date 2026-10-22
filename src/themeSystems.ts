@@ -83,7 +83,7 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
     activationResponse: ['NIGHT FURY', 'ELUCIDATOR // TOOTHLESS PROTOCOL', 'PLASMA CORE ............ STANDBY', 'NIGHT FURY SIGNATURE ... DETECTED'],
   },
   {
-    id: 'tokyo-ghoul', label: 'TOKYO GHOUL / ONE-EYED KING', command: 'tokyo ghoul', aliases: ['tokyo ghoul', 'tokyo-ghoul', 'kaneki'],
+    id: 'tokyo-ghoul', label: 'TOKYO GHOUL / ONE-EYED KING', command: 'kagune', aliases: ['kagune'],
     status: 'wip', activationEffect: 'tokyo-ghoul', signature: 'none',
     emblemAsset: './assets/emblems/tokyo-ghoul.png',
     activationPresentation: { title: 'TOKYO GHOUL', subtitle: 'ONE-EYED KING SYSTEM', accent: '#E53946', secondary: '#E8E8ED' },

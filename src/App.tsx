@@ -329,7 +329,7 @@ const COMMAND_COMPLETIONS = [
   'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys limitless',
-  'sys hinokami kagura', 'sys demon mode', 'sys httyd', 'sys night fury', 'sys tokyo ghoul', 'sys stealth', 'sys help', 'help',
+  'sys hinokami kagura', 'sys demon mode', 'sys httyd', 'sys night fury', 'sys kagune', 'sys stealth', 'sys help', 'help',
   'visual list', 'visual haze', 'visual rain', 'visual lightning', 'visual particles', 'visual vignette', 'visual off', 'visual status',
 ]
 
@@ -990,7 +990,7 @@ function App() {
         setStatus(`${selectedSystem.label} ACTIVATED`)
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS TOKYO GHOUL · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
@@ -1036,14 +1036,14 @@ function App() {
       setSpecialEffect({ kind: 'arise', id: ++effectIdRef.current })
       report(['SHADOW PROTOCOL // ARISE', 'PURPLE INTERFACE ........ ACTIVE', 'THEME SAVED TO LOCAL SYSTEM.'])
       setStatus('ARISE THEME ACTIVATED')
-    } else if (domain === 'tokyo' && action === 'ghoul' && args.length === 2) {
+    } else if (domain === 'kagune' && args.length === 1) {
       const tokyoGhoul = THEME_SYSTEMS.find((system) => system.id === 'tokyo-ghoul')
       if (tokyoGhoul) {
         setNightStealth(false)
         setTheme(tokyoGhoul.id)
         setSpecialEffect({ kind: 'tokyo-ghoul', id: ++effectIdRef.current })
         report(tokyoGhoul.activationResponse)
-        setStatus('TOKYO GHOUL SYSTEM ACTIVATED')
+        setStatus('KAGUNE PROTOCOL ACTIVATED')
       }
     } else if (domain === 'link' && action === 'start' && args.length === 2) {
       setTheme('sao')
@@ -1533,31 +1533,22 @@ function App() {
         <div key={specialEffect.id} className={`special-effect effect-${specialEffect.kind}`} aria-hidden="true">
           {specialEffect.kind === 'link-start' && (
             <div className="sao-activation-interface">
-              <section className="sao-activation-panel">
-                <svg className="sao-activation-frame" viewBox="0 0 1000 360" preserveAspectRatio="none" aria-hidden="true">
-                  <path className="sao-activation-frame-line" d="M22 2H948L998 48V312L950 358H22L2 338V22Z" />
-                  <path className="sao-activation-rails" d="M916 3L997 86M938 3L998 64M960 3L998 42M951 356L998 305M972 356L998 330" />
-                  <path className="sao-activation-orange" d="M11 36V104" />
-                  <path className="sao-activation-ticks" d="M11 116l7 7M11 131l7 7M11 146l7 7" />
+              <div className="sao-activation-flare">
+                <svg className="sao-flare-geometry" viewBox="0 0 600 600" aria-hidden="true">
+                  <circle className="sao-flare-ring outer" cx="300" cy="300" r="226" />
+                  <circle className="sao-flare-ring orbit" cx="300" cy="300" r="184" />
+                  <circle className="sao-flare-ring inner" cx="300" cy="300" r="112" />
+                  <path className="sao-flare-crosshair" d="M300 34V200M300 400V566M34 300H200M400 300H566" />
+                  <path className="sao-flare-slash slash-a" d="M165 435L435 165" />
+                  <path className="sao-flare-slash slash-b" d="M210 470L470 210" />
+                  <path className="sao-flare-diamond" d="M300 58L311 74L300 90L289 74Z" />
+                  <path className="sao-flare-diamond" d="M542 300L526 311L510 300L526 289Z" />
+                  <path className="sao-flare-diamond" d="M300 542L289 526L300 510L311 526Z" />
+                  <path className="sao-flare-diamond" d="M58 300L74 289L90 300L74 311Z" />
                 </svg>
-                <header className="sao-activation-header">
-                  <img src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} alt="" />
-                  <span><strong>AINCRAD SYSTEM</strong><small>SWORD ART ONLINE // LINK START</small></span>
-                  <b className="sao-activation-floor">FLOOR 01<i /></b>
-                </header>
-                <svg className="sao-activation-underline" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true">
-                  <path d="M18 67H132L170 22H438L451 34H790L804 39H963" />
-                  <path className="secondary" d="M18 70H134L173 26H439L453 38H786" />
-                  <path className="cyan" d="M806 35H842M856 35H887M902 35H929" />
-                  <path className="end" d="M963 27L972 35L963 43L954 35Z" />
-                </svg>
-                <div className="sao-activation-status">
-                  <b>ELUCIDATOR // AINCRAD SYSTEM</b>
-                  <p><span>SYSTEM LINK</span><i>..............</i><strong>ESTABLISHED</strong></p>
-                  <p><span>HOLO-MENU</span><i>.............</i><strong>SYNCHRONIZED</strong></p>
-                  <p><span>WORLD STATE</span><i>.............</i><strong>STABLE</strong></p>
-                </div>
-              </section>
+                <img className="sao-flare-swords" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} alt="" />
+                <div className="sao-flare-copy"><strong>LINK START</strong><span>ESTABLISHING AINCRAD CONNECTION</span></div>
+              </div>
             </div>
           )}
           {specialEffect.kind === 'demon' && (
@@ -1773,7 +1764,7 @@ function App() {
       </aside>
 
       <section
-        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}${theme === 'demon-mode' ? ' demon-mode-console' : ''}${theme === 'dragon' ? ' night-fury-console' : ''}`}
+        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${themeSignature === 'aincrad' && specialEffect?.kind === 'link-start' ? ' sao-starting' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}${theme === 'demon-mode' ? ' demon-mode-console' : ''}${theme === 'dragon' ? ' night-fury-console' : ''}`}
         aria-label="Elucidator system console"
         style={consoleFrame ? {
           left: consoleFrame.x,

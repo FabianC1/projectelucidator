@@ -1764,49 +1764,39 @@
   .sao-console .command-line { margin-inline: -0.82rem; padding-inline: 0.9rem; }
 }
 
-.sao-activation-interface { position: absolute; inset: 0; color: #dceef7; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; }
-.sao-activation-panel {
-  position: absolute;
-  top: 50%;
-  left: var(--activation-center-x);
-  width: min(38rem, calc(var(--activation-stage-width) - 2rem));
-  aspect-ratio: 2.45;
-  box-sizing: border-box;
-  padding: 1.05rem 1.2rem;
-  overflow: hidden;
-  background: linear-gradient(120deg, rgb(2 16 28 / 96%), rgb(3 11 20 / 96%) 64%, rgb(2 22 35 / 96%));
-  transform: translate(-50%, -50%);
-  animation: sao-activation-panel 1.85s ease both;
-}
-.sao-activation-frame { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.sao-activation-frame-line,
-.sao-activation-rails,
-.sao-activation-orange,
-.sao-activation-ticks { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: square; stroke-linejoin: bevel; }
-.sao-activation-frame-line { stroke: #d7e9f0; stroke-width: 1px; stroke-dasharray: 2600; stroke-dashoffset: 2600; animation: sao-activation-frame-draw 520ms ease-out 80ms both; }
-.sao-activation-rails { stroke: #d7e9f0; stroke-width: 1.4px; opacity: 0; animation: sao-activation-copy-in 180ms ease-out 260ms both; }
-.sao-activation-orange { stroke: #ff8b24; stroke-width: 3px; stroke-dasharray: 72; stroke-dashoffset: 72; animation: sao-activation-accent 400ms ease-out 260ms both; }
-.sao-activation-ticks { stroke: #15d5f1; stroke-width: 2px; stroke-dasharray: 42; stroke-dashoffset: 42; animation: sao-activation-accent 380ms ease-out 380ms both; }
-.sao-activation-header { position: relative; z-index: 1; display: grid; grid-template-columns: 5rem minmax(0, 1fr) auto; align-items: center; gap: .72rem; height: 52%; padding: 0 2%; }
-.sao-activation-header > img { display: block; width: 4.6rem; height: 3.25rem; object-fit: contain; filter: none; clip-path: inset(100% 0 0); animation: sao-activation-swords 640ms cubic-bezier(.2,.7,.25,1) 220ms both; }
-.sao-activation-header > span { display: grid; gap: .24rem; min-width: 0; opacity: 0; animation: sao-activation-copy-in 320ms ease-out 420ms both; }
-.sao-activation-header strong { overflow: hidden; color: #f2f8fc; font-family: 'Arial', 'Segoe UI', sans-serif; font-size: clamp(1.05rem, 2.1vw, 1.5rem); font-weight: 400; letter-spacing: .16em; text-overflow: ellipsis; white-space: nowrap; }
-.sao-activation-header small { overflow: hidden; color: #aebfcb; font-family: 'Arial', 'Segoe UI', sans-serif; font-size: clamp(.48rem, .85vw, .62rem); letter-spacing: .13em; text-overflow: ellipsis; white-space: nowrap; }
-.sao-activation-floor { display: flex; align-items: center; gap: .55rem; color: #d9e7ef; font-family: 'Arial', 'Segoe UI', sans-serif; font-size: clamp(.48rem, .8vw, .58rem); font-weight: 400; letter-spacing: .16em; white-space: nowrap; opacity: 0; animation: sao-activation-copy-in 260ms ease-out 540ms both; }
-.sao-activation-floor i { width: .48rem; height: .48rem; border: 1px solid #ff8b24; transform: rotate(45deg); }
-.sao-activation-underline { position: absolute; top: 41%; left: 2%; width: 96%; height: 19%; overflow: visible; }
-.sao-activation-underline path { fill: none; stroke: #e5f4f8; stroke-width: 1.35px; stroke-dasharray: 1600; stroke-dashoffset: 1600; stroke-linecap: square; stroke-linejoin: bevel; vector-effect: non-scaling-stroke; animation: sao-activation-rule 620ms ease-out 360ms both; }
-.sao-activation-underline .secondary { stroke: #4ca6c1; stroke-width: .8px; animation-delay: 420ms; }
-.sao-activation-underline .cyan { stroke: #15d5f1; stroke-width: 2px; animation-delay: 580ms; }
-.sao-activation-underline .end { fill: #061421; stroke: #e5f4f8; stroke-width: 1.3px; animation-delay: 650ms; }
-.sao-activation-status { position: absolute; right: 7%; bottom: 11%; left: 7%; display: grid; gap: .26rem; color: #e9f0f3; font-size: clamp(.56rem, .95vw, .72rem); letter-spacing: .055em; }
-.sao-activation-status > b { margin-bottom: .18rem; color: #f2f8fc; font-size: .95em; font-weight: 500; letter-spacing: .08em; opacity: 0; animation: sao-activation-copy-in 240ms ease-out 580ms both; }
-.sao-activation-status p { display: grid; grid-template-columns: minmax(5rem, 13rem) minmax(2.5rem, 1fr) auto; gap: .42rem; margin: 0; white-space: nowrap; opacity: 0; animation: sao-activation-copy-in 240ms ease-out both; }
-.sao-activation-status p:nth-child(2) { animation-delay: 660ms; }
-.sao-activation-status p:nth-child(3) { animation-delay: 740ms; }
-.sao-activation-status p:nth-child(4) { animation-delay: 820ms; }
-.sao-activation-status i { overflow: hidden; color: #9aabb7; font-style: normal; letter-spacing: .12em; }
-.sao-activation-status strong { color: #15d5f1; font-weight: 500; }
+.sao-activation-interface { position: absolute; inset: 0; display: grid; place-items: center; color: #dff7ff; font-family: 'Segoe UI', sans-serif; }
+.sao-activation-flare { position: relative; display: grid; place-items: center; width: min(44vmin, calc(var(--activation-stage-width) * .78), 34rem); aspect-ratio: 1; }
+.sao-flare-geometry { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.sao-flare-ring,
+.sao-flare-crosshair,
+.sao-flare-slash { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.sao-flare-ring.outer { stroke: rgb(209 244 255 / 70%); stroke-width: 1px; stroke-dasharray: 2 11; opacity: 0; animation: sao-flare-ring-in 1.65s ease-out 80ms both; }
+.sao-flare-ring.orbit { stroke: #22d7f5; stroke-width: 1.2px; stroke-dasharray: 248 910; stroke-dashoffset: 248; transform-box: view-box; transform-origin: center; animation: sao-flare-orbit 1.45s cubic-bezier(.16,.7,.2,1) 120ms both; }
+.sao-flare-ring.inner { stroke: rgb(211 246 255 / 58%); stroke-width: 1px; stroke-dasharray: 2 7; opacity: 0; animation: sao-flare-ring-in 1.3s ease-out 220ms both; }
+.sao-flare-crosshair { stroke: rgb(93 219 244 / 58%); stroke-width: 1px; stroke-dasharray: 64 900; stroke-dashoffset: 64; animation: sao-flare-crosshair 1.05s ease-out 210ms both; }
+.sao-flare-slash { stroke: #eaffff; stroke-width: 2px; stroke-dasharray: 390; stroke-dashoffset: 390; }
+.sao-flare-slash.slash-a { animation: sao-flare-slash 520ms cubic-bezier(.14,.65,.25,1) 310ms both; }
+.sao-flare-slash.slash-b { stroke: #16d6f4; stroke-width: 1px; animation: sao-flare-slash 560ms cubic-bezier(.14,.65,.25,1) 460ms both; }
+.sao-flare-diamond { fill: #061521; stroke: #e5faff; stroke-width: 1.5px; vector-effect: non-scaling-stroke; opacity: 0; animation: sao-flare-point 450ms ease-out 600ms both; }
+.sao-flare-swords { position: relative; z-index: 1; display: block; width: 49%; height: 29%; object-fit: contain; filter: none; clip-path: inset(100% 0 0); animation: sao-flare-swords-reveal 600ms cubic-bezier(.2,.7,.25,1) 280ms both; }
+.sao-flare-copy { position: absolute; top: 76%; display: grid; justify-items: center; gap: .34rem; text-align: center; opacity: 0; animation: sao-flare-copy-in 360ms ease-out 730ms both; }
+.sao-flare-copy strong { color: #f3fbff; font-size: clamp(.86rem, 1.8vw, 1.25rem); font-weight: 400; letter-spacing: .32em; }
+.sao-flare-copy span { color: #48d9f1; font-family: ui-monospace, Consolas, monospace; font-size: clamp(.43rem, .78vw, .58rem); letter-spacing: .17em; }
+.sao-console.sao-starting .sao-frame-outer,
+.sao-console.sao-starting .sao-frame-inner { stroke-dasharray: 3000; stroke-dashoffset: 3000; animation: sao-console-frame-on 760ms ease-out both; }
+.sao-console.sao-starting .sao-frame-outer { filter: none; animation-delay: 100ms; }
+.sao-console.sao-starting .sao-frame-inner { animation-delay: 180ms; }
+.sao-console.sao-starting .sao-frame-rails,
+.sao-console.sao-starting .sao-frame-orange,
+.sao-console.sao-starting .sao-frame-ticks,
+.sao-console.sao-starting .sao-frame-lower-accent { filter: none; opacity: 0; animation: sao-console-details-on 360ms ease-out 380ms both; }
+.sao-console.sao-starting .sao-console-swords { filter: none; clip-path: inset(100% 0 0); animation: sao-console-swords-on 620ms cubic-bezier(.18,.68,.25,1) 180ms both; }
+.sao-console.sao-starting .sao-console-title,
+.sao-console.sao-starting .sao-console-floor { opacity: 0; animation: sao-console-details-on 300ms ease-out 420ms both; }
+.sao-console.sao-starting .sao-header-underline path { stroke-dasharray: 1700; stroke-dashoffset: 1700; animation: sao-console-rule-on 700ms ease-out 420ms both; }
+.sao-console.sao-starting .sao-header-underline .sao-underline-cyan { animation-delay: 620ms; }
+.sao-console.sao-starting .console-output > p { opacity: 0; animation: sao-console-details-on 280ms ease-out 560ms both; }
+.sao-console.sao-starting .command-line { animation: sao-console-details-on 300ms ease-out 720ms both; }
 
 /* Grimoire console: engraved book-cover frame and restrained seal awakening. */
 .command-console.grimoire-console {
@@ -2193,13 +2183,18 @@
 }
 
 
-@keyframes sao-activation-overlay { 0%, 100% { opacity: 0; } 12%, 78% { opacity: 1; } }
-@keyframes sao-activation-panel { 0% { opacity: 0; } 14%, 78% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes sao-activation-frame-draw { to { stroke-dashoffset: 0; } }
-@keyframes sao-activation-accent { to { stroke-dashoffset: 0; } }
-@keyframes sao-activation-rule { to { stroke-dashoffset: 0; } }
-@keyframes sao-activation-copy-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes sao-activation-swords { 0% { opacity: 0; clip-path: inset(100% 0 0); } 100% { opacity: 1; clip-path: inset(0); } }
+@keyframes sao-activation-overlay { 0%, 100% { opacity: 0; } 12%, 82% { opacity: 1; } }
+@keyframes sao-flare-ring-in { 0% { opacity: 0; } 28%, 72% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes sao-flare-orbit { 0% { stroke-dashoffset: 248; transform: rotate(-38deg); opacity: 0; } 28% { opacity: 1; } 100% { stroke-dashoffset: -840; transform: rotate(145deg); opacity: 0; } }
+@keyframes sao-flare-crosshair { 0% { stroke-dashoffset: 64; opacity: 0; } 32% { opacity: .8; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes sao-flare-slash { 0% { stroke-dashoffset: 390; opacity: 0; } 25% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes sao-flare-point { 0% { opacity: 0; } 35% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes sao-flare-swords-reveal { 0% { opacity: 0; clip-path: inset(100% 0 0); } 100% { opacity: 1; clip-path: inset(0); } }
+@keyframes sao-flare-copy-in { 0% { opacity: 0; transform: translateY(5px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes sao-console-frame-on { to { stroke-dashoffset: 0; } }
+@keyframes sao-console-details-on { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sao-console-swords-on { 0% { opacity: 0; clip-path: inset(100% 0 0); } 100% { opacity: 1; clip-path: inset(0); } }
+@keyframes sao-console-rule-on { to { stroke-dashoffset: 0; } }
 
 @keyframes theme-ripple {
   from { width: 8vmin; height: 8vmin; opacity: 0.95; }
@@ -2566,9 +2561,7 @@
   }
 
   .effect-link-start { background-size: var(--activation-stage-width) 100%; background-repeat: no-repeat; }
-  .effect-link-start::after { width: var(--activation-stage-width); }
   .sao-activation-interface { inset: 0 auto 0 0; width: var(--activation-stage-width); }
-  .sao-hud-frame { inset: clamp(1rem, 2vw, 3.5rem); }
 
   .grimoire-seal-activation { inset: 0 auto 0 0; width: var(--activation-stage-width); }
 
