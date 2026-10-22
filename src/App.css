@@ -1789,16 +1789,14 @@
 .grimoire-frame-inner,
 .grimoire-spine,
 .grimoire-corners,
-.grimoire-leaves,
-.grimoire-fissures,
-.grimoire-input-rule { display: none; fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.grimoire-fissures { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
 .grimoire-frame-outer { stroke: #c7a45f; stroke-width: 1.35px; filter: drop-shadow(0 0 2px rgb(214 173 94 / 28%)); }
 .grimoire-frame-inner { stroke: rgb(214 178 106 / 88%); stroke-width: .9px; }
 .grimoire-spine { stroke: rgb(202 158 81 / 38%); stroke-width: .8px; }
 .grimoire-corners { stroke: #c5a25e; stroke-width: 1px; }
 .grimoire-corners path { fill: none; }
 .grimoire-fissures { stroke: rgb(164 37 46 / 39%); stroke-width: .7px; }
-.grimoire-input-rule { stroke: rgb(198 162 96 / 68%); stroke-width: .8px; }
+.grimoire-input-rule { display: none; stroke: rgb(198 162 96 / 68%); stroke-width: .8px; }
 .grimoire-console-header {
   position: relative;
   z-index: 1;

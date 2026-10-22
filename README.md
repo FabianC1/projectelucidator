@@ -92,7 +92,7 @@ Theme behavior is registered in `src/themeSystems.ts`: each entry declares alias
 
 - [x] **Arise** — console design and activation animation complete.
 - [ ] **Demon Mode** — activation animation complete; console design still needs work (half complete).
-- [ ] **Limitless** — activation animation complete; console design still needs work (half complete).
+- [x] **Limitless** — console design and activation animation complete.
 - [ ] **Hinokami Kagura** — activation animation complete; console design still needs work (half complete).
 - [x] **SAO / Link Start** — console design and activation animation complete.
 - [x] **Grimoire** — console design and activation animation complete.
