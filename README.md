@@ -61,7 +61,7 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys theme activate <THEME>` | Activate a registered theme by name or alias, such as `sao`, `link start`, or `demon mode` |
 | `sys grimoire` | Activate the Black Clover theme |
 | `sys limitless` | Activate the Jujutsu Kaisen theme and spatial ripple effect |
-| `sys hinokami kagura` | Activate the orange Sun Breathing theme |
+| `sys demon slayer` | Activate the Hinokami Kagura / Sun Breathing theme (`sys hinokami kagura` remains an alias) |
 | `sys demon mode` | Activate Seven Deadly Sins gold and purple theme |
 | `sys httyd` / `sys night fury` | Activate the Toothless Night Fury theme: black `#080B10`, plasma cyan `#70E8FF`, Night Fury blue `#5265D8`, and steel grey `#A8B2C1` |
 | `sys tokyo ghoul` | Activate the Tokyo Ghoul crimson and silver theme |
@@ -81,7 +81,7 @@ The primary color drives the console and widget structure, the secondary color h
 | `sys arise` | Solo Leveling purple `#9B5DE5` | Pale violet `#E0C2FF` | Deep purple `#5A189A` |
 | `sys grimoire` | Crimson `#E63946` | Pale red `#FFB4B8` | Burgundy `#7F1D2D` |
 | `sys limitless` | Electric blue `#60A5FA` | Pale violet `#C4B5FD` | Cobalt `#1D4ED8` |
-| `sys hinokami kagura` | Sun orange `#F47B20` | Tanjiro blue `#5DA8FF` | Burnt orange `#9A3412` |
+| `sys demon slayer` | Sun orange `#F47B20` | Tanjiro blue `#5DA8FF` | Burnt orange `#9A3412` |
 | `sys demon mode` | Gold `#E7C65A` | Purple `#A879FF` | Deep violet `#51317E` |
 | `sys httyd` / `sys night fury` | Plasma cyan `#70E8FF` | Night Fury blue `#5265D8` | Steel `#A8B2C1` |
 | `sys tokyo ghoul` | Crimson `#E53946` | Silver `#E8E8ED` | Dark crimson `#721C2B` |
@@ -99,7 +99,7 @@ Theme behavior is registered in `src/themeSystems.ts`: each entry declares alias
 - [ ] **HTTYD / Night Fury** — activation animation complete; console design still needs work (half complete).
 - [ ] **Tokyo Ghoul** — not started.
 
-Theme emblem artwork is loaded from `public/assets/emblems/` using the paths in `src/themeSystems.ts`: `link-start-crossed-swords.png`, `arise-shadow-monarch.png`, `grimoire.png`, `limitless1.png`, `hinokami-kagura.png`, `dragon-sin-of-wrath.png`, `night-fury.png`, and `tokyo-ghoul.png`. The browser image loader also accepts SVG and WebP; update the corresponding registry path if using another extension. Missing artwork falls back to a compact theme label. Theme identity colors and activation copy are stored with each registry entry; STEALTH remains a system mode rather than a theme.
+Theme emblem artwork is loaded from `public/assets/emblems/` using the paths in `src/themeSystems.ts`: `link-start-crossed-swords.png`, `arise-shadow-monarch.png`, `grimoire.png`, `limitless1.png`, `hinokami-kagura.png`, `dragon-sin-of-wrath.png`, `night-fury.png`, and `tokyo-ghoul.png`. The Demon Slayer console and activation share the transparent katana asset at `public/assets/swords/sun-breathing-katana.png`. The browser image loader also accepts SVG and WebP; update the corresponding registry path if using another extension. Missing emblem artwork falls back to a compact theme label. Theme identity colors and activation copy are stored with each registry entry; STEALTH remains a system mode rather than a theme.
 
 Activate a theme directly with its `sys` command or through `sys theme activate <name>`; `sys theme list` shows the available systems.
 
@@ -116,6 +116,8 @@ Activate a theme directly with its `sys` command or through `sys theme activate 
 On a fresh install, all five widgets open in a right-side stack with a 5 px gap. The stack scales to fit the available screen height and keeps each widget's natural width, so the hardware panel can be wider than the others without overlap. Saved widget choices and layouts are restored on later launches. Use `sys widget <ID> on` / `off` to control an individual widget. `sys widgets all on` enables all five. Scale every widget with `sys widgets size 1.25`, or one widget with `sys widget size 3 1.5`; supported scales range from `0.5` to `2` in quarter-step increments. Scale preferences persist across restarts. `sys layout left`, `right`, `top`, and `bottom` arrange every active widget. `sys stealth` hides widgets without changing which ones are enabled; clicking the command input fades them back in and exits stealth.
 
 Hardware, clock, session, anime status, and audio commands open their matching digital widgets. The Audio Link widget displays track, artist, album, and artwork from Lively's Windows now-playing feed when an active player exposes a Windows media session. It is read-only because Lively's documented feed does not provide playback controls. Multiple widgets can stay open together, can be closed with their `×` control, and their enabled state and positions are saved in the browser. Drag a widget by its header or drag the console heading to move it. `sys layout` applies a widget arrangement without moving the console, and named layouts save the current arrangement. The console no longer has mouse resize handles; use its saved position or drag its heading to move it. The hardware display uses dials for CPU, GPU 3D, and RAM readings. CPU/GPU temperatures and FPS remain unavailable unless the wallpaper host supplies those sensors.
+
+
 
 ### Monitor brightness (Windows DDC/CI)
 

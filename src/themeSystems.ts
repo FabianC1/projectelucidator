@@ -62,11 +62,11 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
     activationResponse: ['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ...... ACTIVE', 'INFINITY FIELD .......... STABLE'],
   },
   {
-    id: 'breathing-sun', label: 'DEMON SLAYER / HINOKAMI KAGURA', status: 'ready', command: 'hinokami kagura', aliases: ['hinokami kagura'],
+    id: 'breathing-sun', label: 'DEMON SLAYER / HINOKAMI KAGURA', status: 'ready', command: 'demon slayer', aliases: ['demon slayer', 'hinokami kagura'],
     activationEffect: 'breathing-sun', signature: 'none',
     emblemAsset: './assets/emblems/hinokami-kagura.png',
-    activationPresentation: { title: 'HINOKAMI KAGURA', subtitle: 'DEMON SLAYER SYSTEM', accent: '#F47B20', secondary: '#5DA8FF' },
-    activationResponse: ['HINOKAMI KAGURA', 'FLAME BREATHING ......... IGNITED', 'SYSTEM COLOR ............ SUNSET RED'],
+    activationPresentation: { title: 'HINOKAMI KAGURA', subtitle: 'SUN BREATHING // IGNITED', accent: '#F47B20', secondary: '#5DA8FF' },
+    activationResponse: ['HINOKAMI KAGURA', 'SUN BREATHING .......... IGNITED', 'NICHIRIN BLADE ......... READY'],
   },
   {
     id: 'demon-mode', label: 'SEVEN DEADLY SINS / DEMON MODE', status: 'ready', command: 'demon mode', aliases: ['demon mode', 'seven deadly sins', 'meliodas'],

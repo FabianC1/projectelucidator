@@ -24,6 +24,7 @@ export async function checkBrightnessHelperHealth() {
   }
 }
 
+
 export function getBrightnessToken() {
   try { return localStorage.getItem(BRIGHTNESS_TOKEN_KEY) ?? '' } catch { return '' }
 }

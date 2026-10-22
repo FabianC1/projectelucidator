@@ -32,6 +32,7 @@ type NowPlayingTrack = { title: string; artist: string; album: string; artwork: 
 type NowPlayingStatus = 'waiting' | 'browser' | 'none' | 'track' | 'invalid'
 
 const WIDGET_IDS = [1, 2, 3, 4, 5] as const
+const SUN_BREATHING_KATANA = './assets/swords/sun-breathing-katana.png'
 const WIDGET_SCALES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const
 type WidgetScale = (typeof WIDGET_SCALES)[number]
 type WidgetScales = Partial<Record<number, WidgetScale>>
@@ -47,7 +48,7 @@ const THEME_STATUS: Record<ThemeId, { title: string; state: string; metric: stri
   arise: { title: 'SHADOW MONARCH', state: 'SHADOW AUTHORITY ONLINE', metric: 'MONARCH SYNC', value: 'ACTIVE' },
   grimoire: { title: 'FIVE-LEAF GRIMOIRE', state: 'MAGIC SIGNATURE RESONANT', metric: 'GRIMOIRE SYNC', value: 'RESONANT' },
   limitless: { title: 'LIMITLESS', state: 'INFINITY FIELD ACTIVE', metric: 'CURSED TECHNIQUE', value: 'INFINITY' },
-  'breathing-sun': { title: 'HINOKAMI KAGURA', state: 'SOLAR BREATH IGNITED', metric: 'FLAME STATE', value: 'IGNITED' },
+  'breathing-sun': { title: 'HINOKAMI KAGURA', state: 'SUN BREATHING IGNITED', metric: 'BLADE STATE', value: 'READY' },
   'demon-mode': { title: 'DRAGON SIN', state: 'DEMON POWER RELEASED', metric: 'MAGIC POWER', value: 'UNRESTRICTED' },
   dragon: { title: 'NIGHT FURY', state: 'PLASMA CORE CHARGING', metric: 'PLASMA CORE', value: 'CHARGING' },
   'tokyo-ghoul': { title: 'ONE-EYED KING', state: 'RC SIGNATURE DETECTED', metric: 'GHOUL FACTOR', value: 'ACTIVE' },
@@ -327,7 +328,7 @@ const COMMAND_COMPLETIONS = [
   'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys limitless',
-  'sys hinokami kagura', 'sys demon mode', 'sys httyd', 'sys night fury', 'sys tokyo ghoul', 'sys stealth', 'sys help', 'help',
+  'sys demon slayer', 'sys hinokami kagura', 'sys demon mode', 'sys httyd', 'sys night fury', 'sys tokyo ghoul', 'sys stealth', 'sys help', 'help',
   'visual list', 'visual haze', 'visual rain', 'visual lightning', 'visual particles', 'visual vignette', 'visual off', 'visual status',
 ]
 
@@ -708,7 +709,7 @@ function App() {
 
   useEffect(() => {
     if (!specialEffect) return
-    const duration = specialEffect.kind === 'grimoire' ? 2050 : 1700
+    const duration = specialEffect.kind === 'grimoire' ? 2050 : specialEffect.kind === 'breathing-sun' ? 1850 : 1700
     const timer = window.setTimeout(() => setSpecialEffect(null), duration)
     return () => window.clearTimeout(timer)
   }, [specialEffect])
@@ -1016,12 +1017,12 @@ function App() {
       setSpecialEffect({ kind: 'limitless', id: ++effectIdRef.current })
       report(['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ....... ACTIVE', 'INFINITY FIELD .......... STABLE'])
       setStatus('LIMITLESS PROTOCOL ACTIVATED')
-    } else if (domain === 'hinokami' && action === 'kagura' && args.length === 2) {
+    } else if ((domain === 'demon' && action === 'slayer' && args.length === 2) || (domain === 'hinokami' && action === 'kagura' && args.length === 2)) {
       setNightStealth(false)
       setTheme('breathing-sun')
       setSpecialEffect({ kind: 'breathing-sun', id: ++effectIdRef.current })
-      report(['HINOKAMI KAGURA', 'FLAME BREATHING .......... IGNITED', 'SYSTEM COLOR ............ SUNSET RED'])
-      setStatus('HINOKAMI KAGURA ACTIVATED')
+      report(['HINOKAMI KAGURA', 'SUN BREATHING .......... IGNITED', 'NICHIRIN BLADE ......... READY'])
+      setStatus('DEMON SLAYER SYSTEM ACTIVATED')
     } else if (domain === 'demon' && action === 'mode' && args.length === 2) {
       setNightStealth(false)
       setTheme('demon-mode')
@@ -1583,7 +1584,24 @@ function App() {
               </div>
             </div>
           )}
-          {['theme-activation', 'arise', 'limitless', 'breathing-sun', 'night-fury-stealth', 'tokyo-ghoul'].includes(specialEffect.kind) && (
+          {specialEffect.kind === 'breathing-sun' && (
+            <div className="hinokami-activation">
+              <div className="hinokami-warmth" />
+              <svg className="hinokami-arc" viewBox="0 0 1000 700" preserveAspectRatio="none">
+                <path d="M260 524A305 305 0 0 1 740 220" />
+              </svg>
+              <img className="hinokami-activation-sword" src={SUN_BREATHING_KATANA} alt="" />
+              <svg className="hinokami-slash" viewBox="0 0 1000 700" preserveAspectRatio="none">
+                <path className="hinokami-slash-core" d="M194 108Q482 319 819 490" />
+              </svg>
+              <svg className="hinokami-flame-trail" viewBox="0 0 1000 700" preserveAspectRatio="none">
+                <defs><linearGradient id="hinokami-flame-gradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#ef3c1e" stopOpacity=".08" /><stop offset="45%" stopColor="#e5351d" stopOpacity=".86" /><stop offset="78%" stopColor="#ff862e" stopOpacity=".74" /><stop offset="100%" stopColor="#ffe4a1" stopOpacity=".04" /></linearGradient></defs>
+                <path d="M148 93Q263 191 377 244Q503 302 602 378Q710 460 858 503Q804 511 765 493Q788 523 841 535Q766 539 709 506Q624 455 548 406Q446 340 342 297Q229 251 148 93Z" />
+              </svg>
+              <div className="hinokami-activation-copy"><strong>HINOKAMI KAGURA</strong><span>SUN BREATHING // IGNITED</span></div>
+            </div>
+          )}
+          {['theme-activation', 'arise', 'limitless', 'night-fury-stealth', 'tokyo-ghoul'].includes(specialEffect.kind) && (
             <div className={`theme-emblem-activation activation-${theme}`} style={activationStyle}>
               <ThemeEmblem
                 className="theme-emblem-activation-image theme-emblem-image"
@@ -1741,7 +1759,7 @@ function App() {
       </aside>
 
       <section
-        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}`}
+        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}`}
         aria-label="Elucidator system console"
         style={consoleFrame ? {
           left: consoleFrame.x,
@@ -1847,13 +1865,33 @@ function App() {
             </header>
           </>
         )}
+        {theme === 'breathing-sun' && (
+          <>
+            <svg className="hinokami-frame-ornaments" viewBox="0 0 1000 460" preserveAspectRatio="none" aria-hidden="true">
+              <path className="hinokami-frame-outer" d="M18 4H982V456H18Z" />
+              <path className="hinokami-frame-inner" d="M24 10H976V450H24Z" />
+              <path className="hinokami-frame-rule" d="M24 376H976" />
+              <path className="hinokami-checks" d="M38 34h13v13H38zM51 47h13v13H51zM38 60h13v13H38zM51 73h13v13H51zM38 86h13v13H38zM51 99h13v13H51zM38 112h13v13H38zM51 125h13v13H51zM38 138h13v13H38zM51 151h13v13H51zM38 164h13v13H38zM51 177h13v13H51zM38 190h13v13H38zM51 203h13v13H51zM38 216h13v13H38zM51 229h13v13H51z" />
+              <path className="hinokami-checks-dark" d="M51 34h13v13H51zM38 47h13v13H38zM51 60h13v13H51zM38 73h13v13H38zM51 86h13v13H51zM38 99h13v13H38zM51 112h13v13H51zM38 125h13v13H38zM51 138h13v13H51zM38 151h13v13H38zM51 164h13v13H51zM38 177h13v13H38zM51 190h13v13H51zM38 203h13v13H38zM51 216h13v13H51zM38 229h13v13H38z" />
+              <path className="hinokami-checks right" d="M949 18h10v10h-10zM959 28h10v10h-10zM949 38h10v10h-10zM959 48h10v10h-10z" />
+            </svg>
+            <header className="hinokami-console-header" onPointerDown={startConsoleDrag}>
+              <img className="hinokami-console-sword" src={SUN_BREATHING_KATANA} alt="Nichirin katana" />
+              <span className="hinokami-console-title"><strong>HINOKAMI KAGURA</strong><small>DEMON SLAYER // TANJIRO KAMADO</small></span>
+              <svg className="hinokami-header-underline" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
+                <path className="hinokami-underline-ivory" d="M30 72H970" />
+                <path className="hinokami-underline-flame" d="M31 81C105 77 132 88 202 82S313 79 370 84S461 77 520 83S637 89 699 81S820 85 970 79" />
+              </svg>
+            </header>
+          </>
+        )}
         {themeSignature === 'demon-mark' && (
           <div className="console-theme-signature signature-demon-mark" style={{ '--signature-accent': activeThemeSystem?.activationPresentation.secondary ?? '#E7C65A', '--signature-secondary': activeThemeSystem?.activationPresentation.accent ?? '#A879FF' } as CSSProperties} aria-hidden="true">
             <span className="theme-signature-emblem-frame"><ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/dragon-sin-of-wrath.png'} title="DRAGON SIN OF WRATH" /></span>
             <span><b>DEMON MARK</b><small>POWER UNSEALED</small></span>
           </div>
         )}
-        {themeSignature === 'none' && theme !== 'grimoire' && theme !== 'limitless' && (
+        {themeSignature === 'none' && theme !== 'grimoire' && theme !== 'limitless' && theme !== 'breathing-sun' && (
           <div
             className={`console-theme-signature signature-${theme}`}
             style={{ '--signature-accent': activeThemeSystem?.activationPresentation.accent ?? STEALTH_PRESENTATION.accent, '--signature-secondary': activeThemeSystem?.activationPresentation.secondary ?? STEALTH_PRESENTATION.secondary } as CSSProperties}
@@ -1869,8 +1907,8 @@ function App() {
         )}
         <div className="console-output" aria-live="polite">
           {consoleLines.map((line, index) => {
-            const highlightedStatus = themeSignature === 'aincrad' || theme === 'grimoire' || theme === 'limitless' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
-            const outputTone = theme === 'grimoire' ? 'grimoire' : theme === 'limitless' ? 'limitless' : 'sao'
+            const highlightedStatus = themeSignature === 'aincrad' || theme === 'grimoire' || theme === 'limitless' || theme === 'breathing-sun' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
+            const outputTone = theme === 'grimoire' ? 'grimoire' : theme === 'limitless' ? 'limitless' : theme === 'breathing-sun' ? 'hinokami' : 'sao'
             return (
               <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''} onPointerDown={index === 0 ? startConsoleDrag : undefined}>
                 {highlightedStatus ? <><span>{highlightedStatus[1]}</span><span className={`${outputTone}-output-leader`}>{highlightedStatus[2]}</span><span className={`${outputTone}-output-value${theme === 'limitless' && /STABLE/i.test(highlightedStatus[3]) ? ' stable' : ''}`}>{highlightedStatus[3]}</span></> : line}
