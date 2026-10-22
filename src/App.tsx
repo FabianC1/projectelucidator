@@ -325,7 +325,7 @@ const COMMAND_COMPLETIONS = [
   'sys widgets', 'sys widgets all on', 'sys widgets all off',
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
-  'sys widget move 1 50 20', 'sys widget size 1 1', 'sys widgets size 1', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
   'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys limitless',
@@ -361,7 +361,7 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0) {
   if (/^sys widget\s+$/.test(prefix)) return [
     'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
     'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
-    'sys widget move 1 50 20', 'sys widget size ', 'sys widget reset',
+    'sys widget move 1 50 20', 'sys widget position info', 'sys widget size ', 'sys widget reset',
   ]
   return COMMAND_COMPLETIONS.filter((candidate) => candidate.startsWith(prefix))
 }
@@ -1005,7 +1005,7 @@ function App() {
         setStatus(`${selectedSystem.label} ACTIVATED`)
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       activateTheme('dragon', 'night-fury-stealth')
@@ -1291,6 +1291,30 @@ function App() {
       } else {
         report(['LAYOUT COMMAND ERROR', 'USAGE · SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE <NAME>|LOAD <NAME>|RESET]'])
       }
+    } else if (domain === 'widget' && action === 'position' && args[2] === 'info' && args.length === 3) {
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+      const positions = WIDGET_IDS.map((id) => {
+        const widget = document.querySelector<HTMLElement>(`.system-widget.widget-${id}`)
+        if (widget) {
+          const rect = widget.getBoundingClientRect()
+          const x = rect.left / viewportWidth * 100
+          const y = rect.top / viewportHeight * 100
+          return `${String(id).padStart(2, '0')} ${WIDGET_TITLES[id]} · X ${x.toFixed(2)}% (${Math.round(rect.left)}PX) · Y ${y.toFixed(2)}% (${Math.round(rect.top)}PX)`
+        }
+        const saved = widgetPositions[id]
+        return saved
+          ? `${String(id).padStart(2, '0')} ${WIDGET_TITLES[id]} · SAVED X ${saved.x.toFixed(2)}% · Y ${saved.y.toFixed(2)}% · OFFLINE`
+          : `${String(id).padStart(2, '0')} ${WIDGET_TITLES[id]} · OFFLINE · NO SAVED POSITION`
+      })
+      report([
+        'WIDGET POSITION SNAPSHOT',
+        `VIEWPORT ............... ${viewportWidth} X ${viewportHeight} PX`,
+        `LAYOUT ................. ${widgetLayout.toUpperCase()}`,
+        ...positions,
+        'X/Y ARE TOP-LEFT VIEWPORT PERCENTAGES · USE SYS WIDGET MOVE <ID> <X> <Y>',
+      ])
+      setStatus(`WIDGET POSITIONS · ${viewportWidth}X${viewportHeight}`)
     } else if (domain === 'widget' && action === 'size' && args.length === 4) {
       const id = Number(args[2])
       const scale = Number(args[3])
@@ -1309,8 +1333,17 @@ function App() {
       if (!WIDGET_IDS.includes(id as typeof WIDGET_IDS[number]) || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 100 || y < 0 || y > 100) {
         report(['WIDGET POSITION ERROR', 'USAGE · SYS WIDGET MOVE <1–5> <X% 0–100> <Y% 0–100>'])
       } else {
+        const visiblePositions = Object.fromEntries(
+          Array.from(document.querySelectorAll<HTMLElement>('.system-widget:not(.widget-leaving)')).flatMap((widget) => {
+            const widgetClass = Array.from(widget.classList).find((name) => /^widget-[1-5]$/.test(name))
+            if (!widgetClass) return []
+            const widgetId = Number(widgetClass.slice('widget-'.length))
+            const rect = widget.getBoundingClientRect()
+            return [[widgetId, { x: rect.left / window.innerWidth * 100, y: rect.top / window.innerHeight * 100 }]]
+          }),
+        ) as WidgetPositions
         setWidgetLayout('free')
-        setWidgetPositions((current) => ({ ...current, [id]: { x, y } }))
+        setWidgetPositions((current) => ({ ...current, ...visiblePositions, [id]: { x, y } }))
         openWidget(id)
         report([`WIDGET ${String(id).padStart(2, '0')} POSITION`, `HORIZONTAL ............ ${x}%`, `VERTICAL .............. ${y}%`, 'POSITION SAVED.'])
         setStatus(`WIDGET ${id} POSITION UPDATED`)
@@ -1957,7 +1990,22 @@ function App() {
             </header>
           </>
         )}
-        {themeSignature === 'none' && theme !== 'grimoire' && theme !== 'limitless' && theme !== 'breathing-sun' && theme !== 'dragon' && (
+        {theme === 'tokyo-ghoul' && (
+          <>
+            <svg className="kagune-console-frame" viewBox="0 0 1000 460" preserveAspectRatio="none" aria-hidden="true">
+              <path className="kagune-frame-outer" d="M28 4H972L996 28V432L972 456H28L4 432V28Z" />
+              <path className="kagune-frame-slashes" d="M14 39L31 22M14 48L40 22M14 57L49 22M986 39L969 22M986 48L960 22M986 57L951 22M14 421L31 438M14 412L40 438M14 403L49 438M986 421L969 438M986 412L960 438M986 403L951 438" />
+            </svg>
+            <header className="kagune-console-header" onPointerDown={startConsoleDrag}>
+              <img className="kagune-header-emblem" src="./assets/kagune/kagune-header-emblem-trimmed.png" alt="" aria-hidden="true" />
+              <span className="kagune-console-title"><strong>TOKYO GHOUL</strong><small><span>ONE-EYED KING //</span><span>KANEKI PROTOCOL</span></small></span>
+              <span className="kagune-rc-tab"><i>//</i><b>RC TYPE // RINKAKU</b></span>
+              <img className="kagune-header-tendril" src="./assets/kagune/kagune-header-tendril-trimmed.png" alt="" aria-hidden="true" />
+              <img className="kagune-right-tendril" src="./assets/kagune/kagune-right-tendril-trimmed.png" alt="" aria-hidden="true" />
+            </header>
+          </>
+        )}
+        {themeSignature === 'none' && theme !== 'grimoire' && theme !== 'limitless' && theme !== 'breathing-sun' && theme !== 'dragon' && theme !== 'tokyo-ghoul' && (
           <div
             className={`console-theme-signature signature-${theme}`}
             style={{ '--signature-accent': activeThemeSystem?.activationPresentation.accent ?? STEALTH_PRESENTATION.accent, '--signature-secondary': activeThemeSystem?.activationPresentation.secondary ?? STEALTH_PRESENTATION.secondary } as CSSProperties}
@@ -1973,8 +2021,8 @@ function App() {
         )}
         <div className="console-output" aria-live="polite">
           {consoleLines.map((line, index) => {
-            const highlightedStatus = themeSignature === 'aincrad' || theme === 'grimoire' || theme === 'limitless' || theme === 'breathing-sun' || theme === 'demon-mode' || theme === 'dragon' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
-            const outputTone = theme === 'grimoire' ? 'grimoire' : theme === 'limitless' ? 'limitless' : theme === 'breathing-sun' ? 'hinokami' : theme === 'demon-mode' ? 'demon-mode' : theme === 'dragon' ? 'night-fury' : 'sao'
+            const highlightedStatus = themeSignature === 'aincrad' || theme === 'grimoire' || theme === 'limitless' || theme === 'breathing-sun' || theme === 'demon-mode' || theme === 'dragon' || theme === 'tokyo-ghoul' ? line.match(/^(.*?)(\s+\.{2,}\s+)(.+)$/) : null
+            const outputTone = theme === 'grimoire' ? 'grimoire' : theme === 'limitless' ? 'limitless' : theme === 'breathing-sun' ? 'hinokami' : theme === 'demon-mode' ? 'demon-mode' : theme === 'dragon' ? 'night-fury' : theme === 'tokyo-ghoul' ? 'tokyo-ghoul' : 'sao'
             return (
               <p key={`${index}-${line}`} className={index < 2 ? 'console-heading' : ''} onPointerDown={index === 0 ? startConsoleDrag : undefined}>
                 {highlightedStatus ? <><span>{highlightedStatus[1]}</span><span className={`${outputTone}-output-leader`}>{highlightedStatus[2]}</span><span className={`${outputTone}-output-value${(theme === 'limitless' || theme === 'dragon') && /STABLE|STANDBY/i.test(highlightedStatus[3]) ? ' stable' : ''}${theme === 'demon-mode' && /AWAKENING|UNRESTRICTED/i.test(highlightedStatus[3]) ? ' awakening' : ''}`}>{highlightedStatus[3]}</span></> : line}
@@ -1991,26 +2039,30 @@ function App() {
           </div>
         )}
         <form className="command-line" onSubmit={submitCommand}>
-          <span className="command-prefix">C:\ELUCIDATOR\SYSTEM&gt;</span>
-          <input
-            autoComplete="off"
-            aria-label="Enter a wallpaper command"
-            spellCheck={false}
-            value={command}
-            onChange={(event) => {
-              setCommand(event.target.value)
-              completionRef.current = null
-              if (historyIndexRef.current === commandHistoryRef.current.length) commandDraftRef.current = event.target.value
-            }}
-            onKeyDown={handleCommandKeyDown}
-            onClick={() => {
-              if (!nightStealth) return
-              setNightStealth(false)
-              report(['NIGHT FURY STEALTH', 'COMMAND INPUT CONFIRMED', 'WIDGET ARRAY ........... RESTORED'])
-              setStatus('NIGHT FURY STEALTH DISENGAGED')
-            }}
-            placeholder="sys status"
-          />
+          {theme === 'tokyo-ghoul' && <img className="kagune-bottom-tendril" src="./assets/kagune/kagune-bottom-tendril-trimmed.png" alt="" aria-hidden="true" />}
+          <span className="command-entry">
+            <span className="command-prefix">C:\ELUCIDATOR\SYSTEM&gt;</span>
+            <input
+              autoComplete="off"
+              aria-label="Enter a wallpaper command"
+              spellCheck={false}
+              size={Math.max(10, command.length || 10)}
+              value={command}
+              onChange={(event) => {
+                setCommand(event.target.value)
+                completionRef.current = null
+                if (historyIndexRef.current === commandHistoryRef.current.length) commandDraftRef.current = event.target.value
+              }}
+              onKeyDown={handleCommandKeyDown}
+              onClick={() => {
+                if (!nightStealth) return
+                setNightStealth(false)
+                report(['NIGHT FURY STEALTH', 'COMMAND INPUT CONFIRMED', 'WIDGET ARRAY ........... RESTORED'])
+                setStatus('NIGHT FURY STEALTH DISENGAGED')
+              }}
+              placeholder="sys status"
+            />
+          </span>
           <button type="submit" aria-label="Run command">↵</button>
         </form>
         <p className="console-status" aria-live="polite">{status}</p>
