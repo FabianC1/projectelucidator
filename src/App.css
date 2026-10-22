@@ -1162,9 +1162,12 @@
 .night-fury-output-leader { color: rgb(184 193 204 / 70%); }
 .night-fury-output-value { color: #70e8ff; }
 .night-fury-output-value.stable { color: #8793d6; }
-.night-fury-bottom-tail { position: relative; z-index: 1; display: block; width: 100%; height: auto; margin: -.08rem 0 .08rem; object-fit: contain; pointer-events: none; }
+.night-fury-bottom-divider { position: relative; z-index: 1; height: .48rem; margin: .02rem 0 .08rem; pointer-events: none; }
+.night-fury-bottom-divider svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.night-fury-bottom-divider path { fill: none; stroke: #71d8ee; stroke-width: 1.15; vector-effect: non-scaling-stroke; }
+.night-fury-bottom-divider .night-fury-divider-diamond { fill: #09121b; stroke: #70e8ff; stroke-width: 1.6; }
 .night-fury-console .command-line { position: relative; z-index: 1; min-height: 1.8rem; margin: 0; padding: .28rem 2.2rem 0 2rem; border-top: 0; color: #b7c0cd; text-shadow: none; }
-.night-fury-console .command-line::before { position: absolute; inset: 0 .18rem; border: 1px solid rgb(87 112 140 / 72%); clip-path: polygon(0 14%, 2.2% 0, 97.8% 0, 100% 14%, 100% 86%, 97.8% 100%, 2.2% 100%, 0 86%); content: ''; pointer-events: none; }
+.night-fury-console .command-line::before { position: absolute; inset: 0 .18rem; border: 1px solid rgb(87 112 140 / 72%); border-radius: .45rem; content: ''; pointer-events: none; }
 .night-fury-console .command-prefix { color: #70e8ff; }
 .night-fury-console .command-line input { color: #d7dce3; caret-color: #70e8ff; }
 .night-fury-console .command-line input::placeholder { color: rgb(145 157 172 / 54%); }
@@ -1179,7 +1182,7 @@
   .night-fury-header-state { display: none; }
   .night-fury-corner-fins { width: 2rem; height: 1.7rem; }
   .night-fury-notches { width: 1.9rem; height: .95rem; }
-  .night-fury-bottom-tail { margin-top: -.04rem; }
+  .night-fury-bottom-divider { height: .42rem; }
   .night-fury-console .command-line { padding-inline: 1.45rem 1.8rem; }
 }
 

@@ -1931,8 +1931,6 @@ function App() {
               <img className="night-fury-corner night-fury-corner-bl" src="./assets/emblems/night-fury-corner-trimmed.png" alt="" />
               <img className="night-fury-corner night-fury-corner-br" src="./assets/emblems/night-fury-corner-trimmed.png" alt="" />
               <img className="night-fury-corner-fins" src="./assets/emblems/night-fury-corner-fins-trimmed.png" alt="" />
-              <img className="night-fury-notches night-fury-notches-tr" src="./assets/emblems/night-fury-notches-trimmed.png" alt="" />
-              <img className="night-fury-notches night-fury-notches-bl" src="./assets/emblems/night-fury-notches-trimmed.png" alt="" />
             </div>
             <header className="night-fury-header" onPointerDown={startConsoleDrag}>
               <img className="night-fury-header-emblem" src="./assets/emblems/night-fury-header-emblem-trimmed.png" alt="Night Fury" />
@@ -1968,7 +1966,12 @@ function App() {
           })}
         </div>
         {theme === 'dragon' && (
-            <img className="night-fury-bottom-tail" src="./assets/emblems/night-fury-bottom-tail-trimmed.png" alt="" aria-hidden="true" />
+          <div className="night-fury-bottom-divider" aria-hidden="true">
+            <svg viewBox="0 0 1000 24" preserveAspectRatio="none">
+              <path d="M8 12H484M516 12H992" />
+              <path className="night-fury-divider-diamond" d="M500 3L509 12L500 21L491 12Z" />
+            </svg>
+          </div>
         )}
         <form className="command-line" onSubmit={submitCommand}>
           <span className="command-prefix">C:\ELUCIDATOR\SYSTEM&gt;</span>
