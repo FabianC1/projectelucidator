@@ -1894,53 +1894,28 @@ function App() {
             <svg className="demon-console-frame" viewBox="0 0 1000 460" preserveAspectRatio="none" aria-hidden="true">
               <path className="demon-frame-outer" d="M20 4H980L996 20V440L980 456H20L4 440V20Z" />
               <path className="demon-frame-inner" d="M25 10H975L990 25V435L975 450H25L10 435V25Z" />
-              <g className="demon-binding">
-                <path d="M4 49V20L20 4H61L47 18H26L18 26V49Z" />
-                <path className="demon-clasp-inset" d="M10 43V22L22 10H49L43 16H24L16 24V43Z" />
-                <path d="M4 66L34 36H70L56 50H42L20 72Z" />
-                <path className="demon-clasp-inset" d="M12 61L36 40H58L53 45H40L20 65Z" />
-                <path d="M16 84L43 57H57L31 84Z" />
-              </g>
-              <g className="demon-binding" transform="translate(1000 0) scale(-1 1)">
-                <path d="M4 49V20L20 4H61L47 18H26L18 26V49Z" />
-                <path className="demon-clasp-inset" d="M10 43V22L22 10H49L43 16H24L16 24V43Z" />
-                <path d="M4 66L34 36H70L56 50H42L20 72Z" />
-                <path className="demon-clasp-inset" d="M12 61L36 40H58L53 45H40L20 65Z" />
-                <path d="M16 84L43 57H57L31 84Z" />
-              </g>
-              <g className="demon-binding demon-binding-bottom">
-                <path d="M4 456V434L26 456Z" />
-                <path className="demon-clasp-inset" d="M10 451V441L20 451Z" />
-                <path d="M4 456L23 437L40 454L38 456Z" />
-                <path className="demon-clasp-inset" d="M15 453L24 444L32 452Z" />
-              </g>
-              <g className="demon-binding demon-binding-bottom" transform="translate(1000 0) scale(-1 1)">
-                <path d="M4 456V434L26 456Z" />
-                <path className="demon-clasp-inset" d="M10 451V441L20 451Z" />
-                <path d="M4 456L23 437L40 454L38 456Z" />
-                <path className="demon-clasp-inset" d="M15 453L24 444L32 452Z" />
-              </g>
-              <g className="demon-fissures">
-                <path d="M827 8L847 25L837 39L870 50L879 70L903 79L915 104L941 115L952 140" />
-                <path d="M879 70L900 61L910 45L930 38M915 104L935 99L943 82" />
-                <path d="M5 324L24 309L36 322L52 295L75 285L83 260L105 248L116 225" />
-                <path d="M52 295L42 277L48 260L66 250M83 260L100 265L111 251" />
-              </g>
             </svg>
+            <div className="demon-console-ornaments" aria-hidden="true">
+              <img className="demon-corner-art demon-corner-top-left" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+              <img className="demon-corner-art demon-corner-top-right" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+              <img className="demon-corner-art demon-corner-bottom-left" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+              <img className="demon-corner-art demon-corner-bottom-right" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+              <img className="demon-fissure-art demon-fissure-upper-right" src="./assets/emblems/demon-fissure-trimmed.png" alt="" />
+              <img className="demon-fissure-art demon-fissure-lower-left" src="./assets/emblems/demon-fissure-trimmed.png" alt="" />
+            </div>
             <header className="demon-console-header" onPointerDown={startConsoleDrag}>
               <div className="demon-header-main">
                 <ThemeEmblem className="demon-console-emblem theme-emblem-image" src="./assets/emblems/dragon-emblem.png" title="Golden dragon emblem" />
-                <span className="demon-console-title"><strong>DEMON MODE</strong><small>DRAGON SIN OF WRATH // MELIODAS</small></span>
-                <span className="demon-console-state"><i aria-hidden="true" />POWER UNSEALED</span>
-                <svg className="demon-header-underline" viewBox="0 0 1000 160" preserveAspectRatio="none" aria-hidden="true">
-                  <path className="demon-crescent" d="M25 87L45 101C57 130 81 145 111 147C143 149 168 131 190 101C170 139 143 154 111 152C77 150 49 130 34 99L25 111Z" />
-                  <path className="demon-binding-segment" d="M225 77H303L298 86H225ZM316 77H360L356 86H316ZM373 77H418L414 86H373Z" />
-                  <path className="demon-binding-highlight" d="M229 78H296L293 80H229ZM320 78H355L352 80H320ZM377 78H413L410 80H377Z" />
-                  <path className="demon-binding-shadow" d="M229 83H298L296 85H229ZM320 83H356L354 85H320ZM377 83H414L412 85H377Z" />
-                  <path className="demon-binding-gap" d="M304 78H311V85H304ZM362 78H369V85H362Z" />
-                  <path className="demon-underline-rule" d="M418 83H955" />
-                  <path className="demon-underline-tip" d="M963 73L967 80L980 83L967 86L963 93L959 86L946 83L959 80Z" />
-                </svg>
+                <span className="demon-console-title"><strong>DRAGON MODE</strong><small>DRAGON SIN OF WRATH // MELIODAS</small></span>
+                <span className="demon-console-state"><img src="./assets/emblems/demon-seal-gem-trimmed.png" alt="" />POWER UNSEALED</span>
+                <div className="demon-header-underline" aria-hidden="true">
+                  <img className="demon-crescent-art" src="./assets/emblems/demon-crescent-trimmed.png" alt="" />
+                  <div className="demon-underline-track">
+                    <img className="demon-underline-segments" src="./assets/emblems/demon-underline-segments.png" alt="" />
+                    <span className="demon-underline-rule" />
+                    <img className="demon-underline-tip" src="./assets/emblems/demon-underline-tip.png" alt="" />
+                  </div>
+                </div>
               </div>
             </header>
           </>

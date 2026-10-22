@@ -1420,6 +1420,8 @@
 }
 
 .special-effect {
+  --activation-center-x: 50%;
+  --activation-stage-width: 100vw;
   position: absolute;
   z-index: 2;
   inset: 0;
@@ -1428,14 +1430,14 @@
 }
 
 .effect-arise {
-  background: radial-gradient(ellipse at 50% 72%, rgb(97 35 173 / 26%), rgb(38 12 69 / 12%) 32%, transparent 68%);
+  background: radial-gradient(ellipse at var(--activation-center-x) 72%, rgb(97 35 173 / 26%), rgb(38 12 69 / 12%) 32%, transparent 68%);
   animation: theme-activation-flare 1.7s ease-out both;
 }
 
 .effect-link-start::before {
   position: absolute;
   top: 50%;
-  left: 50%;
+  left: var(--activation-center-x);
   width: 9vmin;
   height: 9vmin;
   border: 1px solid currentColor;
@@ -1448,7 +1450,7 @@
 .effect-arise::after {
   position: absolute;
   top: -35vh;
-  left: calc(50% - 1px);
+  left: var(--activation-center-x);
   width: 2px;
   height: 70vh;
   background: linear-gradient(180deg, transparent, rgb(211 175 255 / 78%) 55%, rgb(135 66 234 / 12%) 100%);
@@ -1485,7 +1487,7 @@
 .effect-demon::after {
   position: absolute;
   top: 50%;
-  left: 50%;
+  left: var(--activation-center-x);
   width: 10vmin;
   height: 10vmin;
   border: 1px solid rgb(190 177 255 / 85%);
@@ -1497,7 +1499,7 @@
 }
 
 .effect-limitless {
-  background: radial-gradient(circle at 50% 50%, rgb(98 169 255 / 17%), rgb(41 68 173 / 7%) 22%, transparent 60%);
+  background: radial-gradient(circle at var(--activation-center-x) 50%, rgb(98 169 255 / 17%), rgb(41 68 173 / 7%) 22%, transparent 60%);
   animation: limitless-space 1.55s ease-out both;
 }
 
@@ -2035,7 +2037,7 @@
   .limitless-console .command-line::after { left: .78rem; width: calc(100% - 1.56rem); }
 }
 
-.demon-mark-activation { position: absolute; top: 50%; left: 50%; display: grid; justify-items: center; gap: 0.7rem; width: min(32vmin, 20rem); color: #c49bff; transform: translate(-50%, -50%); animation: demon-mark-reveal 1.7s ease-out both; }
+.demon-mark-activation { position: absolute; top: 50%; left: var(--activation-center-x); display: grid; justify-items: center; gap: 0.7rem; width: min(32vmin, 20rem); color: #c49bff; transform: translate(-50%, -50%); animation: demon-mark-reveal 1.7s ease-out both; }
 .demon-mark-activation::before { position: absolute; z-index: -1; top: 50%; left: 50%; width: 118%; aspect-ratio: 1; border: 1px solid rgb(231 198 90 / 52%); border-radius: 50%; box-shadow: inset 0 0 20px rgb(139 92 246 / 24%), 0 0 28px rgb(139 92 246 / 34%); content: ''; transform: translate(-50%, -50%); animation: demon-seal-turn 1.7s ease-out both; }
 .demon-mark-large { width: 62%; aspect-ratio: 1; overflow: visible; object-fit: contain; filter: drop-shadow(0 0 9px rgb(168 121 255 / 75%)); animation: demon-emblem-materialize 1.35s cubic-bezier(.16,.7,.24,1) 80ms both; }
 .demon-mark-activation span { color: #f0d987; font-size: clamp(0.5rem, 1.1vw, 0.7rem); letter-spacing: 0.16em; text-align: center; text-shadow: 0 0 9px rgb(139 92 246 / 90%); }
@@ -2044,7 +2046,7 @@
   position: absolute;
   z-index: 1;
   top: 50%;
-  left: 50%;
+  left: var(--activation-center-x);
   display: grid;
   justify-items: center;
   gap: 0.55rem;
@@ -2406,9 +2408,15 @@
 .demon-frame-inner { fill: none; vector-effect: non-scaling-stroke; }
 .demon-frame-outer { stroke: #d4b35b; stroke-width: 1.2px; filter: drop-shadow(0 0 2px rgb(231 198 90 / 22%)); }
 .demon-frame-inner { stroke: rgb(178 142 62 / 76%); stroke-width: .7px; }
-.demon-binding path { fill: #c69d43; stroke: #f0d17a; stroke-width: .8px; vector-effect: non-scaling-stroke; }
-.demon-binding .demon-clasp-inset { fill: #382817; stroke: #9d7734; stroke-width: .65px; }
-.demon-fissures { fill: none; stroke: #a34cf2; stroke-width: 2.1px; stroke-linecap: round; stroke-linejoin: bevel; opacity: .82; filter: drop-shadow(0 0 3px rgb(139 92 246 / 40%)); vector-effect: non-scaling-stroke; }
+.demon-console-ornaments { position: absolute; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; }
+.demon-corner-art { position: absolute; display: block; width: 2.35rem; height: 2.3rem; object-fit: contain; }
+.demon-corner-top-left { top: .12rem; left: .12rem; }
+.demon-corner-top-right { top: .12rem; right: .12rem; transform: scaleX(-1); }
+.demon-corner-bottom-left { bottom: .12rem; left: .12rem; transform: scaleY(-1); }
+.demon-corner-bottom-right { right: .12rem; bottom: .12rem; transform: scale(-1); }
+.demon-fissure-art { position: absolute; display: block; width: 2.8rem; height: auto; opacity: .2; object-fit: contain; }
+.demon-fissure-upper-right { top: .25rem; right: .4rem; }
+.demon-fissure-lower-left { bottom: 2.1rem; left: .4rem; transform: rotate(180deg); }
 .demon-console-header { position: relative; z-index: 1; margin: 0; padding: .18rem .3rem 0; cursor: grab; touch-action: none; user-select: none; }
 .demon-console-header:active { cursor: grabbing; }
 .demon-header-main { position: relative; height: 6.65rem; }
@@ -2416,24 +2424,25 @@
 .demon-console-title { position: absolute; top: .82rem; right: 7.2rem; left: 5.65rem; display: grid; gap: .28rem; min-width: 0; color: #f0dfb4; }
 .demon-console-title strong { overflow: hidden; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.25rem, 2.5vw, 1.72rem); font-weight: 600; letter-spacing: .13em; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
 .demon-console-title small { overflow: hidden; color: #d6c59e; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(.42rem, .82vw, .55rem); letter-spacing: .15em; text-overflow: ellipsis; white-space: nowrap; }
-.demon-console-state { position: absolute; top: 1.28rem; right: .42rem; display: flex; align-items: center; gap: .36rem; color: #dfc36d; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(.42rem, .72vw, .52rem); letter-spacing: .12em; white-space: nowrap; }
-.demon-console-state i { width: .38rem; height: .38rem; border: 1px solid #a879ff; background: #9b5de5; transform: rotate(45deg); box-shadow: 0 0 7px rgb(139 92 246 / 70%); }
+.demon-console-state { position: absolute; top: .32rem; right: 3.9rem; display: flex; align-items: center; gap: .36rem; color: #dfc36d; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(.42rem, .72vw, .52rem); letter-spacing: .12em; white-space: nowrap; }
+.demon-console-state img { display: block; width: 1.05rem; height: 1.5rem; object-fit: contain; filter: drop-shadow(0 0 5px rgb(139 92 246 / 34%)); }
 .demon-header-underline { position: absolute; z-index: 4; right: 0; bottom: .75rem; left: 0; width: 100%; height: 1.55rem; overflow: visible; pointer-events: none; }
-.demon-crescent { fill: #8f4ce0; stroke: #c29aff; stroke-width: .7px; stroke-linejoin: round; filter: drop-shadow(0 0 3px rgb(139 92 246 / 48%)); vector-effect: non-scaling-stroke; }
-.demon-binding-segment { fill: #d2ad55; stroke: #f0d98e; stroke-width: .75px; stroke-linejoin: bevel; vector-effect: non-scaling-stroke; }
-.demon-binding-highlight { fill: #f3dc91; opacity: .9; }
-.demon-binding-shadow { fill: #80602c; opacity: .84; }
-.demon-underline-rule { fill: none; stroke: #d6b75e; stroke-width: 1.5px; stroke-linecap: square; vector-effect: non-scaling-stroke; }
-.demon-underline-rule { stroke-width: 1.5px; }
-.demon-binding-gap { fill: #9b5de5; filter: drop-shadow(0 0 2px rgb(139 92 246 / 60%)); }
-.demon-underline-tip { fill: #d6b75e; stroke: #f0d98e; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.demon-crescent-art { position: absolute; bottom: 0; left: 2.5%; display: block; width: auto; max-width: 19%; height: 100%; object-fit: contain; object-position: left center; }
+.demon-underline-track { position: absolute; top: 50%; right: 1.8%; left: 22.5%; display: flex; align-items: center; height: 100%; transform: translateY(-50%); }
+.demon-underline-segments { display: block; flex: 0 1 auto; width: auto; max-width: 24%; height: 100%; object-fit: contain; }
+.demon-underline-rule { position: relative; display: block; flex: 1 1 auto; height: 100%; min-width: 0; }
+.demon-underline-rule::before,
+.demon-underline-rule::after { position: absolute; right: 0; left: 0; height: 1px; content: ''; }
+.demon-underline-rule::before { top: 44%; background: linear-gradient(90deg, #c39a45, #f0d989 45%, #d5b45f); box-shadow: 0 0 3px rgb(231 198 90 / 24%); }
+.demon-underline-rule::after { top: 56%; background: linear-gradient(90deg, #745125, #b28b3c 46%, #d1ad5a); }
+.demon-underline-tip { display: block; flex: 0 0 auto; width: auto; max-width: 11%; height: 100%; object-fit: contain; }
 .demon-mode-console .console-output { position: relative; z-index: 1; max-height: calc(100vh - 16rem); margin: .22rem .15rem .55rem; padding: 0 .35rem; overflow-y: auto; scrollbar-width: none; color: #f0e8d5; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; font-size: clamp(.65rem, 1.03vw, .76rem); line-height: 1.5; letter-spacing: .035em; text-shadow: 0 0 5px rgb(231 198 90 / 8%); }
 .demon-mode-console .console-output::-webkit-scrollbar { display: none; }
 .demon-mode-console .console-output .console-heading { color: #f2e5c4; }
 .demon-mode-output-leader { color: rgb(231 220 190 / 70%); }
 .demon-mode-output-value { color: #e7c65a; }
 .demon-mode-output-value.awakening { color: #bd82f4; text-shadow: 0 0 7px rgb(139 92 246 / 44%); }
-.demon-mode-console .command-line { position: relative; z-index: 1; min-height: 1.9rem; margin: 0; padding: .38rem .25rem 0; border-top: 0; color: #c49bff; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; font-size: clamp(.72rem, 1.2vw, .9rem); text-shadow: none; }
+.demon-mode-console .command-line { position: relative; z-index: 1; min-height: 1.9rem; margin: 0; padding: .38rem 2.4rem 0 1.5rem; border-top: 0; color: #c49bff; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; font-size: clamp(.72rem, 1.2vw, .9rem); text-shadow: none; }
 .demon-mode-console .command-line::before { position: absolute; top: 0; right: .15rem; left: .15rem; border-top: 1px solid rgb(214 183 94 / 76%); content: ''; pointer-events: none; }
 .demon-mode-console .command-prefix { color: #d8bb67; }
 .demon-mode-console .command-line button { color: #b77af0; }
@@ -2451,13 +2460,15 @@
 
 @media (max-width: 520px) {
   .command-console.demon-mode-console { padding-inline: .72rem; }
+  .demon-corner-art { width: 1.8rem; height: 1.75rem; }
+  .demon-fissure-art { width: 2.1rem; }
   .demon-header-main { height: 5.9rem; }
   .demon-console-emblem { width: 4.5rem; height: 4.5rem; }
   .demon-console-title { top: .84rem; right: .25rem; left: 4.65rem; }
   .demon-console-title strong { font-size: 1.05rem; letter-spacing: .1em; }
   .demon-console-title small { font-size: .38rem; letter-spacing: .08em; }
   .demon-console-state { display: none; }
-  .demon-mode-console .command-line { margin-inline: 0; padding-inline: .2rem; }
+  .demon-mode-console .command-line { margin-inline: 0; padding: .38rem 1.8rem 0 .85rem; }
 }
 
 /* Hinokami activation is a short layered sword reveal; each element animates once. */
@@ -2468,9 +2479,9 @@
 .hinokami-activating .hinokami-console,
 .hinokami-activating .system-widgets { opacity: 0; pointer-events: none; transition: opacity 180ms ease; }
 .hinokami-activation-sword { position: absolute; z-index: 2; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
-.hinokami-fireblade-wrap { position: absolute; z-index: 2; top: 43%; left: 50%; width: min(84vw, 110rem, 170vh); aspect-ratio: 2.7; opacity: 0; clip-path: inset(0 100% 0 0); transform: translate(-53%, -51%); animation: hinokami-sword-reveal 1.55s ease-out 250ms both; }
+.hinokami-fireblade-wrap { position: absolute; z-index: 2; top: 43%; left: var(--activation-center-x); width: min(84vw, 110rem, 170vh); aspect-ratio: 2.7; opacity: 0; clip-path: inset(0 100% 0 0); transform: translate(-53%, -51%); animation: hinokami-sword-reveal 1.55s ease-out 250ms both; }
 .hinokami-fireblade-light { position: absolute; inset: 0; background: linear-gradient(108deg, transparent 42%, rgb(255 245 219 / 66%) 49%, transparent 56%); background-size: 260% 100%; background-position: 150% 0; mask-size: 100% 100%; mask-repeat: no-repeat; mask-mode: alpha; opacity: 0; animation: hinokami-light-sweep 500ms ease-out 550ms both; }
-.hinokami-activation-copy { position: absolute; top: 77%; left: 50%; display: grid; gap: .45rem; width: max-content; max-width: 90vw; color: #f2e9d8; text-align: center; transform: translateX(-50%); animation: hinokami-title 950ms ease 850ms both; }
+.hinokami-activation-copy { position: absolute; top: 77%; left: var(--activation-center-x); display: grid; gap: .45rem; width: max-content; max-width: 90vw; color: #f2e9d8; text-align: center; transform: translateX(-50%); animation: hinokami-title 950ms ease 850ms both; }
 .hinokami-activation-copy strong { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1rem, 2.4vw, 1.8rem); font-weight: 500; letter-spacing: .24em; text-shadow: 0 0 10px rgb(239 218 175 / 22%); }
 .hinokami-activation-copy span { color: #df4835; font-size: clamp(.52rem, 1.05vw, .74rem); letter-spacing: .28em; }
 @keyframes hinokami-overlay-out { 0%, 72% { opacity: 1; } 100% { opacity: 0; } }
@@ -2527,6 +2538,64 @@
 @keyframes anime-signal-pulse {
   from { opacity: 0.48; transform: scaleY(0.72); }
   to { opacity: 1; transform: scaleY(1); }
+}
+
+/* Lively span mode presents both displays as one extra-wide viewport. Stage
+   activation artwork inside its left half so a physical monitor bezel or gap
+   cannot split the animation. The ratio query leaves single-screen layouts
+   untouched. */
+@media (min-aspect-ratio: 12 / 5) {
+  .special-effect { --activation-center-x: 25%; --activation-stage-width: 50vw; }
+
+  .effect-arise {
+    background: radial-gradient(ellipse at 50% 72%, rgb(97 35 173 / 26%), rgb(38 12 69 / 12%) 32%, transparent 68%);
+    background-size: var(--activation-stage-width) 100%;
+    background-repeat: no-repeat;
+  }
+
+  .effect-link-start { background-size: var(--activation-stage-width) 100%; background-repeat: no-repeat; }
+  .effect-link-start::after { width: var(--activation-stage-width); }
+  .sao-activation-interface { inset: 0 auto 0 0; width: var(--activation-stage-width); }
+  .sao-hud-frame { inset: clamp(1rem, 2vw, 3.5rem); }
+
+  .grimoire-seal-activation { inset: 0 auto 0 0; width: var(--activation-stage-width); }
+
+  .effect-limitless {
+    background: radial-gradient(circle at 50% 50%, rgb(98 169 255 / 17%), rgb(41 68 173 / 7%) 22%, transparent 60%);
+    background-size: var(--activation-stage-width) 100%;
+    background-repeat: no-repeat;
+  }
+
+  .effect-tokyo-ghoul {
+    background: radial-gradient(ellipse at 50% 52%, rgb(153 12 37 / 20%), rgb(24 4 10 / 12%) 34%, transparent 66%);
+    background-size: var(--activation-stage-width) 100%;
+    background-repeat: no-repeat;
+  }
+  .effect-tokyo-ghoul::before,
+  .effect-tokyo-ghoul::after { width: min(15vw, 28rem); }
+  .effect-tokyo-ghoul::before { left: 6.5%; animation-name: ghoul-kagune-left-dual; }
+  .effect-tokyo-ghoul::after { right: auto; left: 31.5%; animation-name: ghoul-kagune-right-dual; }
+
+  .hinokami-warmth {
+    background: radial-gradient(ellipse at 50% 48%, rgb(143 57 24 / 13%), transparent 55%);
+    background-size: var(--activation-stage-width) 100%;
+    background-repeat: no-repeat;
+  }
+  .hinokami-arc { right: auto; width: var(--activation-stage-width); }
+  .hinokami-fireblade-wrap { width: min(42vw, 110rem, 170vh); }
+  .hinokami-activation-copy { max-width: 45vw; }
+}
+
+@keyframes ghoul-kagune-left-dual {
+  0% { opacity: 0; transform: translate(-9vw, 24%) rotate(18deg) scale(.45); }
+  28% { opacity: .85; }
+  100% { opacity: 0; transform: translate(4vw, -4%) rotate(-6deg) scale(1); }
+}
+
+@keyframes ghoul-kagune-right-dual {
+  0% { opacity: 0; transform: translate(9vw, -24%) rotate(-18deg) scale(.45); }
+  28% { opacity: .85; }
+  100% { opacity: 0; transform: translate(-4vw, 4%) rotate(6deg) scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
