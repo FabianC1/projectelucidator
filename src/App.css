@@ -1536,7 +1536,9 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-height: 2.15rem;
+  width: 10rem;
+  height: 2.65rem;
+  box-sizing: border-box;
   padding: 0.22rem 0.55rem;
   border: 1px solid color-mix(in srgb, var(--signature-accent, var(--theme-primary, #00d8ff)) 42%, transparent);
   border-bottom-color: color-mix(in srgb, var(--signature-secondary, var(--theme-secondary, #eafcff)) 64%, transparent);
@@ -1548,16 +1550,18 @@
   animation: signature-power-on 520ms ease-out both;
 }
 
-.console-theme-signature > span:last-child { display: grid; gap: 0.12rem; }
+.console-theme-signature > span:last-child { display: grid; gap: 0.12rem; min-width: 0; flex: 1; }
+.console-theme-signature b, .console-theme-signature small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .console-theme-signature b { font-size: 0.52rem; }
 .console-theme-signature small { color: var(--signature-secondary, var(--theme-secondary, #eafcff)); font-size: 0.43rem; }
 
-.theme-signature-emblem { display: block; width: 1.75rem; height: 1.75rem; flex: 0 0 auto; object-fit: contain; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--signature-accent, var(--theme-primary, #00d8ff)) 68%, transparent)); }
+.theme-signature-emblem-frame { position: relative; display: block; width: 1.75rem; height: 1.75rem; flex: 0 0 1.75rem; overflow: hidden; }
+.theme-signature-emblem { position: absolute; top: 50%; left: 50%; display: block; width: 100%; height: 100%; max-width: none; flex: 0 0 auto; object-fit: contain; transform: translate(-50%, -50%); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--signature-accent, var(--theme-primary, #00d8ff)) 68%, transparent)); }
+.signature-aincrad img.theme-signature-emblem { width: 6rem; height: 3.375rem; }
 .theme-emblem-fallback { display: grid; place-items: center; border: 1px solid currentColor; color: currentColor; font-family: ui-monospace, Consolas, monospace; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.05em; }
 
-.signature-demon-mark { color: #e7c65a; border-color: rgb(168 121 255 / 44%); border-bottom-color: #e7c65a; }
+.signature-demon-mark { color: #e7c65a; }
 .signature-demon-mark small { color: #c49bff; }
-.demon-mark-small { width: 1.75rem; height: 1.75rem; overflow: visible; object-fit: contain; filter: drop-shadow(0 0 5px rgb(168 121 255 / 60%)); }
 
 .sao-activation-interface { position: absolute; inset: 0; color: #9feeff; font-family: ui-monospace, Consolas, 'Liberation Mono', monospace; }
 .sao-hud-frame { position: absolute; inset: clamp(1rem, 4vw, 3.5rem); animation: sao-hud-frame-in 1.65s ease-out both; }

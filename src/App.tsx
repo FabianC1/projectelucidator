@@ -1401,11 +1401,20 @@ function App() {
       completionRef.current = null
       if (historyIndexRef.current === history.length) commandDraftRef.current = event.currentTarget.value
       historyIndexRef.current = Math.max(0, historyIndexRef.current - 1)
+      while (historyIndexRef.current > 0
+        && history[historyIndexRef.current - 1] === history[historyIndexRef.current]) {
+        historyIndexRef.current -= 1
+      }
       setCommand(history[historyIndexRef.current])
     } else if (event.key === 'ArrowDown' && historyIndexRef.current < history.length) {
       event.preventDefault()
       completionRef.current = null
+      const currentHistoryCommand = history[historyIndexRef.current]
       historyIndexRef.current += 1
+      while (historyIndexRef.current < history.length
+        && history[historyIndexRef.current] === currentHistoryCommand) {
+        historyIndexRef.current += 1
+      }
       setCommand(historyIndexRef.current === history.length
         ? commandDraftRef.current
         : history[historyIndexRef.current])
@@ -1749,13 +1758,13 @@ function App() {
       >
         {themeSignature === 'aincrad' && !stealthIdentity && (
           <div className="console-theme-signature signature-aincrad" aria-hidden="true">
-            <ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title="LINK START" />
+            <span className="theme-signature-emblem-frame"><ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title="LINK START" /></span>
             <span><b>AINCRAD SYSTEM</b><small>LINK STABLE · FLOOR 01</small></span>
           </div>
         )}
         {themeSignature === 'demon-mark' && !stealthIdentity && (
           <div className="console-theme-signature signature-demon-mark" aria-hidden="true">
-              <ThemeEmblem className="demon-mark-small theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? STEALTH_PRESENTATION.emblemAsset} title="DRAGON SIN OF WRATH" />
+            <span className="theme-signature-emblem-frame"><ThemeEmblem className="theme-signature-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? STEALTH_PRESENTATION.emblemAsset} title="DRAGON SIN OF WRATH" /></span>
             <span><b>DEMON MARK</b><small>POWER UNSEALED</small></span>
           </div>
         )}
@@ -1765,11 +1774,11 @@ function App() {
             style={{ '--signature-accent': activePresentation.accent, '--signature-secondary': activePresentation.secondary } as CSSProperties}
             aria-hidden="true"
           >
-            <ThemeEmblem
+            <span className="theme-signature-emblem-frame"><ThemeEmblem
               className="theme-signature-emblem theme-emblem-image"
               src={stealthIdentity ? STEALTH_PRESENTATION.emblemAsset : activeThemeSystem?.emblemAsset ?? STEALTH_PRESENTATION.emblemAsset}
               title={activePresentation.title}
-            />
+            /></span>
             <span><b>{activePresentation.title}</b><small>{activePresentation.subtitle}</small></span>
           </div>
         )}
