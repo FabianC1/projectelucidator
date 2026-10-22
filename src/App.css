@@ -1531,8 +1531,8 @@
 .console-theme-signature {
   position: absolute;
   z-index: 1;
-  top: -2.55rem;
-  right: 0;
+  top: -2.15rem;
+  right: 0.55rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1542,7 +1542,8 @@
   padding: 0.22rem 0.55rem;
   border: 1px solid color-mix(in srgb, var(--signature-accent, var(--theme-primary, #00d8ff)) 42%, transparent);
   border-bottom-color: color-mix(in srgb, var(--signature-secondary, var(--theme-secondary, #eafcff)) 64%, transparent);
-  background: rgb(0 7 14 / 88%);
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, var(--theme-panel, #00080d) 88%, transparent);
   color: var(--signature-accent, var(--theme-primary, #00d8ff));
   font-family: ui-monospace, Consolas, 'Liberation Mono', monospace;
   letter-spacing: 0.08em;
@@ -1550,12 +1551,35 @@
   animation: signature-power-on 520ms ease-out both;
 }
 
+.console-theme-signature::before,
+.console-theme-signature::after {
+  content: '';
+  position: absolute;
+  right: 0.78rem;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.console-theme-signature::before {
+  bottom: -0.17rem;
+  width: 0.9rem;
+  height: 0.18rem;
+  background: color-mix(in srgb, var(--signature-accent, var(--theme-primary, #00d8ff)) 58%, transparent);
+}
+
+.console-theme-signature::after {
+  bottom: -0.15rem;
+  right: 0.81rem;
+  width: 0.84rem;
+  height: 0.16rem;
+  background: color-mix(in srgb, var(--theme-panel, #00080d) 88%, transparent);
+}
+
 .console-theme-signature > span:last-child { display: grid; gap: 0.12rem; min-width: 0; flex: 1; }
 .console-theme-signature b, .console-theme-signature small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .console-theme-signature b { font-size: 0.52rem; }
 .console-theme-signature small { color: var(--signature-secondary, var(--theme-secondary, #eafcff)); font-size: 0.43rem; }
 
-.theme-signature-emblem-frame { position: relative; display: block; width: 1.75rem; height: 1.75rem; flex: 0 0 1.75rem; overflow: hidden; }
+.theme-signature-emblem-frame { position: relative; display: block; width: 1.75rem; height: 1.75rem; flex: 0 0 1.75rem; overflow: hidden; box-sizing: border-box; border: 1px solid color-mix(in srgb, currentColor 72%, transparent); border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, currentColor 20%, transparent), rgb(0 5 12 / 92%) 72%); box-shadow: inset 0 0 8px color-mix(in srgb, currentColor 22%, transparent), 0 0 8px color-mix(in srgb, currentColor 28%, transparent); }
 .theme-signature-emblem { position: absolute; top: 50%; left: 50%; display: block; width: 100%; height: 100%; max-width: none; flex: 0 0 auto; object-fit: contain; transform: translate(-50%, -50%); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--signature-accent, var(--theme-primary, #00d8ff)) 68%, transparent)); }
 .signature-aincrad img.theme-signature-emblem { width: 6rem; height: 3.375rem; }
 .theme-emblem-fallback { display: grid; place-items: center; border: 1px solid currentColor; color: currentColor; font-family: ui-monospace, Consolas, monospace; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.05em; }
