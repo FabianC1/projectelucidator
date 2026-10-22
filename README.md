@@ -54,21 +54,18 @@ Press Tab to complete a command. When a prefix has multiple matches, press Tab r
 | `sys layout reset` | Restore the default console and widget positions |
 | `sys standby` | Return the console output to the `ELUCIDATOR // MAINFRAME` home screen |
 | `sys arise` | Activate the persistent Solo Leveling purple interface |
-| `sys link start` | Restore the standard cyan interface |
+| `sys link start` | Activate the SAO interface with its Aincrad scan and holographic menu |
 | `sys theme default set` | Save the currently active system theme as the startup theme |
 | `sys theme default select` | List themes; append a number or theme name to choose the startup theme |
 | `sys theme list` | Show registered theme systems and their feature commands |
-| `sys theme activate <THEME>` | Activate a registered theme by name or alias, such as `sao` or `demon mode` |
+| `sys theme activate <THEME>` | Activate a registered theme by name or alias, such as `sao`, `link start`, or `demon mode` |
 | `sys theme feature` | List and run feature effects provided by the active theme |
 | `sys grimoire` / `sys anti-magic` | Activate Black Clover crimson themes; anti-magic also pulses across the screen |
 | `sys domain expansion` / `sys limitless` | Activate Jujutsu Kaisen violet-blue themes and spatial ripple effects |
-| `sys breathing water` | Activate Tanjiro-inspired deep blue Water Breathing |
 | `sys hinokami kagura` | Activate the orange Sun Breathing theme |
 | `sys demon mode` | Activate Seven Deadly Sins gold and purple theme |
 | `sys httyd` / `sys night fury` | Activate the Toothless Night Fury theme: black `#080B10`, plasma cyan `#70E8FF`, Night Fury blue `#5265D8`, and steel grey `#A8B2C1` |
-| `sys plasma` | Trigger a plasma-core charge ripple |
 | `sys stealth` | Toggle persistent Night Fury stealth; clicking the command input restores the widgets and interface |
-| `sys alpha` | Trigger the Night Fury full-power flare |
 | `sys full counter` | Send a purple scan wave back across the wallpaper |
 | `visual list` / `visual status` | List visual overlays or show the active one |
 | `visual haze` / `visual rain` / `visual lightning` | Activate one lightweight atmospheric overlay |
@@ -81,20 +78,19 @@ The primary color drives the console and widget structure, the secondary color h
 
 | Theme command | Primary | Secondary | Depth accent |
 | --- | --- | --- | --- |
-| `sys link start` | SAO cyan `#00D8FF` | Ice `#EAFCFF` | Blue `#286BFF` |
+| `sys link start` / `sys theme activate sao` | SAO cyan `#00D8FF` | Ice `#EAFCFF` | Blue `#286BFF` |
 | `sys arise` | Solo Leveling purple `#9B5DE5` | Pale violet `#E0C2FF` | Deep purple `#5A189A` |
 | `sys grimoire` | Crimson `#E63946` | Pale red `#FFB4B8` | Burgundy `#7F1D2D` |
 | `sys anti-magic` | Red `#F43F5E` | Violet `#C4B5FD` | Dark crimson `#4C0519` |
 | `sys domain expansion` | Violet `#9B7AFF` | Electric blue `#67C7FF` | Indigo `#312E81` |
 | `sys limitless` | Electric blue `#60A5FA` | Pale violet `#C4B5FD` | Cobalt `#1D4ED8` |
-| `sys breathing water` | Water blue `#3478F6` | Aqua `#70E1F5` | Deep blue `#123D83` |
 | `sys hinokami kagura` | Sun orange `#F47B20` | Tanjiro blue `#5DA8FF` | Burnt orange `#9A3412` |
 | `sys demon mode` | Gold `#E7C65A` | Purple `#A879FF` | Deep violet `#51317E` |
 | `sys httyd` / `sys night fury` | Plasma cyan `#70E8FF` | Night Fury blue `#5265D8` | Steel `#A8B2C1` |
 
 Theme behavior is registered in `src/themeSystems.ts`: each entry declares aliases, activation response and transition, optional signature, feature commands, optional widget layout, and an optional sound cue path. `sys theme activate` and `sys theme feature` use that registry, so themes can reuse the current transition effects without adding another parallel command tree. A theme that needs a new visual transition adds a CSS effect; a new type of functionality needs an adapter in the app. Sound cue metadata is reserved for a future audio adapter and does not play audio yet.
 
-For SAO, activate `sys link start` or `sys theme activate sao`, then run `sys theme feature` to see its `system scan` and `sword skill` sequences. For Seven Deadly Sins, activate `sys demon mode` or `sys theme activate meliodas`, then use `sys theme feature` for the Demon Mark surge and Full Counter effects.
+For SAO, activate `sys link start` or `sys theme activate sao`, then run `sys theme feature` to see its `system scan` and `sword skill` sequences. For Seven Deadly Sins, activate `sys demon mode` or `sys theme activate meliodas`, then use `sys theme feature` for the Dragon Sin emblem and Full Counter effects.
 
 ### Widgets
 

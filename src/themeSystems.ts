@@ -5,12 +5,11 @@ export type ThemeId =
   | 'anti-magic'
   | 'domain-expansion'
   | 'limitless'
-  | 'breathing-water'
   | 'breathing-sun'
   | 'demon-mode'
   | 'dragon'
 
-export type ThemeTransition = 'link-start' | 'arise' | 'anti-magic' | 'domain' | 'limitless' | 'breathing-water' | 'breathing-sun' | 'demon' | 'plasma-charge' | 'system-scan' | 'sword-skill' | 'full-counter' | 'demon-mark'
+export type ThemeTransition = 'link-start' | 'arise' | 'anti-magic' | 'domain' | 'limitless' | 'breathing-sun' | 'demon' | 'system-scan' | 'sword-skill' | 'full-counter' | 'demon-mark'
 export type ThemeSignature = 'aincrad' | 'demon-mark' | 'none'
 export type ThemeFeatureDefinition = { name: string; aliases: string[]; effect: ThemeTransition; response: string[] }
 
@@ -32,7 +31,7 @@ export type ThemeSystemDefinition = {
 /** Registry for command aliases, activation behavior, and theme identity UI. */
 export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
   {
-    id: 'sao', label: 'SWORD ART ONLINE / AINCRAD', command: 'link start', aliases: ['sao', 'aincrad', 'sword art online', 'link start'],
+    id: 'sao', label: 'SWORD ART ONLINE / AINCRAD', command: 'sao', aliases: ['sao', 'aincrad', 'sword art online', 'link start'],
     activationEffect: 'link-start', signature: 'aincrad',
     activationResponse: ['ELUCIDATOR // AINCRAD SYSTEM', 'SYSTEM LINK ............ ESTABLISHED', 'HOLO-MENU .............. SYNCHRONIZED', 'SWORD SKILLS ........... READY', 'WORLD STATE ............ STABLE'],
     features: [
@@ -66,12 +65,7 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
     activationResponse: ['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ...... ACTIVE', 'INFINITY FIELD .......... STABLE'],
   },
   {
-    id: 'breathing-water', label: 'DEMON SLAYER / WATER BREATHING', command: 'breathing water', aliases: ['breathing water', 'water breathing'],
-    activationEffect: 'breathing-water', signature: 'none',
-    activationResponse: ['WATER BREATHING', 'FLOW STATE .............. SYNCHRONIZED', 'SYSTEM COLOR ............ DEEP WATER BLUE'],
-  },
-  {
-    id: 'breathing-sun', label: 'DEMON SLAYER / HINOKAMI KAGURA', command: 'hinokami kagura', aliases: ['hinokami kagura', 'breathing sun', 'sun breathing'],
+    id: 'breathing-sun', label: 'DEMON SLAYER / HINOKAMI KAGURA', command: 'hinokami kagura', aliases: ['hinokami kagura'],
     activationEffect: 'breathing-sun', signature: 'none',
     activationResponse: ['HINOKAMI KAGURA', 'FLAME BREATHING ......... IGNITED', 'SYSTEM COLOR ............ SUNSET RED'],
   },

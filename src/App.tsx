@@ -49,7 +49,6 @@ const THEME_STATUS: Record<ThemeId, { title: string; state: string; metric: stri
   'anti-magic': { title: 'ANTI-MAGIC RELEASE', state: 'NULLIFIER FIELD ACTIVE', metric: 'NULLIFIER', value: 'ACTIVE' },
   'domain-expansion': { title: 'CURSED ENERGY', state: 'DOMAIN FIELD DEPLOYED', metric: 'FIELD STATE', value: 'STABLE' },
   limitless: { title: 'LIMITLESS', state: 'INFINITY FIELD ACTIVE', metric: 'CURSED TECHNIQUE', value: 'INFINITY' },
-  'breathing-water': { title: 'WATER BREATHING', state: 'FLOW STATE SYNCHRONIZED', metric: 'BREATH FORM', value: 'FLOWING' },
   'breathing-sun': { title: 'HINOKAMI KAGURA', state: 'SOLAR BREATH IGNITED', metric: 'FLAME STATE', value: 'IGNITED' },
   'demon-mode': { title: 'DRAGON SIN', state: 'DEMON POWER RELEASED', metric: 'MAGIC POWER', value: 'UNRESTRICTED' },
   dragon: { title: 'NIGHT FURY', state: 'PLASMA CORE CHARGING', metric: 'PLASMA CORE', value: 'CHARGING' },
@@ -229,12 +228,25 @@ function resolveThemeChoice(value: string): ThemeId | null {
 }
 
 function DemonMark({ className }: { className: string }) {
+  const nodes = [
+    [50, 16, 0], [69, 21, 30], [82, 37, 60], [86, 56, 90],
+    [78, 74, 120], [65, 87, 150], [50, 92, 180], [35, 87, 210],
+    [22, 74, 240], [14, 56, 270], [18, 37, 300], [31, 21, 330],
+  ] as const
+
   return (
     <svg className={className} viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-      <path d="M50 8C32 8 19 19 18 35c-1 11 5 18 14 18 7 0 11-5 10-11-1-5-8-7-11-2-3 4 1 9 5 7 3-1 4-5 2-7" />
-      <path d="M50 8c18 0 31 11 32 27 1 11-5 18-14 18-7 0-11-5-10-11 1-5 8-7 11-2 3 4-1 9-5 7-3-1-4-5-2-7" />
-      <path d="M24 15 13 8l2 20M76 15l11-7-2 20M50 18v25c0 9-8 12-14 17-8 7-8 20 1 26 7 6 18 4 22-3 4-6 1-14-6-16-5-1-9 2-9 6M50 43c0 9 8 12 14 17 8 7 8 20-1 26-7 6-18 4-22-3" />
-      <path d="M39 60c5 3 7 8 5 12m17-12c-5 3-7 8-5 12M41 49h4m10 0h4" />
+      <circle className="demon-emblem-chain" cx="50" cy="56" r="35" />
+      {nodes.map(([x, y, angle], index) => (
+        <g className="demon-emblem-node" key={index} transform={`translate(${x} ${y})`}>
+          <path className="demon-emblem-spike" transform={`rotate(${angle})`} d="M0 -5.4 2.5 -11.5 0 -10.2 -2.5 -11.5Z" />
+          <circle className="demon-emblem-eye" r="6.2" />
+          <circle className="demon-emblem-eye-core" r="3.7" />
+          <circle className="demon-emblem-eye-pupil" r="1.7" />
+        </g>
+      ))}
+      <path className="demon-emblem-dragon" d="M49 35 44 29 39 31 36 24 32 29 27 27 29 34 23 33 28 40 22 40 29 46 24 49 34 52 30 57 39 57 37 63 44 60 46 68 51 62 57 66 56 59 63 61 59 54 66 50 59 46 64 40 57 42 58 34 52 38Z" />
+      <path className="demon-emblem-horn" d="M42 34 38 20 47 30M51 35 60 19 57 37M32 42 21 38 29 48" />
     </svg>
   )
 }
@@ -329,7 +341,7 @@ const COMMAND_COMPLETIONS = [
   'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys anti-magic', 'sys domain expansion', 'sys limitless',
-  'sys breathing water', 'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys httyd', 'sys night fury', 'sys plasma', 'sys stealth', 'sys alpha', 'sys help', 'help',
+  'sys hinokami kagura', 'sys demon mode', 'sys full counter', 'sys httyd', 'sys night fury', 'sys stealth', 'sys help', 'help',
   'visual list', 'visual haze', 'visual rain', 'visual lightning', 'visual particles', 'visual vignette', 'visual off', 'visual status',
 ]
 
@@ -353,7 +365,6 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0, activeTh
   if (/^sys mode\s+$/.test(prefix)) {
     return ['normal', 'stealth', 'combat', 'idle', 'diagnostic'].map((mode) => `sys mode ${mode}`)
   }
-  if (/^sys breathing\s+$/.test(prefix)) return ['sys breathing water', 'sys hinokami kagura']
   if (/^sys widgets\s+$/.test(prefix)) return ['sys widgets all on', 'sys widgets all off', 'sys widgets size ']
   if (/^sys widgets size\s+$/.test(prefix)) return WIDGET_SCALES.map((scale) => `sys widgets size ${scale}`)
   if (/^sys widget size\s+$/.test(prefix)) return WIDGET_IDS.map((id) => `sys widget size ${id} `)
@@ -415,7 +426,6 @@ function App() {
   })
   const [specialEffect, setSpecialEffect] = useState<SpecialEffect | null>(null)
   const [nightStealth, setNightStealth] = useState(false)
-  const [nightFuryAlpha, setNightFuryAlpha] = useState(false)
   const [hardwareFeed, setHardwareFeed] = useState<HardwareFeed>({ status: 'waiting', readings: null, updatedAt: null })
   const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(null)
   const [nowPlayingStatus, setNowPlayingStatus] = useState<NowPlayingStatus>('waiting')
@@ -986,7 +996,6 @@ function App() {
       } else {
         setTheme(selectedSystem.id)
         setNightStealth(false)
-        setNightFuryAlpha(false)
         setSpecialEffect(selectedSystem.activationEffect
           ? { kind: selectedSystem.activationEffect, id: ++effectIdRef.current }
           : null)
@@ -995,37 +1004,21 @@ function App() {
         setStatus(`${selectedSystem.label} ACTIVATED`)
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE|FEATURE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS BREATHING WATER · SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS PLASMA · SYS STEALTH · SYS ALPHA', 'SYS LINK START · RESTORE CYAN'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE|FEATURE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS DOMAIN EXPANSION', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS STEALTH · SYS FULL COUNTER', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       setTheme('dragon')
-      setNightFuryAlpha(false)
       setNightStealth(false)
       report(['NIGHT FURY', 'ELUCIDATOR // TOOTHLESS PROTOCOL', 'ONLINE', 'PLASMA CORE // STANDBY', 'NIGHT FURY SIGNATURE DETECTED'])
       setStatus('NIGHT FURY PROTOCOL ACTIVATED')
-    } else if (domain === 'plasma' && args.length === 1) {
-      setTheme('dragon')
-      setNightFuryAlpha(false)
-      setNightStealth(false)
-      setSpecialEffect({ kind: 'plasma-charge', id: ++effectIdRef.current })
-      report(['PLASMA CORE // CHARGING', 'NIGHT FURY SIGNATURE DETECTED', 'PLASMA OUTPUT .......... 78%'])
-      setStatus('PLASMA CORE CHARGED · 78%')
     } else if (domain === 'stealth' && args.length === 1) {
       setTheme('dragon')
-      setNightFuryAlpha(false)
       const activate = !nightStealth
       setNightStealth(activate)
       report(activate
         ? ['NIGHT FURY STEALTH', 'SIGNATURE .............. SUPPRESSED', 'LOW-LIGHT PROFILE ...... ACTIVE', 'WIDGET ARRAY ........... HIDDEN · CLICK COMMAND INPUT TO RESTORE']
         : ['NIGHT FURY STEALTH', 'SIGNATURE .............. RESTORED', 'WIDGET ARRAY ........... ONLINE'])
       setStatus(activate ? 'NIGHT FURY STEALTH ENGAGED' : 'NIGHT FURY STEALTH DISENGAGED')
-    } else if (domain === 'alpha' && args.length === 1) {
-      setTheme('dragon')
-      setNightStealth(false)
-      setNightFuryAlpha(true)
-      setSpecialEffect({ kind: 'alpha', id: ++effectIdRef.current })
-      report(['ALPHA PROTOCOL // TOOTHLESS', 'PLASMA CORE ............ FULL POWER', 'NIGHT FURY SIGNATURE ... MAXIMUM'])
-      setStatus('NIGHT FURY ALPHA · FULL POWER')
     } else if (domain === 'grimoire' && args.length === 1) {
       setNightStealth(false)
       setTheme('grimoire')
@@ -1049,17 +1042,12 @@ function App() {
       setSpecialEffect({ kind: 'limitless', id: ++effectIdRef.current })
       report(['LIMITLESS TECHNIQUE', 'SPATIAL DISTORTION ....... ACTIVE', 'INFINITY FIELD .......... STABLE'])
       setStatus('LIMITLESS PROTOCOL ACTIVATED')
-    } else if ((domain === 'breathing' && action === 'water' && args.length === 2)
-      || (domain === 'hinokami' && action === 'kagura' && args.length === 2)
-      || (domain === 'breathing' && action === 'sun' && args.length === 2)) {
-      const sun = domain === 'hinokami' || action === 'sun'
+    } else if (domain === 'hinokami' && action === 'kagura' && args.length === 2) {
       setNightStealth(false)
-      setTheme(sun ? 'breathing-sun' : 'breathing-water')
-      setSpecialEffect({ kind: sun ? 'breathing-sun' : 'breathing-water', id: ++effectIdRef.current })
-      report(sun
-        ? ['HINOKAMI KAGURA', 'FLAME BREATHING .......... IGNITED', 'SYSTEM COLOR ............ SUNSET RED']
-        : ['WATER BREATHING', 'FLOW STATE .............. SYNCHRONIZED', 'SYSTEM COLOR ............ DEEP WATER BLUE'])
-      setStatus(`${sun ? 'SUN' : 'WATER'} BREATHING ACTIVATED`)
+      setTheme('breathing-sun')
+      setSpecialEffect({ kind: 'breathing-sun', id: ++effectIdRef.current })
+      report(['HINOKAMI KAGURA', 'FLAME BREATHING .......... IGNITED', 'SYSTEM COLOR ............ SUNSET RED'])
+      setStatus('HINOKAMI KAGURA ACTIVATED')
     } else if (domain === 'demon' && action === 'mode' && args.length === 2) {
       setNightStealth(false)
       setTheme('demon-mode')
@@ -1080,9 +1068,8 @@ function App() {
       setTheme('sao')
       setSpecialEffect({ kind: 'link-start', id: ++effectIdRef.current })
       setNightStealth(false)
-      setNightFuryAlpha(false)
       report(THEME_SYSTEMS.find((system) => system.id === 'sao')?.activationResponse ?? ['SYSTEM LINK ESTABLISHED'])
-      setStatus('SYSTEM LINK STARTED · CYAN THEME RESTORED')
+      setStatus('SYSTEM LINK STARTED')
     } else if (domain === 'status' && args.length === 1) {
       report([
         'ELUCIDATOR // SYSTEM CONSOLE',
@@ -1539,7 +1526,7 @@ function App() {
   }
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${nightFuryAlpha ? ' night-fury-alpha' : ''}`}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}`}>
       {wallpaperUrl && (
         <img
           key={bootToken}
