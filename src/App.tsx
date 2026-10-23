@@ -2330,14 +2330,14 @@ function App() {
           <article className={`system-widget widget-2${leavingWidgetIds.includes(2) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(2)} style={positionWidget(2)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 2)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>02 / LOCAL TIME</span><i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close local time widget">×</button></header>
             <div className={`clock-widget-display${theme === 'demon-mode' ? ' demon-digital-clock' : theme === 'tokyo-ghoul' ? ' kagune-digital-clock' : ''}`}>
-              {theme !== 'demon-mode' && theme !== 'tokyo-ghoul' && <div className="clock-face" style={clockStyle} aria-hidden="true">
+              {theme !== 'demon-mode' && theme !== 'tokyo-ghoul' && theme !== 'dragon' && <div className="clock-face" style={clockStyle} aria-hidden="true">
                 <span className="clock-hand clock-hand-hour" />
                 <span className="clock-hand clock-hand-minute" />
                 <span className="clock-hand clock-hand-second" />
                 <span className="clock-pin" />
               </div>}
               <div className="clock-widget-copy">
-                <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, theme === 'demon-mode' || theme === 'tokyo-ghoul' ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{(theme === 'demon-mode' || theme === 'tokyo-ghoul') && <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>}</strong>
+                <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon' ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{(theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon') && <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>}</strong>
                 <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
                 <small>LOCAL CHRONOMETER · {clockZone.toUpperCase()}</small>
               </div>
