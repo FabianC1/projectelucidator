@@ -51,8 +51,17 @@ type HardwareFeedStatus = 'waiting' | 'live' | 'browser' | 'stale' | 'invalid'
 type HardwareFeed = { status: HardwareFeedStatus; readings: LivelySystemInfo | null; updatedAt: number | null }
 type NowPlayingTrack = { title: string; artist: string; album: string; artwork: string | null; playbackType: string }
 type NowPlayingStatus = 'waiting' | 'browser' | 'none' | 'track' | 'invalid'
+type QuickShortcut = { id: string; label: string; icon: string; target: string }
 
 const WIDGET_IDS = [1, 2, 3, 4, 5] as const
+const QUICK_SHORTCUTS: QuickShortcut[] = [
+  { id: 'warframe', label: 'Warframe', icon: '◈', target: 'warframe' },
+  { id: 'vscode', label: 'VS Code', icon: '⌘', target: 'vscode' },
+  { id: 'chrome', label: 'Chrome', icon: '◉', target: 'chrome' },
+  { id: 'roblox', label: 'Roblox', icon: '◇', target: 'roblox' },
+  { id: 'netflix', label: 'Netflix', icon: 'N', target: 'netflix' },
+  { id: 'alecaframe', label: 'AlecaFrame', icon: 'A', target: 'alecaframe' },
+]
 const SUN_BREATHING_KATANA = './assets/swords/sun-breathing-katana.png'
 const HINOKAMI_FIREBLADE = './assets/swords/hinokami-fireblade.png'
 const WIDGET_SCALES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const
@@ -61,7 +70,7 @@ type WidgetScales = Partial<Record<number, WidgetScale>>
 const WIDGET_TITLES: Record<number, string> = {
   1: 'HARDWARE TELEMETRY',
   2: 'WORLD CLOCK',
-  3: 'SESSION MONITOR',
+  3: 'QUICK LAUNCH',
   4: 'AUDIO LINK',
   5: 'ANIME STATUS',
 }
@@ -111,6 +120,7 @@ const DEFAULT_WALLPAPER_NAME = '3d-render-bloom-3840x1080-27150.jpg'
 const WIDGET_PREF_KEY = 'project-elucidator-widgets'
 const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
 const WIDGET_SCALE_KEY = 'project-elucidator-widget-scales'
+const QUICK_SHORTCUTS_KEY = 'project-elucidator-quick-shortcuts'
 const WIDGET_LAYOUT_KEY = 'project-elucidator-widget-layout'
 const CONSOLE_FRAME_KEY = 'project-elucidator-console-frame'
 const LAYOUT_PRESETS_KEY = 'project-elucidator-layout-presets'
@@ -549,6 +559,14 @@ function App() {
   const [hardwareFeed, setHardwareFeed] = useState<HardwareFeed>({ status: 'waiting', readings: null, updatedAt: null })
   const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(null)
   const [nowPlayingStatus, setNowPlayingStatus] = useState<NowPlayingStatus>('waiting')
+  const [quickShortcuts] = useState<QuickShortcut[]>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(QUICK_SHORTCUTS_KEY) ?? 'null') as unknown
+      if (!Array.isArray(stored) || stored.length !== QUICK_SHORTCUTS.length) return QUICK_SHORTCUTS
+      const valid = stored.every((item) => item && typeof item === 'object' && typeof (item as QuickShortcut).id === 'string' && typeof (item as QuickShortcut).label === 'string' && typeof (item as QuickShortcut).icon === 'string' && typeof (item as QuickShortcut).target === 'string')
+      return valid ? stored as QuickShortcut[] : QUICK_SHORTCUTS
+    } catch { return QUICK_SHORTCUTS }
+  })
   const [wallpaperLibrary, setWallpaperLibrary] = useState<Array<{ id: string; wallpaper: SavedWallpaper }>>([])
   const [enabledWidgets, setEnabledWidgets] = useState<number[]>(readEnabledWidgetPreferences)
   const [renderedWidgets, setRenderedWidgets] = useState<number[]>(readEnabledWidgetPreferences)
@@ -820,6 +838,10 @@ function App() {
   }, [setStorageIssue, startupConfigHydrated, widgetScales])
 
   useEffect(() => {
+    try { localStorage.setItem(QUICK_SHORTCUTS_KEY, JSON.stringify(quickShortcuts)) } catch { /* shortcuts remain usable for this session */ }
+  }, [quickShortcuts])
+
+  useEffect(() => {
     if (!startupConfigHydrated) return
     try { localStorage.setItem(WIDGET_LAYOUT_KEY, widgetLayout); setStorageIssue('widget layout write', null) }
     catch (error) { setStorageIssue('widget layout write', error) }
@@ -1030,6 +1052,10 @@ function App() {
   }
 
   const report = (lines: string[]) => setConsoleLines(lines)
+  const onLaunchShortcut = (shortcut: QuickShortcut) => {
+    report(['QUICK LAUNCH', `${shortcut.label.toUpperCase()} ............ PLACEHOLDER`, 'LAUNCH INTEGRATION COMING SOON'])
+    setStatus(`QUICK LAUNCH · ${shortcut.label.toUpperCase()} · COMING SOON`)
+  }
   const openWidget = (id: number) => {
     if (id === 2 || id === 3) setClockNow(new Date())
     const timer = widgetExitTimersRef.current.get(id)
@@ -2264,11 +2290,11 @@ function App() {
           <article className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>01 / HARDWARE</span><i>{hardwareStatusLabel(hardwareFeed.status)}</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
             <strong className="hardware-host">{hardwareFeed.readings?.cpuName ?? 'HOST TELEMETRY'} · {hardwareFeed.readings?.gpuName ?? 'GPU'} </strong>
-            {theme === 'demon-mode' || theme === 'tokyo-ghoul' ? (() => {
+            {theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon' ? (() => {
               const readings = hardwareFeed.readings
               const ramPercent = readings?.ramTotalMb != null && readings.ramTotalMb > 0 && readings.ramAvailableMb != null ? (readings.ramTotalMb - readings.ramAvailableMb) / readings.ramTotalMb * 100 : null
               const ramUsed = readings?.ramTotalMb != null && readings.ramAvailableMb != null ? readings.ramTotalMb - readings.ramAvailableMb : null
-              return <div className={theme === 'demon-mode' ? 'demon-hardware-grid' : 'kagune-hardware-grid'}>
+              return <div className={theme === 'demon-mode' ? 'demon-hardware-grid' : theme === 'tokyo-ghoul' ? 'kagune-hardware-grid' : 'night-fury-hardware-grid'}>
                 <DiagnosticMeter label="CPU LOAD" percent={readings?.cpuPercent ?? null} value={readings?.cpuPercent == null ? 'UNAVAILABLE' : `${Math.round(readings.cpuPercent)}%`} history={hardwareHistory.cpu} />
                 <DiagnosticMeter label="GPU 3D" percent={readings?.gpu3dPercent ?? null} value={readings?.gpu3dPercent == null ? 'UNAVAILABLE' : `${Math.round(readings.gpu3dPercent)}%`} history={hardwareHistory.gpu} />
                 <DiagnosticMeter label="RAM" percent={ramPercent} value={ramPercent == null ? 'UNAVAILABLE' : `${Math.round(ramPercent)}%`} history={hardwareHistory.ram} detail={ramUsed == null || readings?.ramTotalMb == null ? undefined : `${(ramUsed / 1024).toFixed(1)} / ${(readings.ramTotalMb / 1024).toFixed(1)} GB`} />
@@ -2318,8 +2344,8 @@ function App() {
         )}
         {renderedWidgets.includes(3) && (
           <article className={`system-widget widget-3${leavingWidgetIds.includes(3) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(3)} style={positionWidget(3)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>03 / SESSION RECORDER</span><i>LIVE</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close session recorder widget">×</button></header>
-            <div className={`session-recorder${theme === 'tokyo-ghoul' ? ' kagune-session-trace' : ''}`}><div className="kagune-trace-time"><strong>{formatUptime((clockNow.getTime() - sessionStartedAt.current) / 1000)}</strong><span>SESSION RECORDER</span></div><div className="kagune-trace-data"><p><span>WALLPAPER ACTIVE</span><b>{wallpaperUrl ? formatUptime((clockNow.getTime() - wallpaperStartedAt.current) / 1000) : 'NOT LOADED'}</b></p><p><span>TELEMETRY FEED</span><b>{hardwareStatusLabel(hardwareFeed.status)}</b></p></div><p className="kagune-trace-wallpaper"><span>ACTIVE IMAGE</span><b>{wallpaperUrl ? wallpaperName.toUpperCase() : 'NONE'}</b></p></div>
+            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>03 / QUICK LAUNCH</span><i>PLACEHOLDER</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close quick launch widget">×</button></header>
+            <div className="quick-launch-grid">{quickShortcuts.map((shortcut) => <button key={shortcut.id} className={`quick-launch-tile shortcut-${shortcut.id}`} onClick={() => onLaunchShortcut(shortcut)} title={`${shortcut.label} · launch integration coming soon`}><span aria-hidden="true">{shortcut.icon}</span><b>{shortcut.label}</b></button>)}</div>
           </article>
         )}
         {renderedWidgets.includes(4) && (
