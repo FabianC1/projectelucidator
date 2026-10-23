@@ -9,6 +9,9 @@ $helperArchivePath = Join-Path $projectRoot 'ProjectElucidator.BrightnessHelper.
 if (-not (Test-Path -LiteralPath $metadataPath -PathType Leaf)) {
   throw 'dist/LivelyInfo.json is missing. Run npm run build first.'
 }
+if (Test-Path -LiteralPath (Join-Path $distPath 'elucidator-private-bootstrap.json') -PathType Leaf) {
+  throw 'The private pairing bootstrap must never be included in a Lively package.'
+}
 
 $metadata = Get-Content -LiteralPath $metadataPath -Raw | ConvertFrom-Json
 if ($metadata.FileName -ne 'index.html' -or $metadata.Type -ne 1 -or $metadata.Arguments -notmatch '--system-information') {
@@ -22,6 +25,7 @@ $helperFiles = @(
   (Join-Path $PSScriptRoot 'brightness-helper.ps1'),
   (Join-Path $PSScriptRoot 'brightness-watchdog.ps1'),
   (Join-Path $PSScriptRoot 'install-brightness-helper.ps1'),
+  (Join-Path $PSScriptRoot 'update-installed-wallpaper.ps1'),
   (Join-Path $PSScriptRoot 'uninstall-brightness-helper.ps1')
 )
 foreach ($helperFile in $helperFiles) {

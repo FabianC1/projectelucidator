@@ -63,5 +63,7 @@ else { Write-Warning 'DDC/CI bridge did not start. The watchdog will retry; chec
 Write-Host 'The pairing credential is stored locally; it is never printed by this installer.'
 Write-Host "To pair once, read $tokenPath on this PC and enter: sys brightness pair <TOKEN>" -ForegroundColor Yellow
 Write-Host 'Then try: sys brightness status | sys brightness 40 | sys brightness monitor 1 60'
-Write-Host 'Startup wallpaper/theme bytes are stored under LocalAppData\ProjectElucidator\startup after an authenticated save.'
+Write-Host 'Pairing also writes a current-user-only credential bootstrap into the active Project Elucidator wallpaper folder.'
+Write-Host 'ADMIN SYS CONFIG SAVE writes the startup manifest and image under the active wallpaper and asks Lively to reload that same folder.'
+Write-Host 'The private bootstrap is excluded from the generated wallpaper package and helper configuration response.'
 Write-Host 'Keep DDC/CI enabled in each monitor OSD. You can remove it with uninstall-brightness-helper.ps1.'

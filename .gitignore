@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 ProjectElucidator.Lively.zip
+elucidator-private-bootstrap.json
 
 # Editor directories and files
 .vscode/*

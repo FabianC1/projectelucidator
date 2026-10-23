@@ -14,7 +14,21 @@ export type StartupConfiguration = {
   wallpaperType: string | null
   wallpaperData: string | null
   theme: string | null
+  settings?: StartupSettings | null
+  installIntoLively?: boolean
   wallpaperError?: string | null
+}
+
+export type StartupSettings = {
+  enabledWidgets: number[]
+  widgetPositions: Record<string, { x: number; y: number }>
+  widgetScales: Partial<Record<number, number>>
+  widgetLayout: string
+  layoutPresets: Record<string, unknown>
+  wallpaperFit: string
+  animationMirror: boolean
+  visualTheme: string
+  consoleFrame: { x: number; y: number; width: number; height: number; anchor?: string } | null
 }
 
 const HELPER_URL = 'http://127.0.0.1:17384'
@@ -148,8 +162,45 @@ export async function readDurableStartupConfiguration() {
   return result.available ? result.configuration ?? null : null
 }
 
+export async function readWallpaperStartupManifest(): Promise<(StartupConfiguration & { wallpaperBlob?: Blob }) | null> {
+  const response = await fetch(new URL('./elucidator-startup.json', window.location.href), { cache: 'no-store' })
+  if (!response.ok || !response.headers.get('content-type')?.includes('json')) return null
+  const manifest = await response.json() as StartupConfiguration & { wallpaperFile?: string; wallpaperHash?: string }
+  if (!manifest.wallpaperFile || !/^elucidator-wallpaper-[a-f0-9]{64}\.(jpg|png|webp|gif|bmp|img)$/.test(manifest.wallpaperFile)) return manifest
+  const imageResponse = await fetch(new URL(manifest.wallpaperFile, window.location.href), { cache: 'no-store' })
+  if (!imageResponse.ok) throw new Error(`INSTALLED STARTUP IMAGE COULD NOT BE READ · HTTP ${imageResponse.status}`)
+  const blob = await imageResponse.blob()
+  if (globalThis.crypto?.subtle && manifest.wallpaperHash) {
+    const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
+    const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+    if (hash !== manifest.wallpaperHash) throw new Error('INSTALLED STARTUP IMAGE FAILED ITS INTEGRITY CHECK')
+  }
+  return { ...manifest, wallpaperBlob: blob }
+}
+
+export async function readPrivateCredentialBootstrap() {
+  const response = await fetch(new URL('./elucidator-private-bootstrap.json', window.location.href), { cache: 'no-store' })
+  if (response.status === 404) return ''
+  if (!response.ok) throw new Error(`PRIVATE CREDENTIAL BOOTSTRAP READ FAILED · HTTP ${response.status}`)
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('json')) return ''
+  const value = await response.json() as { token?: unknown }
+  return typeof value.token === 'string' && /^[A-Za-z0-9_-]{40,60}$/.test(value.token) ? value.token : ''
+}
+
+export async function persistPrivateCredentialBootstrap(token: string) {
+  return request<{ ok: boolean; saved: boolean }>('/api/credential-bootstrap', token, {
+    method: 'POST',
+    body: '{}',
+  })
+}
+
+export async function removePrivateCredentialBootstrap(token: string) {
+  return request<{ ok: boolean; removed: boolean }>('/api/credential-bootstrap', token, { method: 'DELETE' })
+}
+
 export async function saveDurableStartupConfiguration(token: string, configuration: Partial<StartupConfiguration>) {
-  return request<{ ok: boolean; saved: boolean; message: string }>('/api/startup-config', token, {
+  return request<{ ok: boolean; saved: boolean; reloadRequested?: boolean; message: string }>('/api/startup-config', token, {
     method: 'POST',
     body: JSON.stringify(configuration),
   })

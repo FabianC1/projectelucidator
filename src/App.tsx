@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
-import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, readBrightnessTokenBackup, readDurableStartupConfiguration, saveBrightnessToken, saveDurableStartupConfiguration, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
+import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
 import './App.css'
 
@@ -506,7 +506,8 @@ function App() {
   const [readyMessage, setReadyMessage] = useState(false)
   const [bootToken, setBootToken] = useState(0)
   const [command, setCommand] = useState('')
-  const [brightnessToken, setBrightnessToken] = useState(getBrightnessToken)
+  const [brightnessToken, setBrightnessToken] = useState('')
+  const [credentialBootstrapAvailable, setCredentialBootstrapAvailable] = useState(false)
   const [brightnessHelperOnline, setBrightnessHelperOnline] = useState(false)
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
   const [mode, setMode] = useState<SystemMode>('NORMAL')
@@ -620,12 +621,20 @@ function App() {
     let active = true
     void (async () => {
       try {
+        let bootstrapToken = ''
+        try {
+          bootstrapToken = await readPrivateCredentialBootstrap()
+          setStorageIssue('brightness credential bootstrap restore', null)
+        } catch (error) { setStorageIssue('brightness credential bootstrap restore', error) }
+        if (!active) return
+        setCredentialBootstrapAvailable(Boolean(bootstrapToken))
         const tokenBackup = await readBrightnessTokenBackup()
         if (!active) return
         const localToken = getBrightnessToken()
-        const restoredToken = localToken || tokenBackup
-        if (!localToken && tokenBackup) {
-          if (saveBrightnessToken(tokenBackup)) setBrightnessToken(tokenBackup)
+        const restoredToken = bootstrapToken || localToken || tokenBackup
+        if (restoredToken) setBrightnessToken(restoredToken)
+        if (!localToken && restoredToken) {
+          if (saveBrightnessToken(restoredToken)) setBrightnessToken(restoredToken)
           else setStorageIssue('brightness token restore', new Error('Could not restore token to localStorage'))
         }
         if (restoredToken) {
@@ -649,21 +658,59 @@ function App() {
           setStorageIssue('durable startup configuration restore', error)
           return null
         })
-        const [savedDefault, saved, library, defaultVersion, durableConfig] = await Promise.all([
+        const installedConfigPromise = readWallpaperStartupManifest().catch((error: unknown) => {
+          setStorageIssue('installed startup configuration restore', error)
+          return null
+        })
+        const [savedDefault, saved, library, defaultVersion, durableConfig, installedConfig] = await Promise.all([
           readDefaultWallpaper(),
           readSavedWallpaper(),
           readWallpaperLibrary(),
           readDefaultWallpaperVersion(),
           durableConfigPromise,
+          installedConfigPromise,
         ])
+        const startupConfig: StartupConfiguration & { wallpaperBlob?: Blob } | null = durableConfig ?? installedConfig
         if (cancelled) return
         if (!durableConfigReadFailed) setStorageIssue('durable startup configuration restore', null)
+        if (!installedConfig) setStorageIssue('installed startup configuration restore', null)
         if (durableConfig?.wallpaperError) setStorageIssue('durable startup wallpaper integrity', new Error(durableConfig.wallpaperError))
         else setStorageIssue('durable startup wallpaper integrity', null)
-        if (durableConfig?.theme && THEME_SYSTEMS.some((system) => system.id === durableConfig.theme)) {
-          const restoredTheme = durableConfig.theme as ThemeId
+        if (startupConfig?.theme && THEME_SYSTEMS.some((system) => system.id === startupConfig.theme)) {
+          const restoredTheme = startupConfig.theme as ThemeId
           setTheme(restoredTheme)
           setDefaultTheme(restoredTheme)
+        }
+        const preferences = startupConfig?.settings
+        if (preferences) {
+          const enabled = Array.isArray(preferences.enabledWidgets)
+            ? [...new Set(preferences.enabledWidgets.filter((id) => WIDGET_IDS.includes(id as typeof WIDGET_IDS[number])))]
+            : null
+          if (enabled) { setEnabledWidgets(enabled); setRenderedWidgets(enabled) }
+          if (preferences.widgetPositions && typeof preferences.widgetPositions === 'object') {
+            const valid = Object.fromEntries(Object.entries(preferences.widgetPositions).flatMap(([id, position]) => {
+              const item = position as WidgetPosition
+              return WIDGET_IDS.includes(Number(id) as typeof WIDGET_IDS[number]) && Number.isFinite(item?.x) && Number.isFinite(item?.y)
+                ? [[Number(id), { x: Math.min(100, Math.max(0, item.x)), y: Math.min(100, Math.max(0, item.y)) }]]
+                : []
+            })) as WidgetPositions
+            setWidgetPositions(valid)
+          }
+          if (preferences.widgetScales && typeof preferences.widgetScales === 'object') {
+            const valid = Object.fromEntries(Object.entries(preferences.widgetScales).flatMap(([id, scale]) =>
+              WIDGET_IDS.includes(Number(id) as typeof WIDGET_IDS[number]) && WIDGET_SCALES.includes(scale as WidgetScale) ? [[Number(id), scale]] : [],
+            )) as WidgetScales
+            setWidgetScales(valid)
+          }
+          if (['free', 'left', 'right', 'top', 'bottom'].includes(preferences.widgetLayout)) setWidgetLayout(preferences.widgetLayout as WidgetLayout)
+          if (preferences.layoutPresets && typeof preferences.layoutPresets === 'object' && !Array.isArray(preferences.layoutPresets)) setLayoutPresets(preferences.layoutPresets as Record<string, LayoutSnapshot>)
+          if (WALLPAPER_FITS.includes(preferences.wallpaperFit as WallpaperFit)) setWallpaperFit(preferences.wallpaperFit as WallpaperFit)
+          if (typeof preferences.animationMirror === 'boolean') setAnimationMirror(preferences.animationMirror)
+          if (VISUAL_THEMES.includes(preferences.visualTheme as VisualTheme)) setVisualTheme(preferences.visualTheme as VisualTheme)
+          const frame = preferences.consoleFrame
+          if (frame && [frame.x, frame.y, frame.width, frame.height].every(Number.isFinite)) {
+            setConsoleFrame({ x: frame.x, y: frame.y, width: frame.width, height: frame.height, anchor: frame.anchor === 'bottom' ? 'bottom' : 'top' })
+          }
         }
         setWallpaperLibrary(library)
         let activeDefault = savedDefault
@@ -677,7 +724,11 @@ function App() {
           activeDefault = bundledDefault
         }
         let durableWallpaper: SavedWallpaper | null = null
-        try { if (durableConfig) durableWallpaper = startupWallpaperFromConfig(durableConfig) }
+        try {
+          if (startupConfig && 'wallpaperBlob' in startupConfig && startupConfig.wallpaperBlob instanceof Blob && startupConfig.wallpaperName) {
+            durableWallpaper = { blob: startupConfig.wallpaperBlob, name: startupConfig.wallpaperName }
+          } else if (startupConfig) durableWallpaper = startupWallpaperFromConfig(startupConfig)
+        }
         catch (error) { setStorageIssue('durable startup wallpaper decode', error) }
         const startupWallpaper = durableWallpaper ?? (activeDefault?.blob ? activeDefault : saved)
         setDefaultWallpaperName(durableWallpaper?.name ?? activeDefault?.name ?? null)
@@ -740,24 +791,28 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try { localStorage.setItem(WIDGET_PREF_KEY, JSON.stringify({ version: 2, enabled: enabledWidgets })); setStorageIssue('widget visibility write', null) }
     catch (error) { setStorageIssue('widget visibility write', error) }
-  }, [enabledWidgets, setStorageIssue])
+  }, [enabledWidgets, setStorageIssue, startupConfigHydrated])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try { localStorage.setItem(WIDGET_POSITION_KEY, JSON.stringify(widgetPositions)); setStorageIssue('widget positions write', null) }
     catch (error) { setStorageIssue('widget positions write', error) }
-  }, [setStorageIssue, widgetPositions])
+  }, [setStorageIssue, startupConfigHydrated, widgetPositions])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try { localStorage.setItem(WIDGET_SCALE_KEY, JSON.stringify(widgetScales)); setStorageIssue('widget scale write', null) }
     catch (error) { setStorageIssue('widget scale write', error) }
-  }, [setStorageIssue, widgetScales])
+  }, [setStorageIssue, startupConfigHydrated, widgetScales])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try { localStorage.setItem(WIDGET_LAYOUT_KEY, widgetLayout); setStorageIssue('widget layout write', null) }
     catch (error) { setStorageIssue('widget layout write', error) }
-  }, [setStorageIssue, widgetLayout])
+  }, [setStorageIssue, startupConfigHydrated, widgetLayout])
 
   useEffect(() => {
     try {
@@ -777,9 +832,10 @@ function App() {
   }, [setStorageIssue])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try { localStorage.setItem(LAYOUT_PRESETS_KEY, JSON.stringify(layoutPresets)); setStorageIssue('layout presets write', null) }
     catch (error) { setStorageIssue('layout presets write', error) }
-  }, [layoutPresets, setStorageIssue])
+  }, [layoutPresets, setStorageIssue, startupConfigHydrated])
 
   useEffect(() => {
     if (!startupConfigHydrated) return
@@ -850,19 +906,22 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try { localStorage.setItem(VISUAL_THEME_PREF_KEY, visualTheme); setStorageIssue('visual theme preference write', null) }
     catch (error) { setStorageIssue('visual theme preference write', error) }
-  }, [setStorageIssue, visualTheme])
+  }, [setStorageIssue, startupConfigHydrated, visualTheme])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try { localStorage.setItem(WALLPAPER_FIT_PREF_KEY, wallpaperFit); setStorageIssue('wallpaper fit preference write', null) }
     catch (error) { setStorageIssue('wallpaper fit preference write', error) }
-  }, [setStorageIssue, wallpaperFit])
+  }, [setStorageIssue, startupConfigHydrated, wallpaperFit])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try { localStorage.setItem(ANIMATION_MIRROR_KEY, String(animationMirror)); setStorageIssue('animation preference write', null) }
     catch (error) { setStorageIssue('animation preference write', error) }
-  }, [animationMirror, setStorageIssue])
+  }, [animationMirror, setStorageIssue, startupConfigHydrated])
 
   useEffect(() => {
     let active = true
@@ -890,11 +949,12 @@ function App() {
   }, [consoleEntry])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try {
       if (consoleFrame) localStorage.setItem(CONSOLE_FRAME_KEY, JSON.stringify(consoleFrame))
       setStorageIssue('console frame write', null)
     } catch (error) { setStorageIssue('console frame write', error) }
-  }, [consoleFrame, setStorageIssue])
+  }, [consoleFrame, setStorageIssue, startupConfigHydrated])
 
   useEffect(() => {
     if (!enabledWidgets.some((id) => id === 2 || id === 3)) return
@@ -1041,29 +1101,34 @@ function App() {
           const response = await fetch(wallpaperUrl)
           if (!response.ok) throw new Error('ACTIVE WALLPAPER BYTES COULD NOT BE READ')
           const blob = await response.blob()
-          let durableSaveError: unknown = null
-          try {
-            if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS BRIGHTNESS PAIR <TOKEN>')
-            const saved = await saveDurableStartupConfiguration(brightnessToken, {
-              wallpaperName,
-              wallpaperType: blob.type || 'application/octet-stream',
-              wallpaperData: await blobToBase64(blob),
-              theme,
-            })
-            if (!saved.saved) throw new Error('WINDOWS HELPER DID NOT CONFIRM THE CONFIGURATION SAVE')
-          } catch (error) { durableSaveError = error }
+          if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS BRIGHTNESS PAIR <TOKEN>')
+          const settings = {
+            enabledWidgets,
+            widgetPositions,
+            widgetScales,
+            widgetLayout,
+            layoutPresets,
+            wallpaperFit,
+            animationMirror,
+            visualTheme,
+            consoleFrame,
+          }
+          const saved = await saveDurableStartupConfiguration(brightnessToken, {
+            wallpaperName,
+            wallpaperType: blob.type || 'application/octet-stream',
+            wallpaperData: await blobToBase64(blob),
+            theme,
+            settings,
+            installIntoLively: true,
+          })
+          if (!saved.saved || !saved.reloadRequested) throw new Error('HELPER DID NOT CONFIRM THE INSTALLED DEFAULT AND LIVELY RELOAD REQUEST')
           try { await writeDefaultWallpaper({ name: wallpaperName, blob }) }
           catch (error) { setStorageIssue('startup wallpaper browser cache write', error) }
           setDefaultWallpaperName(wallpaperName)
           setDefaultTheme(theme)
-          if (durableSaveError) {
-            const message = durableSaveError instanceof Error ? durableSaveError.message : 'HELPER DID NOT CONFIRM SAVE'
-            report(['DURABLE CONFIGURATION SAVE FAILED', message.toUpperCase(), 'BROWSER PROFILE CACHE UPDATED ONLY · NO HELPER CONFIRMATION'])
-            setStatus('STARTUP CONFIGURATION SAVED TO BROWSER CACHE ONLY')
-          } else {
-            report(['STARTUP CONFIGURATION SAVED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WINDOWS HELPER CONFIRMED · LOCALAPPDATA CONFIG WRITTEN'])
-            setStatus('STARTUP CONFIGURATION SAVED')
-          }
+          setCredentialBootstrapAvailable(true)
+          report(['STARTUP CONFIGURATION SAVED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WIDGET LAYOUT + SETTINGS ........ SAVED', 'INSTALLED LIVELY PROJECT UPDATED', 'LIVELY RELOAD REQUEST ACCEPTED'])
+          setStatus('STARTUP CONFIG SAVED · LIVELY RELOADING')
         } catch (error) {
           const message = error instanceof Error ? error.message : 'STARTUP CONFIGURATION SAVE FAILED'
           report(['STARTUP CONFIGURATION SAVE FAILED', message.toUpperCase(), 'NO DURABLE SAVE WAS CONFIRMED.'])
@@ -1133,7 +1198,7 @@ function App() {
         catch (error) { localStorageError ??= describeStorageError(error); return null }
       }
       const localTokenExists = Boolean(localRead('project-elucidator-brightness-token'))
-      const tokenExists = localTokenExists || tokenBackupExists
+      const tokenExists = localTokenExists || tokenBackupExists || credentialBootstrapAvailable || Boolean(brightnessToken)
       const savedThemeExists = Boolean(localRead(DEFAULT_THEME_PREF_KEY) ?? localRead(THEME_PREF_KEY))
       const widgetKeys = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, WIDGET_LAYOUT_KEY, LAYOUT_PRESETS_KEY]
       const widgetPrefsExist = widgetKeys.some((key) => Boolean(localRead(key)))
@@ -1153,6 +1218,7 @@ function App() {
         `LOCAL STORAGE .......... ${localStorageError ? 'READ/WRITE FAILED' : 'READ/WRITE OK'}`,
         `INDEXEDDB .............. ${databaseStatus}`,
         `PAIRING TOKEN .......... ${tokenExists ? 'PRESENT' : 'MISSING'}`,
+        `PRIVATE BOOTSTRAP ....... ${credentialBootstrapAvailable ? 'AVAILABLE' : 'MISSING'}`,
         `SAME-PROFILE TOKEN COPY . ${tokenBackupExists ? 'PRESENT IN INDEXEDDB' : 'NOT STORED'} · NOT CROSS-PROFILE`,
         `DEFAULT WALLPAPER ...... ${savedDefault?.name ?? 'NOT STORED'}`,
         `DURABLE STARTUP ........ ${durableConfigStatus}${durableConfigName ? ` · ${durableConfigName}` : ''}`,
@@ -1180,19 +1246,34 @@ function App() {
         } else {
           setBrightnessToken(token)
           try {
+            const bootstrap = await persistPrivateCredentialBootstrap(token)
+            if (!bootstrap.saved) throw new Error('PRIVATE LOCAL BOOTSTRAP WAS NOT CONFIRMED')
+            setCredentialBootstrapAvailable(true)
             await writeBrightnessTokenBackup(token)
             setStorageIssue('brightness token backup write', null)
-            report(['DDC/CI BRIDGE PAIRED', 'TOKEN SAVED TO APP STORAGE AND RECOVERY BACKUP', 'RUN SYS BRIGHTNESS STATUS TO READ MONITORS'])
-            setStatus('BRIGHTNESS HELPER PAIRED · BACKUP SAVED')
+            report(['DDC/CI BRIDGE PAIRED', 'PRIVATE LOCAL BOOTSTRAP SAVED', 'RUN SYS BRIGHTNESS STATUS TO READ MONITORS'])
+            setStatus('BRIGHTNESS PAIRED · PRIVATE BOOTSTRAP SAVED')
           } catch (error) {
-            setStorageIssue('brightness token backup write', error)
-            report(['DDC/CI BRIDGE PAIRED', 'TOKEN SAVED TO APP STORAGE', 'RECOVERY BACKUP FAILED · CHECK SYS STORAGE STATUS'])
-            setStatus('BRIGHTNESS PAIRED · BACKUP WARNING')
+            setStorageIssue('brightness credential bootstrap write', error)
+            try { await writeBrightnessTokenBackup(token) } catch (backupError) { setStorageIssue('brightness token backup write', backupError) }
+            const message = error instanceof Error ? error.message : 'PRIVATE BOOTSTRAP SAVE FAILED'
+            report(['BRIGHTNESS PAIRED IN THIS PROFILE', 'DURABLE TOKEN BOOTSTRAP NOT CONFIRMED', message.toUpperCase()])
+            setStatus('BRIGHTNESS PAIRED · RESTART RECOVERY NOT CONFIRMED')
           }
         }
       } else if (action === 'unpair' && args.length === 2) {
+        if (brightnessToken) {
+          try { await removePrivateCredentialBootstrap(brightnessToken) }
+          catch (error) {
+            const message = error instanceof Error ? error.message : 'PRIVATE BOOTSTRAP COULD NOT BE REMOVED'
+            report(['UNPAIRING NOT COMPLETED', message.toUpperCase(), 'TOKEN REMAINS ACTIVE'])
+            setStatus('BRIGHTNESS UNPAIR FAILED')
+            return
+          }
+        }
         const removedLocally = saveBrightnessToken(null)
         setBrightnessToken('')
+        setCredentialBootstrapAvailable(false)
         try {
           await writeBrightnessTokenBackup(null)
           setStorageIssue('brightness token backup write', null)
