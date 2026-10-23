@@ -1,0 +1,7 @@
+﻿Recorded 2026-10-23 10:00:57 +01:00
+Lively app version: 2.2.1.5
+Settings file: C:\Users\galas\AppData\Local\Packages\12030rocksdanister.LivelyWallpaper_97hta09mmv6hy\LocalCache\Local\Lively Wallpaper\Settings.json
+WebBrowser setting (raw): 1
+CefDiskCache: False
+Active wallpaper install path: C:\Users\galas\AppData\Local\Lively Wallpaper\Library\wallpapers\w5k3ooxf.uwr
+CefSharp plugin present in expected package plugin folder: False

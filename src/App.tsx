@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
-import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, saveBrightnessToken, type BrightnessMonitor } from './brightnessBridge'
+import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, readBrightnessTokenBackup, saveBrightnessToken, writeBrightnessTokenBackup, type BrightnessMonitor } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
 import './App.css'
 
@@ -597,16 +597,34 @@ function App() {
     let cancelled = false
     const restore = async () => {
       try {
-        const [savedDefault, saved, library, defaultVersion] = await Promise.all([
+        const [savedDefault, saved, library, defaultVersion, tokenBackup] = await Promise.all([
           readDefaultWallpaper(),
           readSavedWallpaper(),
           readWallpaperLibrary(),
           readDefaultWallpaperVersion(),
+          readBrightnessTokenBackup().catch((error: unknown) => {
+            setStorageIssue('brightness token backup restore', error)
+            return ''
+          }),
         ])
         if (cancelled) return
+        const localToken = getBrightnessToken()
+        const restoredToken = localToken || tokenBackup
+        if (!localToken && tokenBackup) {
+          if (saveBrightnessToken(tokenBackup)) setBrightnessToken(tokenBackup)
+          else setStorageIssue('brightness token restore', new Error('Could not restore token to localStorage'))
+        }
+        if (restoredToken) {
+          try {
+            await writeBrightnessTokenBackup(restoredToken)
+            setStorageIssue('brightness token backup write', null)
+          } catch (error) { setStorageIssue('brightness token backup write', error) }
+        }
         setWallpaperLibrary(library)
         let activeDefault = savedDefault
-        if (defaultVersion !== DEFAULT_WALLPAPER_VERSION) {
+        // Package updates may refresh the bundled default, but must never replace a
+        // wallpaper the user explicitly saved as their startup default.
+        if (!savedDefault?.blob && defaultVersion !== DEFAULT_WALLPAPER_VERSION) {
           const response = await fetch(DEFAULT_WALLPAPER_URL)
           if (!response.ok) throw new Error(`Bundled default wallpaper could not be loaded (${response.status})`)
           const bundledDefault = { blob: await response.blob(), name: DEFAULT_WALLPAPER_NAME }
@@ -980,6 +998,7 @@ function App() {
       let savedDefault: SavedWallpaper | undefined
       let databaseStatus = 'OPEN FAILED'
       let databaseError: string | null = null
+      let tokenBackupExists = false
       try {
         const database = await openWallpaperDatabase()
         databaseStatus = 'OPEN'
@@ -990,12 +1009,19 @@ function App() {
       } catch (error) {
         databaseError = describeStorageError(error)
       }
+      try {
+        tokenBackupExists = Boolean(await readBrightnessTokenBackup())
+        setStorageIssue('brightness token backup diagnostic', null)
+      } catch (error) {
+        setStorageIssue('brightness token backup diagnostic', error)
+      }
 
       const localRead = (key: string) => {
         try { return localStorage.getItem(key) }
         catch (error) { localStorageError ??= describeStorageError(error); return null }
       }
-      const tokenExists = Boolean(localRead('project-elucidator-brightness-token'))
+      const localTokenExists = Boolean(localRead('project-elucidator-brightness-token'))
+      const tokenExists = localTokenExists || tokenBackupExists
       const savedThemeExists = Boolean(localRead(DEFAULT_THEME_PREF_KEY) ?? localRead(THEME_PREF_KEY))
       const widgetKeys = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, WIDGET_LAYOUT_KEY, LAYOUT_PRESETS_KEY]
       const widgetPrefsExist = widgetKeys.some((key) => Boolean(localRead(key)))
@@ -1015,6 +1041,7 @@ function App() {
         `LOCAL STORAGE .......... ${localStorageError ? 'READ/WRITE FAILED' : 'READ/WRITE OK'}`,
         `INDEXEDDB .............. ${databaseStatus}`,
         `PAIRING TOKEN .......... ${tokenExists ? 'PRESENT' : 'MISSING'}`,
+        `TOKEN RECOVERY BACKUP .. ${tokenBackupExists ? 'PRESENT IN INDEXEDDB' : 'NOT STORED'}`,
         `DEFAULT WALLPAPER ...... ${savedDefault?.name ?? 'NOT STORED'}`,
         `STORED IMAGE ........... ${savedDefault?.blob instanceof Blob && savedDefault.blob.size > 0 ? `AVAILABLE · ${savedDefault.blob.size} BYTES` : 'MISSING'}`,
         `SAVED THEME PREF ....... ${savedThemeExists ? 'AVAILABLE' : 'MISSING'}`,
@@ -1022,7 +1049,7 @@ function App() {
         `SAVED PREFS ............ ${savedPrefCount}/${STORAGE_PREF_KEYS.length} KEYS PRESENT`,
         `RESTORE ERRORS ......... ${issueLines.length ? issueLines.join(' · ') : 'NONE REPORTED'}`,
       ])
-      setStatus(`STORAGE DIAGNOSTIC · ${localStorageError || databaseError ? 'ERROR' : 'READY'}`)
+      setStatus(`STORAGE DIAGNOSTIC · ${localStorageError || databaseError || issueLines.length ? 'ERROR' : 'READY'}`)
     } else if (domain === 'brightness') {
       const listMonitors = (monitors: BrightnessMonitor[]) => monitors.length
         ? monitors.map((monitor) => `DISPLAY ${monitor.id} · ${monitor.name.toUpperCase()} · ${monitor.supported && monitor.brightness !== null ? `${monitor.brightness}%` : 'DDC/CI UNAVAILABLE'}`)
@@ -1039,12 +1066,25 @@ function App() {
           setStatus('BRIGHTNESS PAIRING FAILED')
         } else {
           setBrightnessToken(token)
-          report(['DDC/CI BRIDGE PAIRED', 'TOKEN STORED IN THIS APP PROFILE', 'RUN SYS BRIGHTNESS STATUS TO READ MONITORS'])
-          setStatus('BRIGHTNESS HELPER PAIRED')
+          try {
+            await writeBrightnessTokenBackup(token)
+            setStorageIssue('brightness token backup write', null)
+            report(['DDC/CI BRIDGE PAIRED', 'TOKEN SAVED TO APP STORAGE AND RECOVERY BACKUP', 'RUN SYS BRIGHTNESS STATUS TO READ MONITORS'])
+            setStatus('BRIGHTNESS HELPER PAIRED · BACKUP SAVED')
+          } catch (error) {
+            setStorageIssue('brightness token backup write', error)
+            report(['DDC/CI BRIDGE PAIRED', 'TOKEN SAVED TO APP STORAGE', 'RECOVERY BACKUP FAILED · CHECK SYS STORAGE STATUS'])
+            setStatus('BRIGHTNESS PAIRED · BACKUP WARNING')
+          }
         }
       } else if (action === 'unpair' && args.length === 2) {
-        saveBrightnessToken(null)
+        const removedLocally = saveBrightnessToken(null)
         setBrightnessToken('')
+        try {
+          await writeBrightnessTokenBackup(null)
+          setStorageIssue('brightness token backup write', null)
+        } catch (error) { setStorageIssue('brightness token backup write', error) }
+        if (!removedLocally) setStorageIssue('brightness token removal', new Error('Could not remove token from localStorage'))
         report(['DDC/CI BRIDGE UNPAIRED', 'LOCAL TOKEN REMOVED FROM THIS APP PROFILE'])
         setStatus('BRIGHTNESS HELPER UNPAIRED')
       } else if ((!action || action === 'status' || action === 'list') && args.length <= 2) {
@@ -1664,9 +1704,10 @@ function App() {
     if (widgetLayout !== 'free') return scale === 1 ? undefined : scaleStyle
     const position = widgetPositions[id]
     if (!position) return scale === 1 ? undefined : scaleStyle
-    const cardWidth = (window.innerWidth <= 700
-      ? Math.min(224, window.innerWidth - 20.8)
-      : Math.min(288, window.innerWidth - 32)) * scale
+    const existingCard = document.querySelector<HTMLElement>(`.system-widget.widget-${id}`)
+    const fallbackWidthRem = id === 1 ? (window.innerWidth <= 700 ? 17 : 22) : id === 2 ? 13 : id === 5 ? 16 : 18
+    const cardWidth = existingCard?.getBoundingClientRect().width
+      ?? Math.min(fallbackWidthRem * 16, window.innerWidth - (window.innerWidth <= 700 ? 20.8 : 32)) * scale
     const maxX = Math.max(0, (window.innerWidth - cardWidth) / window.innerWidth * 100)
     const maxY = Math.max(0, (window.innerHeight - 120 * scale) / window.innerHeight * 100)
     return {

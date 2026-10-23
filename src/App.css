@@ -203,8 +203,9 @@
 .command-console {
   position: absolute;
   z-index: 3;
-  left: clamp(1rem, 3vw, 2.75rem);
-  bottom: clamp(1rem, 3vh, 2rem);
+  /* Windows 11's standard bottom taskbar is 48px tall; retain a 1px gap. */
+  left: 0;
+  bottom: 49px;
   width: min(35rem, calc(100vw - 2rem));
   min-width: min(18rem, calc(100vw - 2rem));
   overflow: visible;
@@ -354,8 +355,9 @@
 .system-widgets.widget-layout-right {
   --widget-stack-fit: clamp(0.35, calc((100dvh - 20px) / 916px), 1);
   align-items: flex-end;
-  justify-content: flex-start;
-  gap: 5px;
+  justify-content: space-evenly;
+  gap: clamp(0.55rem, 1.2vh, 0.9rem);
+  padding: 5.75rem clamp(0.65rem, 1.5vw, 1.25rem) 1.25rem;
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;
@@ -2232,18 +2234,18 @@
 
 .kagune-activation { position: absolute; inset: 0 auto 0 0; width: var(--activation-stage-width, 100vw); overflow: hidden; animation: kagune-activation-life 1.9s ease both; }
 .kagune-activation-glow { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 44%, rgb(113 9 29 / 38%), rgb(35 3 12 / 28%) 33%, rgb(3 3 5 / 64%) 72%); animation: kagune-glow-breathe 1.9s ease both; }
-.kagune-activation-sigil { position: absolute; z-index: 1; top: 41%; left: 50%; width: min(76vmin, 46rem); height: auto; overflow: visible; transform: translate(-50%, -50%); }
+.kagune-activation-sigil { position: absolute; z-index: 1; top: 36%; left: 50%; width: min(76vmin, 46rem); height: auto; overflow: visible; transform: translate(-50%, -50%); }
 .kagune-sigil-ring { fill: none; stroke: rgb(226 34 57 / 62%); stroke-width: 1.1; vector-effect: non-scaling-stroke; }
 .kagune-sigil-ring-outer { stroke-dasharray: 1440; stroke-dashoffset: 1440; transform-origin: 300px 300px; animation: kagune-ring-draw 1.15s ease-out .1s both; }
 .kagune-sigil-ring-inner { stroke: rgb(241 69 83 / 35%); stroke-dasharray: 7 16; opacity: 0; animation: kagune-ring-flicker .95s ease-out .32s both; }
 .kagune-sigil-spokes,
 .kagune-sigil-cuts { fill: none; stroke: rgb(235 48 67 / 56%); stroke-width: 1.2; stroke-linecap: round; stroke-dasharray: 360; stroke-dashoffset: 360; vector-effect: non-scaling-stroke; animation: kagune-lines-draw .72s ease-out .4s both; }
 .kagune-sigil-cuts { stroke: rgb(248 72 80 / 72%); stroke-width: 1.7; animation-delay: .55s; }
-.kagune-activation-header-emblem { position: absolute; z-index: 3; top: 41%; left: 50%; display: block; width: min(58vw, 46rem); height: auto; object-fit: contain; filter: drop-shadow(0 0 13px rgb(226 24 51 / 58%)); clip-path: inset(0 100% 0 0); transform: translate(-50%, -50%) scale(.94); animation: kagune-emblem-reveal 1.16s cubic-bezier(.16,.72,.22,1) .16s both; }
-.kagune-activation-header-tendril { position: absolute; z-index: 2; top: 52%; left: 50%; display: block; width: min(72vw, 56rem); height: auto; object-fit: contain; filter: drop-shadow(0 0 8px rgb(226 24 51 / 48%)); clip-path: inset(0 100% 0 0); transform: translateX(-50%); animation: kagune-tendril-sweep 1.1s cubic-bezier(.18,.68,.22,1) .38s both; }
-.kagune-activation-right-tendril { position: absolute; z-index: 2; top: 17%; right: 12%; display: block; width: min(14vw, 10rem); height: auto; object-fit: contain; filter: drop-shadow(0 0 8px rgb(226 24 51 / 45%)); clip-path: inset(0 0 100% 0); animation: kagune-right-reveal 920ms cubic-bezier(.16,.72,.22,1) .58s both; }
-.kagune-activation-bottom-tendril { position: absolute; z-index: 2; bottom: 2%; left: 50%; display: block; width: min(38vw, 30rem); height: auto; object-fit: contain; filter: drop-shadow(0 0 8px rgb(226 24 51 / 46%)); clip-path: inset(0 100% 0 0); transform: translateX(-50%); animation: kagune-tendril-sweep 850ms cubic-bezier(.18,.68,.22,1) .78s both; }
-.kagune-activation-copy { position: absolute; z-index: 4; top: 74%; left: 50%; display: grid; justify-items: center; gap: .45rem; width: max-content; max-width: 90%; color: #f0e9eb; text-align: center; transform: translateX(-50%); animation: kagune-copy-arrive 760ms cubic-bezier(.18,.72,.22,1) .92s both; }
+.kagune-activation-header-emblem { position: absolute; z-index: 3; top: 36%; left: 50%; display: block; width: min(58vw, 46rem); height: auto; object-fit: contain; filter: drop-shadow(0 0 13px rgb(226 24 51 / 58%)); clip-path: inset(0 100% 0 0); transform: translate(-50%, -50%) scale(.94); animation: kagune-emblem-reveal 1.16s cubic-bezier(.16,.72,.22,1) .16s both; }
+.kagune-activation-header-tendril { position: absolute; z-index: 2; top: 47%; left: 50%; display: block; width: min(72vw, 56rem); height: auto; object-fit: contain; filter: drop-shadow(0 0 8px rgb(226 24 51 / 48%)); clip-path: inset(0 100% 0 0); transform: translateX(-50%); animation: kagune-tendril-sweep 1.1s cubic-bezier(.18,.68,.22,1) .38s both; }
+.kagune-activation-right-tendril { position: absolute; z-index: 2; top: 13%; right: 12%; display: block; width: min(14vw, 10rem); height: auto; object-fit: contain; filter: drop-shadow(0 0 8px rgb(226 24 51 / 45%)); clip-path: inset(0 0 100% 0); animation: kagune-right-reveal 920ms cubic-bezier(.16,.72,.22,1) .58s both; }
+.kagune-activation-bottom-tendril { position: absolute; z-index: 2; bottom: 8%; left: 50%; display: block; width: min(38vw, 30rem); height: auto; object-fit: contain; filter: drop-shadow(0 0 8px rgb(226 24 51 / 46%)); clip-path: inset(0 100% 0 0); transform: translateX(-50%); animation: kagune-tendril-sweep 850ms cubic-bezier(.18,.68,.22,1) .78s both; }
+.kagune-activation-copy { position: absolute; z-index: 4; top: 68%; left: 50%; display: grid; justify-items: center; gap: .45rem; width: max-content; max-width: 90%; color: #f0e9eb; text-align: center; transform: translateX(-50%); animation: kagune-copy-arrive 760ms cubic-bezier(.18,.72,.22,1) .92s both; }
 .kagune-activation-copy strong { font-family: 'Arial Narrow', 'Segoe UI', sans-serif; font-size: clamp(1.3rem, 3.1vw, 2.35rem); font-weight: 700; letter-spacing: .28em; text-shadow: 0 0 16px rgb(232 49 68 / 45%); }
 .kagune-activation-copy span { color: #ee5665; font-family: ui-monospace, Consolas, monospace; font-size: clamp(.52rem, .95vw, .72rem); letter-spacing: .2em; text-shadow: 0 0 9px rgb(210 24 48 / 55%); }
 
@@ -3082,7 +3084,7 @@
 .wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget small { color: var(--widget-dim); }
 .wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget p b { color: var(--widget-accent); }
 
-/* Hardware: broad instrument bank, with three readable rectangular meters. */
+/* Hardware: broad instrument bank with circular, theme-coloured gauges. */
 .wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .system-widget.widget-1 {
   width: min(22rem, calc(100vw - 2rem)); max-height: min(15rem, calc(100vh - 1rem));
   padding-bottom: .72rem; border-left-width: 3px;
@@ -3090,11 +3092,11 @@
 }
 .wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 header > span::before { background: var(--widget-emblem) center / contain no-repeat; }
 .wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-host { margin: .1rem 0 .42rem; color: var(--widget-dim); font-size: .53rem; }
-.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: .38rem; margin: .1rem 0 .52rem; }
-.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge { display: grid; grid-template-columns: minmax(0,1fr) auto; justify-items: stretch; align-items: center; gap: .13rem .25rem; padding: .23rem .3rem; border: 1px solid color-mix(in srgb, var(--widget-accent) 30%, transparent); background: linear-gradient(90deg,color-mix(in srgb,var(--widget-accent) 8%,transparent),transparent); text-align: left; }
-.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-ring { grid-column: 1/-1; width: 100%; height: .22rem; min-height: 0; aspect-ratio: auto; border-radius: 0; background: linear-gradient(90deg,var(--widget-accent) var(--gauge-value),color-mix(in srgb,var(--widget-accent) 16%,transparent) var(--gauge-value)); box-shadow: none; }
-.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-ring::before { display: none; }
-.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-ring span { position: absolute; top: -.72rem; right: 0; z-index: 1; display: block; color: var(--widget-bright); font-size: .48rem; line-height: 1; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: .46rem .35rem; margin: .1rem 0 .52rem; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge { display: grid; justify-items: center; align-content: start; gap: .18rem; padding: 0; border: 0; background: none; text-align: center; }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-ring { grid-column: auto; width: 2.75rem; height: 2.75rem; min-height: 0; aspect-ratio: 1; border-radius: 50%; background: conic-gradient(var(--widget-accent) var(--gauge-value),color-mix(in srgb,var(--widget-accent) 17%,transparent) var(--gauge-value)); box-shadow: 0 0 9px color-mix(in srgb,var(--widget-accent) 20%,transparent); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-ring::before { display: block; inset: 3px; border: 1px solid color-mix(in srgb,var(--widget-accent) 24%,transparent); border-radius: inherit; background: var(--widget-panel); }
+.wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge-ring span { position: relative; top: auto; right: auto; z-index: 1; display: block; color: var(--widget-bright); font-size: .48rem; line-height: 1; }
 .wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge b { color: var(--widget-soft); font-size: .46rem; }
 .wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 .hardware-gauge small { margin: 0; font-size: .43rem; }
 .wallpaper-experience:is(.theme-arise,.theme-grimoire,.theme-limitless,.theme-breathing-sun,.theme-demon-mode,.theme-dragon,.theme-tokyo-ghoul) .widget-1 > p { margin: 0; font-size: .53rem; }

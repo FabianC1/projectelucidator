@@ -12,6 +12,9 @@ type LockResponse = { ok: boolean; message: string }
 
 const HELPER_URL = 'http://127.0.0.1:17384'
 export const BRIGHTNESS_TOKEN_KEY = 'project-elucidator-brightness-token'
+const STORAGE_DATABASE = 'project-elucidator-wallpaper'
+const STORAGE_STORE = 'selection'
+const BRIGHTNESS_TOKEN_BACKUP_KEY = 'brightness-token-backup'
 
 export async function checkBrightnessHelperHealth() {
   try {
@@ -35,6 +38,61 @@ export function saveBrightnessToken(token: string | null) {
     else localStorage.removeItem(BRIGHTNESS_TOKEN_KEY)
     return true
   } catch { return false }
+}
+
+function openTokenDatabase() {
+  return new Promise<IDBDatabase>((resolve, reject) => {
+    if (!('indexedDB' in window)) {
+      reject(new Error('IndexedDB is not available in this host'))
+      return
+    }
+    const request = indexedDB.open(STORAGE_DATABASE, 1)
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(STORAGE_STORE)) request.result.createObjectStore(STORAGE_STORE)
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+    // The wallpaper database may still be completing its first open. Let the
+    // request wait for that connection to close instead of failing token recovery.
+  })
+}
+
+export async function readBrightnessTokenBackup() {
+  const database = await openTokenDatabase()
+  return new Promise<string>((resolve, reject) => {
+    const request = database.transaction(STORAGE_STORE, 'readonly').objectStore(STORAGE_STORE).get(BRIGHTNESS_TOKEN_BACKUP_KEY)
+    request.onsuccess = () => {
+      database.close()
+      const token = request.result
+      resolve(typeof token === 'string' && /^[A-Za-z0-9_-]{40,60}$/.test(token) ? token : '')
+    }
+    request.onerror = () => {
+      database.close()
+      reject(request.error)
+    }
+  })
+}
+
+export async function writeBrightnessTokenBackup(token: string | null) {
+  const database = await openTokenDatabase()
+  return new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(STORAGE_STORE, 'readwrite')
+    const store = transaction.objectStore(STORAGE_STORE)
+    if (token) store.put(token, BRIGHTNESS_TOKEN_BACKUP_KEY)
+    else store.delete(BRIGHTNESS_TOKEN_BACKUP_KEY)
+    transaction.oncomplete = () => {
+      database.close()
+      resolve()
+    }
+    transaction.onerror = () => {
+      database.close()
+      reject(transaction.error)
+    }
+    transaction.onabort = () => {
+      database.close()
+      reject(transaction.error)
+    }
+  })
 }
 
 async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
