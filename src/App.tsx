@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
-import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, readBrightnessTokenBackup, saveBrightnessToken, writeBrightnessTokenBackup, type BrightnessMonitor } from './brightnessBridge'
+import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, readBrightnessMonitors, readBrightnessTokenBackup, readDurableStartupConfiguration, saveBrightnessToken, saveDurableStartupConfiguration, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
 import './App.css'
 
@@ -12,6 +12,27 @@ declare global {
 }
 
 type SavedWallpaper = { blob: Blob; name: string }
+
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result !== 'string') { reject(new Error('Wallpaper bytes could not be encoded')); return }
+      resolve(result.slice(result.indexOf(',') + 1))
+    }
+    reader.onerror = () => reject(reader.error ?? new Error('Wallpaper bytes could not be read'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+function startupWallpaperFromConfig(configuration: StartupConfiguration): SavedWallpaper | null {
+  if (!configuration.wallpaperData || !configuration.wallpaperName) return null
+  const binary = atob(configuration.wallpaperData)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+  return { blob: new Blob([bytes], { type: configuration.wallpaperType || 'application/octet-stream' }), name: configuration.wallpaperName }
+}
 type SystemMode = 'NORMAL' | 'STEALTH' | 'COMBAT' | 'IDLE' | 'DIAGNOSTIC'
 type VisualTheme = 'off' | 'haze' | 'rain' | 'lightning' | 'particles' | 'vignette'
 type WallpaperFit = 'cover' | 'contain' | 'stretch' | 'span'
@@ -405,6 +426,7 @@ async function detectConnectedMonitorCount(token: string): Promise<number | null
 }
 
 const COMMAND_COMPLETIONS = [
+  'admin sys config save',
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
   'sys storage status',
   'sys wallpaper default', 'sys wallpaper default set', 'sys wallpaper default select', 'sys wallpaper default clear',
@@ -488,8 +510,9 @@ function App() {
   const [brightnessHelperOnline, setBrightnessHelperOnline] = useState(false)
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
   const [mode, setMode] = useState<SystemMode>('NORMAL')
-  const [defaultTheme, setDefaultTheme] = useState<ThemeId | null>(() => readThemePreference(DEFAULT_THEME_PREF_KEY) ?? 'tokyo-ghoul')
+  const [defaultTheme, setDefaultTheme] = useState<ThemeId | null>(() => readThemePreference(DEFAULT_THEME_PREF_KEY))
   const [theme, setTheme] = useState<ThemeId>(() => readThemePreference(DEFAULT_THEME_PREF_KEY) ?? readThemePreference(THEME_PREF_KEY) ?? 'tokyo-ghoul')
+  const [startupConfigHydrated, setStartupConfigHydrated] = useState(false)
   const [wallpaperFit, setWallpaperFit] = useState<WallpaperFit>(() => {
     try {
       const saved = localStorage.getItem(WALLPAPER_FIT_PREF_KEY) as WallpaperFit | null
@@ -594,20 +617,11 @@ function App() {
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-    const restore = async () => {
+    let active = true
+    void (async () => {
       try {
-        const [savedDefault, saved, library, defaultVersion, tokenBackup] = await Promise.all([
-          readDefaultWallpaper(),
-          readSavedWallpaper(),
-          readWallpaperLibrary(),
-          readDefaultWallpaperVersion(),
-          readBrightnessTokenBackup().catch((error: unknown) => {
-            setStorageIssue('brightness token backup restore', error)
-            return ''
-          }),
-        ])
-        if (cancelled) return
+        const tokenBackup = await readBrightnessTokenBackup()
+        if (!active) return
         const localToken = getBrightnessToken()
         const restoredToken = localToken || tokenBackup
         if (!localToken && tokenBackup) {
@@ -617,8 +631,39 @@ function App() {
         if (restoredToken) {
           try {
             await writeBrightnessTokenBackup(restoredToken)
-            setStorageIssue('brightness token backup write', null)
-          } catch (error) { setStorageIssue('brightness token backup write', error) }
+            if (active) setStorageIssue('brightness token backup write', null)
+          } catch (error) { if (active) setStorageIssue('brightness token backup write', error) }
+        }
+      } catch (error) { if (active) setStorageIssue('brightness token backup restore', error) }
+    })()
+    return () => { active = false }
+  }, [setStorageIssue])
+
+  useEffect(() => {
+    let cancelled = false
+    const restore = async () => {
+      try {
+        let durableConfigReadFailed = false
+        const durableConfigPromise = readDurableStartupConfiguration().catch((error: unknown) => {
+          durableConfigReadFailed = true
+          setStorageIssue('durable startup configuration restore', error)
+          return null
+        })
+        const [savedDefault, saved, library, defaultVersion, durableConfig] = await Promise.all([
+          readDefaultWallpaper(),
+          readSavedWallpaper(),
+          readWallpaperLibrary(),
+          readDefaultWallpaperVersion(),
+          durableConfigPromise,
+        ])
+        if (cancelled) return
+        if (!durableConfigReadFailed) setStorageIssue('durable startup configuration restore', null)
+        if (durableConfig?.wallpaperError) setStorageIssue('durable startup wallpaper integrity', new Error(durableConfig.wallpaperError))
+        else setStorageIssue('durable startup wallpaper integrity', null)
+        if (durableConfig?.theme && THEME_SYSTEMS.some((system) => system.id === durableConfig.theme)) {
+          const restoredTheme = durableConfig.theme as ThemeId
+          setTheme(restoredTheme)
+          setDefaultTheme(restoredTheme)
         }
         setWallpaperLibrary(library)
         let activeDefault = savedDefault
@@ -631,15 +676,18 @@ function App() {
           await writeBundledDefaultWallpaper(bundledDefault, DEFAULT_WALLPAPER_VERSION)
           activeDefault = bundledDefault
         }
-        setDefaultWallpaperName(activeDefault?.name ?? null)
-        const startupWallpaper = activeDefault?.blob ? activeDefault : saved
+        let durableWallpaper: SavedWallpaper | null = null
+        try { if (durableConfig) durableWallpaper = startupWallpaperFromConfig(durableConfig) }
+        catch (error) { setStorageIssue('durable startup wallpaper decode', error) }
+        const startupWallpaper = durableWallpaper ?? (activeDefault?.blob ? activeDefault : saved)
+        setDefaultWallpaperName(durableWallpaper?.name ?? activeDefault?.name ?? null)
         if (startupWallpaper?.blob) {
           const url = URL.createObjectURL(startupWallpaper.blob)
           objectUrlRef.current = url
           wallpaperStartedAt.current = Date.now()
           setWallpaperUrl(url)
           setWallpaperName(startupWallpaper.name)
-          setStatus(`${savedDefault?.blob ? 'DEFAULT WALLPAPER' : 'WALLPAPER'} RESTORED · ${startupWallpaper.name.toUpperCase()}`)
+          setStatus(`${durableWallpaper ? 'DURABLE DEFAULT' : savedDefault?.blob ? 'DEFAULT WALLPAPER' : 'WALLPAPER'} RESTORED · ${startupWallpaper.name.toUpperCase()}`)
         } else {
           wallpaperStartedAt.current = Date.now()
           setWallpaperUrl(DEFAULT_WALLPAPER_URL)
@@ -655,7 +703,7 @@ function App() {
         }
         if (!cancelled) setStatus('WALLPAPER RESTORE ERROR · BUNDLED 3D RENDER ACTIVE')
       } finally {
-        if (!cancelled) setReady(true)
+        if (!cancelled) { setStartupConfigHydrated(true); setReady(true) }
       }
     }
     void restore()
@@ -734,16 +782,18 @@ function App() {
   }, [layoutPresets, setStorageIssue])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try { localStorage.setItem(THEME_PREF_KEY, theme); setStorageIssue('theme preference write', null) }
     catch (error) { setStorageIssue('theme preference write', error) }
-  }, [setStorageIssue, theme])
+  }, [setStorageIssue, startupConfigHydrated, theme])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
     try {
       if (defaultTheme) localStorage.setItem(DEFAULT_THEME_PREF_KEY, defaultTheme)
       else localStorage.removeItem(DEFAULT_THEME_PREF_KEY)
     } catch (error) { setStorageIssue('default theme preference write', error) }
-  }, [defaultTheme, setStorageIssue])
+  }, [defaultTheme, setStorageIssue, startupConfigHydrated])
 
   useEffect(() => {
     let receivedValidData = false
@@ -968,8 +1018,59 @@ function App() {
       if (isThemeChange) setConsoleEntry({ theme: nextTheme, id: ++effectIdRef.current })
       setSpecialEffect({ kind: effect, id: ++effectIdRef.current })
     }
+    const persistDurableWallpaper = async (selection: SavedWallpaper | null) => {
+      if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS BRIGHTNESS PAIR <TOKEN>')
+      const patch: Partial<StartupConfiguration> = selection
+        ? { wallpaperName: selection.name, wallpaperType: selection.blob.type || 'application/octet-stream', wallpaperData: await blobToBase64(selection.blob) }
+        : { wallpaperName: null, wallpaperType: null, wallpaperData: null }
+      const result = await saveDurableStartupConfiguration(brightnessToken, patch)
+      if (!result.saved) throw new Error('WINDOWS HELPER DID NOT CONFIRM THE CONFIGURATION SAVE')
+    }
+    const persistDurableTheme = async (nextTheme: ThemeId) => {
+      if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS BRIGHTNESS PAIR <TOKEN>')
+      const result = await saveDurableStartupConfiguration(brightnessToken, { theme: nextTheme })
+      if (!result.saved) throw new Error('WINDOWS HELPER DID NOT CONFIRM THE CONFIGURATION SAVE')
+    }
 
-    if (domain === 'lock' && args.length === 1) {
+    if (domain === 'admin' && action === 'sys' && args[2] === 'config' && args[3] === 'save' && args.length === 4) {
+      if (!wallpaperUrl) {
+        report(['STARTUP CONFIGURATION NOT SAVED', 'LOAD THE WALLPAPER YOU WANT FIRST.', 'USE SYS WALLPAPER SELECT.'])
+        setStatus('STARTUP CONFIGURATION NEEDS A WALLPAPER')
+      } else {
+        try {
+          const response = await fetch(wallpaperUrl)
+          if (!response.ok) throw new Error('ACTIVE WALLPAPER BYTES COULD NOT BE READ')
+          const blob = await response.blob()
+          let durableSaveError: unknown = null
+          try {
+            if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS BRIGHTNESS PAIR <TOKEN>')
+            const saved = await saveDurableStartupConfiguration(brightnessToken, {
+              wallpaperName,
+              wallpaperType: blob.type || 'application/octet-stream',
+              wallpaperData: await blobToBase64(blob),
+              theme,
+            })
+            if (!saved.saved) throw new Error('WINDOWS HELPER DID NOT CONFIRM THE CONFIGURATION SAVE')
+          } catch (error) { durableSaveError = error }
+          try { await writeDefaultWallpaper({ name: wallpaperName, blob }) }
+          catch (error) { setStorageIssue('startup wallpaper browser cache write', error) }
+          setDefaultWallpaperName(wallpaperName)
+          setDefaultTheme(theme)
+          if (durableSaveError) {
+            const message = durableSaveError instanceof Error ? durableSaveError.message : 'HELPER DID NOT CONFIRM SAVE'
+            report(['DURABLE CONFIGURATION SAVE FAILED', message.toUpperCase(), 'BROWSER PROFILE CACHE UPDATED ONLY · NO HELPER CONFIRMATION'])
+            setStatus('STARTUP CONFIGURATION SAVED TO BROWSER CACHE ONLY')
+          } else {
+            report(['STARTUP CONFIGURATION SAVED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WINDOWS HELPER CONFIRMED · LOCALAPPDATA CONFIG WRITTEN'])
+            setStatus('STARTUP CONFIGURATION SAVED')
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'STARTUP CONFIGURATION SAVE FAILED'
+          report(['STARTUP CONFIGURATION SAVE FAILED', message.toUpperCase(), 'NO DURABLE SAVE WAS CONFIRMED.'])
+          setStatus('STARTUP CONFIGURATION SAVE FAILED')
+        }
+      }
+    } else if (domain === 'lock' && args.length === 1) {
       if (!brightnessToken) {
         report(['WINDOWS LOCK UNAVAILABLE', 'INSTALL THE WINDOWS HELPER', 'THEN PAIR · SYS BRIGHTNESS PAIR <TOKEN>'])
         setStatus('WINDOWS HELPER NEEDS PAIRING')
@@ -996,6 +1097,17 @@ function App() {
       }
 
       let savedDefault: SavedWallpaper | undefined
+      let durableConfigStatus: string
+      let durableConfigName: string | null = null
+      try {
+        const config = await readDurableStartupConfiguration()
+        durableConfigStatus = config ? 'AVAILABLE · LOCALAPPDATA' : 'NOT SAVED'
+        durableConfigName = config?.wallpaperName ?? null
+        setStorageIssue('durable startup configuration diagnostic', null)
+      } catch (error) {
+        durableConfigStatus = 'READ FAILED'
+        setStorageIssue('durable startup configuration diagnostic', error)
+      }
       let databaseStatus = 'OPEN FAILED'
       let databaseError: string | null = null
       let tokenBackupExists = false
@@ -1041,8 +1153,9 @@ function App() {
         `LOCAL STORAGE .......... ${localStorageError ? 'READ/WRITE FAILED' : 'READ/WRITE OK'}`,
         `INDEXEDDB .............. ${databaseStatus}`,
         `PAIRING TOKEN .......... ${tokenExists ? 'PRESENT' : 'MISSING'}`,
-        `TOKEN RECOVERY BACKUP .. ${tokenBackupExists ? 'PRESENT IN INDEXEDDB' : 'NOT STORED'}`,
+        `SAME-PROFILE TOKEN COPY . ${tokenBackupExists ? 'PRESENT IN INDEXEDDB' : 'NOT STORED'} · NOT CROSS-PROFILE`,
         `DEFAULT WALLPAPER ...... ${savedDefault?.name ?? 'NOT STORED'}`,
+        `DURABLE STARTUP ........ ${durableConfigStatus}${durableConfigName ? ` · ${durableConfigName}` : ''}`,
         `STORED IMAGE ........... ${savedDefault?.blob instanceof Blob && savedDefault.blob.size > 0 ? `AVAILABLE · ${savedDefault.blob.size} BYTES` : 'MISSING'}`,
         `SAVED THEME PREF ....... ${savedThemeExists ? 'AVAILABLE' : 'MISSING'}`,
         `WIDGET PREFS ........... ${widgetPrefsExist ? 'AVAILABLE' : 'MISSING'}`,
@@ -1151,9 +1264,17 @@ function App() {
     } else if (domain === 'theme' && action === 'default') {
       const defaultAction = args[2]
       if (defaultAction === 'set' && args.length === 3) {
-        setDefaultTheme(theme)
-        report(['DEFAULT SYSTEM THEME SAVED', `STARTUP THEME .......... ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'SAVED IN THIS LIVELY PROFILE · NO REBUILD REQUIRED'])
-        setStatus(`STARTUP THEME SET · ${theme.toUpperCase()}`)
+        try {
+          await persistDurableTheme(theme)
+          setDefaultTheme(theme)
+          report(['DEFAULT SYSTEM THEME SAVED', `STARTUP THEME .......... ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WINDOWS HELPER CONFIRMED · LOCALAPPDATA CONFIG WRITTEN'])
+          setStatus(`STARTUP THEME SET · ${theme.toUpperCase()}`)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'DURABLE THEME SAVE FAILED'
+          setDefaultTheme(theme)
+          report(['DURABLE THEME SAVE FAILED', message.toUpperCase(), 'BROWSER PROFILE CACHE UPDATED ONLY · NO HELPER CONFIRMATION'])
+          setStatus('DEFAULT THEME SAVED TO BROWSER CACHE ONLY')
+        }
       } else if (defaultAction === 'select' && args.length === 3) {
         report([
           'SELECT STARTUP SYSTEM THEME',
@@ -1169,10 +1290,18 @@ function App() {
           report(['DEFAULT THEME NOT FOUND', 'RUN SYS THEME DEFAULT SELECT TO VIEW AVAILABLE THEMES.'])
           setStatus('DEFAULT THEME SELECTION INVALID')
         } else {
-          setDefaultTheme(selected)
-          const label = THEME_CHOICES.find((choice) => choice.id === selected)?.label ?? selected.toUpperCase()
-          report(['DEFAULT SYSTEM THEME UPDATED', `STARTUP THEME .......... ${label}`, 'ACTIVE THEME UNCHANGED · NEW DEFAULT APPLIES ON NEXT START'])
-          setStatus(`STARTUP THEME SET · ${selected.toUpperCase()}`)
+          try {
+            await persistDurableTheme(selected)
+            setDefaultTheme(selected)
+            const label = THEME_CHOICES.find((choice) => choice.id === selected)?.label ?? selected.toUpperCase()
+            report(['DEFAULT SYSTEM THEME UPDATED', `STARTUP THEME .......... ${label}`, 'WINDOWS HELPER CONFIRMED · NEW DEFAULT APPLIES ON NEXT START'])
+            setStatus(`STARTUP THEME SET · ${selected.toUpperCase()}`)
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'DURABLE THEME SAVE FAILED'
+            setDefaultTheme(selected)
+            report(['DURABLE THEME SAVE FAILED', message.toUpperCase(), 'BROWSER PROFILE CACHE UPDATED ONLY · NO HELPER CONFIRMATION'])
+            setStatus('DEFAULT THEME SAVED TO BROWSER CACHE ONLY')
+          }
         }
       } else {
         report(['SYSTEM THEME DEFAULT', `ACTIVE DEFAULT ......... ${defaultTheme ? defaultTheme.toUpperCase() : 'NONE · LAST ACTIVE THEME'}`, 'USE · SET | SELECT'])
@@ -1227,7 +1356,7 @@ function App() {
         }
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       activateTheme('dragon', 'night-fury-stealth')
@@ -1308,12 +1437,22 @@ function App() {
             try {
               const response = await fetch(wallpaperUrl)
               if (!response.ok) throw new Error('ACTIVE IMAGE COULD NOT BE READ')
-              await writeDefaultWallpaper({ blob: await response.blob(), name: wallpaperName })
+              const selection = { blob: await response.blob(), name: wallpaperName }
+              let durableSaveError: unknown = null
+              try { await persistDurableWallpaper(selection) } catch (error) { durableSaveError = error }
+              await writeDefaultWallpaper(selection)
               setDefaultWallpaperName(wallpaperName)
-              report(['DEFAULT WALLPAPER SAVED', `STARTUP IMAGE .......... ${wallpaperName.toUpperCase()}`, 'SAVED IN THIS LIVELY PROFILE · NO REBUILD REQUIRED'])
-              setStatus(`STARTUP WALLPAPER SET · ${wallpaperName.toUpperCase()}`)
-            } catch {
-              report(['DEFAULT WALLPAPER SAVE FAILED', 'BROWSER STORAGE IS UNAVAILABLE OR THE IMAGE COULD NOT BE READ.'])
+              if (durableSaveError) {
+                const message = durableSaveError instanceof Error ? durableSaveError.message : 'HELPER DID NOT CONFIRM SAVE'
+                report(['DURABLE WALLPAPER SAVE FAILED', message.toUpperCase(), 'BROWSER PROFILE CACHE UPDATED ONLY · NO HELPER CONFIRMATION'])
+                setStatus('DEFAULT WALLPAPER SAVED TO BROWSER CACHE ONLY')
+              } else {
+                report(['DEFAULT WALLPAPER SAVED', `STARTUP IMAGE .......... ${wallpaperName.toUpperCase()}`, 'WINDOWS HELPER CONFIRMED · LOCALAPPDATA CONFIG WRITTEN'])
+                setStatus(`STARTUP WALLPAPER SET · ${wallpaperName.toUpperCase()}`)
+              }
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'DEFAULT WALLPAPER SAVE FAILED'
+              report(['DEFAULT WALLPAPER SAVE FAILED', message.toUpperCase(), 'NO DURABLE SAVE WAS CONFIRMED.'])
               setStatus('DEFAULT WALLPAPER SAVE FAILED')
             }
           }
@@ -1333,23 +1472,43 @@ function App() {
             setStatus('DEFAULT WALLPAPER SELECTION INVALID')
           } else {
             try {
+              let durableSaveError: unknown = null
+              try { await persistDurableWallpaper(selected.wallpaper) } catch (error) { durableSaveError = error }
               await writeDefaultWallpaper(selected.wallpaper)
               setDefaultWallpaperName(selected.wallpaper.name)
-              report(['DEFAULT WALLPAPER UPDATED', `STARTUP IMAGE .......... ${selected.wallpaper.name.toUpperCase()}`, 'ACTIVE IMAGE UNCHANGED · NEW DEFAULT APPLIES ON NEXT START'])
-              setStatus(`STARTUP WALLPAPER SET · ${selected.wallpaper.name.toUpperCase()}`)
-            } catch {
-              report(['DEFAULT WALLPAPER SAVE FAILED', 'BROWSER STORAGE IS UNAVAILABLE.'])
+              if (durableSaveError) {
+                const message = durableSaveError instanceof Error ? durableSaveError.message : 'HELPER DID NOT CONFIRM SAVE'
+                report(['DURABLE WALLPAPER SAVE FAILED', message.toUpperCase(), 'BROWSER PROFILE CACHE UPDATED ONLY · NO HELPER CONFIRMATION'])
+                setStatus('DEFAULT WALLPAPER SAVED TO BROWSER CACHE ONLY')
+              } else {
+                report(['DEFAULT WALLPAPER UPDATED', `STARTUP IMAGE .......... ${selected.wallpaper.name.toUpperCase()}`, 'WINDOWS HELPER CONFIRMED · NEW DEFAULT APPLIES NEXT START'])
+                setStatus(`STARTUP WALLPAPER SET · ${selected.wallpaper.name.toUpperCase()}`)
+              }
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'DEFAULT WALLPAPER SAVE FAILED'
+              report(['DEFAULT WALLPAPER SAVE FAILED', message.toUpperCase(), 'NO DURABLE SAVE WAS CONFIRMED.'])
               setStatus('DEFAULT WALLPAPER SAVE FAILED')
             }
           }
         } else if (defaultAction === 'clear' && args.length === 3) {
+          let durableSaveError: unknown = null
+          try {
+            await persistDurableWallpaper(null)
+          } catch (error) { durableSaveError = error }
           try {
             await clearDefaultWallpaper()
             setDefaultWallpaperName(null)
-            report(['DEFAULT WALLPAPER CLEARED', 'STARTUP FALLBACK ........ LAST ACTIVE IMAGE, THEN BUNDLED 3D RENDER'])
-            setStatus('STARTUP WALLPAPER DEFAULT CLEARED')
-          } catch {
-            report(['DEFAULT WALLPAPER CLEAR FAILED', 'BROWSER STORAGE IS UNAVAILABLE.'])
+            if (durableSaveError) {
+              const message = durableSaveError instanceof Error ? durableSaveError.message : 'HELPER DID NOT CONFIRM SAVE'
+              report(['DURABLE WALLPAPER CLEAR FAILED', message.toUpperCase(), 'BROWSER PROFILE CACHE CLEARED ONLY · NO HELPER CONFIRMATION'])
+              setStatus('DEFAULT WALLPAPER CLEARED FROM BROWSER CACHE ONLY')
+            } else {
+              report(['DEFAULT WALLPAPER CLEARED', 'WINDOWS HELPER CONFIRMED · STARTUP WILL USE BROWSER CACHE OR BUNDLED IMAGE'])
+              setStatus('STARTUP WALLPAPER DEFAULT CLEARED')
+            }
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'DEFAULT WALLPAPER CLEAR FAILED'
+            report(['DEFAULT WALLPAPER CLEAR FAILED', message.toUpperCase(), 'NO DURABLE SAVE WAS CONFIRMED.'])
             setStatus('DEFAULT WALLPAPER CLEAR FAILED')
           }
         } else {

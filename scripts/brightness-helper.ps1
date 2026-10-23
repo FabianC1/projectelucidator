@@ -207,7 +207,7 @@ function Read-HttpRequest {
   }
   $length = 0
   if ($headers.ContainsKey('Content-Length')) { $length = [int]$headers['Content-Length'] }
-  if ($length -gt 8192 -or $length -lt 0) { throw 'Request body too large.' }
+  if ($length -gt 157286400 -or $length -lt 0) { throw 'Request body too large.' }
   $body = New-Object byte[] $length
   $offset = 0
   while ($offset -lt $length) {
@@ -224,6 +224,95 @@ function Get-MonitorPayload {
     [PSCustomObject]@{ id = $_.Id; name = $_.Name; supported = $_.Supported; brightness = $_.Brightness; error = $_.Error }
   })
   return $monitors
+}
+
+$script:ConfigDirectory = Join-Path (Split-Path -Parent $TokenPath) 'startup'
+$script:ConfigPath = Join-Path $script:ConfigDirectory 'config.json'
+$script:WallpaperDirectory = Join-Path $script:ConfigDirectory 'wallpapers'
+
+function Get-Sha256Hex {
+  param([byte[]]$Bytes)
+  $algorithm = [Security.Cryptography.SHA256]::Create()
+  try { return ([BitConverter]::ToString($algorithm.ComputeHash($Bytes))).Replace('-', '').ToLowerInvariant() }
+  finally { $algorithm.Dispose() }
+}
+
+function Get-StartupConfiguration {
+  if (-not (Test-Path -LiteralPath $script:ConfigPath -PathType Leaf)) {
+    return [PSCustomObject]@{ version = 1; theme = $null; wallpaperName = $null; wallpaperType = $null; wallpaperFile = $null; wallpaperHash = $null }
+  }
+  $config = Get-Content -LiteralPath $script:ConfigPath -Raw | ConvertFrom-Json
+  if ($config.version -ne 1) { throw 'Unsupported startup configuration version.' }
+  if ($config.wallpaperFile) {
+    try {
+      if ($config.wallpaperFile -notmatch '^[a-f0-9]{64}\.bin$') { throw 'Invalid saved wallpaper identifier.' }
+      $imagePath = Join-Path $script:WallpaperDirectory $config.wallpaperFile
+      if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) { throw 'Saved wallpaper image is missing.' }
+      $bytes = [IO.File]::ReadAllBytes($imagePath)
+      $hash = Get-Sha256Hex $bytes
+      if ($hash -ne $config.wallpaperHash) { throw 'Saved wallpaper image integrity check failed.' }
+      $config | Add-Member -NotePropertyName wallpaperData -NotePropertyValue ([Convert]::ToBase64String($bytes)) -Force
+      $config | Add-Member -NotePropertyName wallpaperError -NotePropertyValue $null -Force
+    } catch {
+      $config | Add-Member -NotePropertyName wallpaperData -NotePropertyValue $null -Force
+      $config | Add-Member -NotePropertyName wallpaperError -NotePropertyValue $_.Exception.Message -Force
+    }
+  } else {
+    $config | Add-Member -NotePropertyName wallpaperData -NotePropertyValue $null -Force
+    $config | Add-Member -NotePropertyName wallpaperError -NotePropertyValue $null -Force
+  }
+  return $config
+}
+
+function Save-StartupConfiguration {
+  param($Patch)
+  if (-not (Test-Path -LiteralPath $script:ConfigDirectory)) { New-Item -ItemType Directory -Path $script:ConfigDirectory -Force | Out-Null }
+  if (-not (Test-Path -LiteralPath $script:WallpaperDirectory)) { New-Item -ItemType Directory -Path $script:WallpaperDirectory -Force | Out-Null }
+  $current = Get-StartupConfiguration
+  $next = [ordered]@{
+    version = 1
+    theme = $current.theme
+    wallpaperName = $current.wallpaperName
+    wallpaperType = $current.wallpaperType
+    wallpaperFile = $current.wallpaperFile
+    wallpaperHash = $current.wallpaperHash
+  }
+  if ($Patch.PSObject.Properties.Name -contains 'theme') {
+    if ($null -ne $Patch.theme -and $Patch.theme -notin @('sao','arise','grimoire','limitless','breathing-sun','demon-mode','dragon','tokyo-ghoul')) { throw 'Unknown theme identifier.' }
+    $next.theme = $Patch.theme
+  }
+  if ($Patch.PSObject.Properties.Name -contains 'wallpaperData') {
+    if ($null -eq $Patch.wallpaperData) {
+      $next.wallpaperName = $null; $next.wallpaperType = $null; $next.wallpaperFile = $null; $next.wallpaperHash = $null
+    } else {
+      if (-not $Patch.wallpaperName -or $Patch.wallpaperName.Length -gt 512) { throw 'Invalid wallpaper name.' }
+      if ($Patch.wallpaperData -isnot [string] -or $Patch.wallpaperData.Length -gt 139810132) { throw 'Wallpaper image exceeds the 100 MB limit.' }
+      $bytes = [Convert]::FromBase64String($Patch.wallpaperData)
+      if ($bytes.Length -eq 0 -or $bytes.Length -gt 104857600) { throw 'Wallpaper image exceeds the 100 MB limit or is empty.' }
+      $hash = Get-Sha256Hex $bytes
+      $fileName = "$hash.bin"
+      $imagePath = Join-Path $script:WallpaperDirectory $fileName
+      if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
+        $imageTemp = "$imagePath.$([guid]::NewGuid().ToString('N')).tmp"
+        [IO.File]::WriteAllBytes($imageTemp, $bytes)
+        try { [IO.File]::Move($imageTemp, $imagePath) } catch { if (Test-Path -LiteralPath $imageTemp) { Remove-Item -LiteralPath $imageTemp -Force }; if (-not (Test-Path -LiteralPath $imagePath)) { throw } }
+      }
+      $next.wallpaperName = [string]$Patch.wallpaperName
+      $next.wallpaperType = if ($Patch.wallpaperType -is [string] -and $Patch.wallpaperType.Length -le 128) { [string]$Patch.wallpaperType } else { 'application/octet-stream' }
+      $next.wallpaperFile = $fileName
+      $next.wallpaperHash = $hash
+    }
+  }
+  $tempPath = "$($script:ConfigPath).$([guid]::NewGuid().ToString('N')).tmp"
+  $json = ConvertTo-Json -InputObject $next -Depth 4 -Compress
+  [IO.File]::WriteAllText($tempPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+  try {
+    if (Test-Path -LiteralPath $script:ConfigPath -PathType Leaf) {
+      $backupPath = "$($script:ConfigPath).bak"
+      [IO.File]::Replace($tempPath, $script:ConfigPath, $backupPath, $true)
+    } else { [IO.File]::Move($tempPath, $script:ConfigPath) }
+  } finally { if (Test-Path -LiteralPath $tempPath) { Remove-Item -LiteralPath $tempPath -Force } }
+  return $next
 }
 
 function Handle-Client {
@@ -256,6 +345,18 @@ function Handle-Client {
       Write-HttpResponse $stream 200 '{"available":true,"service":"Elucidator DDC/CI"}' $origin
       return
     }
+    if ($request.Method -eq 'GET' -and $request.Path -eq '/api/startup-config') {
+      try {
+        $config = Get-StartupConfiguration
+        $publicConfig = [PSCustomObject]@{ version = 1; theme = $config.theme; wallpaperName = $config.wallpaperName; wallpaperType = $config.wallpaperType; wallpaperData = $config.wallpaperData; wallpaperError = $config.wallpaperError }
+        $payload = ConvertTo-Json -InputObject @{ available = [bool]($config.theme -or $config.wallpaperName); configuration = $publicConfig } -Depth 4 -Compress
+        Write-HttpResponse $stream 200 $payload $origin
+      } catch {
+        $message = ConvertTo-Json -InputObject ('STARTUP CONFIGURATION ERROR · ' + $_.Exception.Message) -Compress
+        Write-HttpResponse $stream 500 "{`"available`":false,`"message`":$message}" $origin
+      }
+      return
+    }
     $authorization = $request.Headers['Authorization']
     if ($authorization -cne "Bearer $script:BrightnessToken") {
       Write-HttpResponse $stream 401 '{"message":"NOT PAIRED · USE SYS BRIGHTNESS PAIR <TOKEN>"}' $origin
@@ -285,6 +386,13 @@ function Handle-Client {
       Write-HttpResponse $stream $(if ($change.Success) { 200 } else { 400 }) $response $origin
       return
     }
+    if ($request.Method -eq 'POST' -and $request.Path -eq '/api/startup-config') {
+      $requestData = [Text.Encoding]::UTF8.GetString($request.Body) | ConvertFrom-Json
+      $saved = Save-StartupConfiguration $requestData
+      $response = ConvertTo-Json -InputObject @{ ok = $true; saved = $true; message = 'STARTUP CONFIGURATION SAVED'; theme = $saved.theme; wallpaperName = $saved.wallpaperName } -Compress
+      Write-HttpResponse $stream 200 $response $origin
+      return
+    }
     if ($request.Method -notin @('GET', 'POST')) {
       Write-HttpResponse $stream 405 '{"message":"METHOD NOT ALLOWED"}' $origin
       return
@@ -296,7 +404,8 @@ function Handle-Client {
   } finally { $Client.Close() }
 }
 
-$serverMutex = [System.Threading.Mutex]::new($false, 'Local\ProjectElucidatorDdcServer')
+$mutexName = if ($Port -eq 17384) { 'Local\ProjectElucidatorDdcServer' } else { "Local\ProjectElucidatorDdcServer_$Port" }
+$serverMutex = [System.Threading.Mutex]::new($false, $mutexName)
 $ownsServerMutex = $false
 try { $ownsServerMutex = $serverMutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $ownsServerMutex = $true }
 if (-not $ownsServerMutex) { $serverMutex.Dispose(); exit 0 }

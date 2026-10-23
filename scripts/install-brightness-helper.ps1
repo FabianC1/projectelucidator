@@ -19,8 +19,6 @@ if (-not (Test-Path -LiteralPath $tokenPath)) {
   try { $generator.GetBytes($bytes) } finally { $generator.Dispose() }
   $token = [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
   [IO.File]::WriteAllText($tokenPath, $token, [Text.Encoding]::ASCII)
-} else {
-  $token = [IO.File]::ReadAllText($tokenPath).Trim()
 }
 
 $startupDirectory = [Environment]::GetFolderPath('Startup')
@@ -62,7 +60,8 @@ Write-Host 'ELUCIDATOR WINDOWS BRIDGE INSTALLED' -ForegroundColor Cyan
 Write-Host "Startup watchdog: $shortcutPath"
 if ($helperReady) { Write-Host 'DDC/CI bridge: ONLINE · WATCHDOG ACTIVE' -ForegroundColor Green }
 else { Write-Warning 'DDC/CI bridge did not start. The watchdog will retry; check PowerShell or Windows security logs if it stays offline.' }
-Write-Host 'Pair this Elucidator app once with:'
-Write-Host "sys brightness pair $token" -ForegroundColor Yellow
+Write-Host 'The pairing credential is stored locally; it is never printed by this installer.'
+Write-Host "To pair once, read $tokenPath on this PC and enter: sys brightness pair <TOKEN>" -ForegroundColor Yellow
 Write-Host 'Then try: sys brightness status | sys brightness 40 | sys brightness monitor 1 60'
+Write-Host 'Startup wallpaper/theme bytes are stored under LocalAppData\ProjectElucidator\startup after an authenticated save.'
 Write-Host 'Keep DDC/CI enabled in each monitor OSD. You can remove it with uninstall-brightness-helper.ps1.'

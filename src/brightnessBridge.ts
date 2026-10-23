@@ -9,6 +9,13 @@ export type BrightnessMonitor = {
 type MonitorResponse = { monitors: BrightnessMonitor[] }
 type ChangeResponse = MonitorResponse & { ok: boolean; message: string }
 type LockResponse = { ok: boolean; message: string }
+export type StartupConfiguration = {
+  wallpaperName: string | null
+  wallpaperType: string | null
+  wallpaperData: string | null
+  theme: string | null
+  wallpaperError?: string | null
+}
 
 const HELPER_URL = 'http://127.0.0.1:17384'
 export const BRIGHTNESS_TOKEN_KEY = 'project-elucidator-brightness-token'
@@ -131,5 +138,19 @@ export async function lockWindowsSession(token: string) {
   return request<LockResponse>('/api/lock', token, {
     method: 'POST',
     body: '{}',
+  })
+}
+
+export async function readDurableStartupConfiguration() {
+  const response = await fetch(`${HELPER_URL}/api/startup-config`, { cache: 'no-store' })
+  if (!response.ok) throw new Error(`WINDOWS CONFIGURATION HELPER ERROR · HTTP ${response.status}`)
+  const result = await response.json() as { available?: boolean; configuration?: StartupConfiguration }
+  return result.available ? result.configuration ?? null : null
+}
+
+export async function saveDurableStartupConfiguration(token: string, configuration: Partial<StartupConfiguration>) {
+  return request<{ ok: boolean; saved: boolean; message: string }>('/api/startup-config', token, {
+    method: 'POST',
+    body: JSON.stringify(configuration),
   })
 }
