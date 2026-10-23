@@ -415,6 +415,16 @@ function HardwareGauge({ label, percent, value, detail }: { label: string; perce
   )
 }
 
+function DiagnosticMeter({ label, value, percent, history, detail }: { label: string; value: string; percent: number | null; history: number[]; detail?: string }) {
+  const points = history.length > 1 ? history.map((point, index) => `${(index / (history.length - 1)) * 100},${100 - point}`).join(' ') : ''
+  return <div className={`diagnostic-meter${percent === null ? ' is-unavailable' : ''}`}>
+    <div className="diagnostic-meter-label"><b>{label}</b><strong>{value}</strong></div>
+    <div className="diagnostic-meter-track" style={{ '--meter-value': `${percent ?? 0}%` } as CSSProperties}><i /></div>
+    {points ? <svg className="diagnostic-meter-history" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points={points} /></svg> : <span className="diagnostic-meter-history empty">NO SAMPLE HISTORY</span>}
+    {detail && <small>{detail}</small>}
+  </div>
+}
+
 async function detectConnectedMonitorCount(token: string): Promise<number | null> {
   if (!token) return null
   try {
@@ -490,7 +500,7 @@ function App() {
   const historyIndexRef = useRef(0)
   const commandDraftRef = useRef('')
   const completionRef = useRef<{ lastValue: string; candidates: string[]; index: number } | null>(null)
-  const draggingWidgetRef = useRef<{ id: number; offsetX: number; offsetY: number } | null>(null)
+  const draggingWidgetRef = useRef<{ id: number; offsetX: number; offsetY: number; startX: number; startY: number; activated: boolean } | null>(null)
   const widgetExitTimersRef = useRef<Map<number, number>>(new Map())
   const draggingConsoleRef = useRef<{ offsetX: number; offsetY: number; frame: ConsoleFrame } | null>(null)
   const effectIdRef = useRef(0)
@@ -569,6 +579,7 @@ function App() {
     } catch (error) { startupStorageErrors['layout presets restore'] = describeStorageError(error); return {} }
   })
   const [clockNow, setClockNow] = useState(() => new Date())
+  const [hardwareHistory, setHardwareHistory] = useState<Record<'cpu' | 'gpu' | 'ram', number[]>>({ cpu: [], gpu: [], ram: [] })
   const setStorageIssue = useCallback((area: string, error: unknown | null) => {
     if (error === null) delete storageErrorsRef.current[area]
     else storageErrorsRef.current[area] = describeStorageError(error)
@@ -961,6 +972,16 @@ function App() {
     const timer = window.setInterval(() => setClockNow(new Date()), 1000)
     return () => window.clearInterval(timer)
   }, [enabledWidgets])
+
+  useEffect(() => {
+    if (!hardwareFeed.readings || hardwareFeed.status === 'invalid') return
+    const readings = hardwareFeed.readings
+    const ram = readings.ramTotalMb && readings.ramAvailableMb != null ? (readings.ramTotalMb - readings.ramAvailableMb) / readings.ramTotalMb * 100 : null
+    setHardwareHistory((current) => {
+      const append = (values: number[], value: number | null) => value === null ? values : [...values, Math.max(0, Math.min(100, value))].slice(-24)
+      return { cpu: append(current.cpu, readings.cpuPercent), gpu: append(current.gpu, readings.gpu3dPercent), ram: append(current.ram, ram) }
+    })
+  }, [hardwareFeed])
 
   useEffect(() => () => {
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
@@ -1906,20 +1927,7 @@ function App() {
     const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
     if (!card) return
     const bounds = card.getBoundingClientRect()
-    if (widgetLayout !== 'free') {
-      const visiblePositions = Object.fromEntries(
-        Array.from(document.querySelectorAll<HTMLElement>('.system-widget:not(.widget-leaving)')).flatMap((widget) => {
-          const widgetClass = Array.from(widget.classList).find((name) => /^widget-[1-5]$/.test(name))
-          if (!widgetClass) return []
-          const widgetId = Number(widgetClass.slice('widget-'.length))
-          const rect = widget.getBoundingClientRect()
-          return [[widgetId, { x: rect.left / window.innerWidth * 100, y: rect.top / window.innerHeight * 100 }]]
-        }),
-      ) as WidgetPositions
-      setWidgetPositions((current) => ({ ...current, ...visiblePositions }))
-      setWidgetLayout('free')
-    }
-    draggingWidgetRef.current = { id, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top }
+    draggingWidgetRef.current = { id, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top, startX: event.clientX, startY: event.clientY, activated: widgetLayout === 'free' }
     event.currentTarget.setPointerCapture(event.pointerId)
     event.preventDefault()
   }
@@ -1927,6 +1935,18 @@ function App() {
   const moveWidgetDrag = (event: ReactPointerEvent<HTMLElement>) => {
     const drag = draggingWidgetRef.current
     if (!drag) return
+    if (!drag.activated) {
+      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 7) return
+      const visiblePositions = Object.fromEntries(Array.from(document.querySelectorAll<HTMLElement>('.system-widget:not(.widget-leaving)')).flatMap((widget) => {
+        const widgetClass = Array.from(widget.classList).find((name) => /^widget-[1-5]$/.test(name))
+        if (!widgetClass) return []
+        const rect = widget.getBoundingClientRect()
+        return [[Number(widgetClass.slice('widget-'.length)), { x: rect.left / window.innerWidth * 100, y: rect.top / window.innerHeight * 100 }]]
+      })) as WidgetPositions
+      setWidgetPositions((current) => ({ ...current, ...visiblePositions }))
+      setWidgetLayout('free')
+      drag.activated = true
+    }
     const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
     if (!card) return
     const bounds = card.getBoundingClientRect()
@@ -1949,10 +1969,11 @@ function App() {
     const cardWidth = existingCard?.getBoundingClientRect().width
       ?? Math.min(fallbackWidthRem * 16, window.innerWidth - (window.innerWidth <= 700 ? 20.8 : 32)) * scale
     const maxX = Math.max(0, (window.innerWidth - cardWidth) / window.innerWidth * 100)
-    const maxY = Math.max(0, (window.innerHeight - 120 * scale) / window.innerHeight * 100)
+    const cardHeight = existingCard?.getBoundingClientRect().height ?? 120 * scale
+    const maxY = Math.max(0, (window.innerHeight - cardHeight) / window.innerHeight * 100)
     return {
-      left: `${Math.min(position.x, maxX)}%`,
-      top: `${Math.min(position.y, maxY)}%`,
+      left: `${Math.max(0, Math.min(position.x, maxX))}%`,
+      top: `${Math.max(0, Math.min(position.y, maxY))}%`,
       right: 'auto',
       ...scaleStyle,
     }
@@ -2243,7 +2264,16 @@ function App() {
           <article className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>01 / HARDWARE</span><i>{hardwareStatusLabel(hardwareFeed.status)}</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
             <strong className="hardware-host">{hardwareFeed.readings?.cpuName ?? 'HOST TELEMETRY'} · {hardwareFeed.readings?.gpuName ?? 'GPU'} </strong>
-            {(() => {
+            {theme === 'demon-mode' || theme === 'tokyo-ghoul' ? (() => {
+              const readings = hardwareFeed.readings
+              const ramPercent = readings?.ramTotalMb != null && readings.ramTotalMb > 0 && readings.ramAvailableMb != null ? (readings.ramTotalMb - readings.ramAvailableMb) / readings.ramTotalMb * 100 : null
+              const ramUsed = readings?.ramTotalMb != null && readings.ramAvailableMb != null ? readings.ramTotalMb - readings.ramAvailableMb : null
+              return <div className={theme === 'demon-mode' ? 'demon-hardware-grid' : 'kagune-hardware-grid'}>
+                <DiagnosticMeter label="CPU LOAD" percent={readings?.cpuPercent ?? null} value={readings?.cpuPercent == null ? 'UNAVAILABLE' : `${Math.round(readings.cpuPercent)}%`} history={hardwareHistory.cpu} />
+                <DiagnosticMeter label="GPU 3D" percent={readings?.gpu3dPercent ?? null} value={readings?.gpu3dPercent == null ? 'UNAVAILABLE' : `${Math.round(readings.gpu3dPercent)}%`} history={hardwareHistory.gpu} />
+                <DiagnosticMeter label="RAM" percent={ramPercent} value={ramPercent == null ? 'UNAVAILABLE' : `${Math.round(ramPercent)}%`} history={hardwareHistory.ram} detail={ramUsed == null || readings?.ramTotalMb == null ? undefined : `${(ramUsed / 1024).toFixed(1)} / ${(readings.ramTotalMb / 1024).toFixed(1)} GB`} />
+              </div>
+            })() : (() => {
               const readings = hardwareFeed.readings
               const ramPercent = readings?.ramTotalMb != null && readings.ramTotalMb > 0 && readings.ramAvailableMb != null
                 ? Math.max(0, Math.min(100, (readings.ramTotalMb - readings.ramAvailableMb) / readings.ramTotalMb * 100))
@@ -2271,15 +2301,15 @@ function App() {
         {renderedWidgets.includes(2) && (
           <article className={`system-widget widget-2${leavingWidgetIds.includes(2) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(2)} style={positionWidget(2)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 2)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>02 / WORLD CLOCK</span><i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close world clock widget">×</button></header>
-            <div className="clock-widget-display">
-              <div className="clock-face" style={clockStyle} aria-hidden="true">
+            <div className={`clock-widget-display${theme === 'demon-mode' ? ' demon-digital-clock' : theme === 'tokyo-ghoul' ? ' kagune-digital-clock' : ''}`}>
+              {theme !== 'demon-mode' && theme !== 'tokyo-ghoul' && <div className="clock-face" style={clockStyle} aria-hidden="true">
                 <span className="clock-hand clock-hand-hour" />
                 <span className="clock-hand clock-hand-minute" />
                 <span className="clock-hand clock-hand-second" />
                 <span className="clock-pin" />
-              </div>
+              </div>}
               <div className="clock-widget-copy">
-                <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong>
+                <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, theme === 'demon-mode' || theme === 'tokyo-ghoul' ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{(theme === 'demon-mode' || theme === 'tokyo-ghoul') && <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>}</strong>
                 <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
                 <small>LOCAL CHRONOMETER · {clockZone.toUpperCase()}</small>
               </div>
@@ -2288,12 +2318,8 @@ function App() {
         )}
         {renderedWidgets.includes(3) && (
           <article className={`system-widget widget-3${leavingWidgetIds.includes(3) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(3)} style={positionWidget(3)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>03 / SESSION MONITOR</span><i>LIVE</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close session monitor widget">×</button></header>
-            <div className="session-metrics">
-              <div><small>BOOT UPTIME</small><strong>{formatUptime((clockNow.getTime() - sessionStartedAt.current) / 1000)}</strong></div>
-              <div><small>WALLPAPER ACTIVE</small><strong>{wallpaperUrl ? formatUptime((clockNow.getTime() - wallpaperStartedAt.current) / 1000) : 'NO WALLPAPER'}</strong></div>
-            </div>
-            <p className="session-wallpaper-name">ACTIVE IMAGE <b>{wallpaperUrl ? wallpaperName.toUpperCase() : 'NONE'}</b></p>
+            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>03 / SESSION RECORDER</span><i>LIVE</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close session recorder widget">×</button></header>
+            <div className={`session-recorder${theme === 'tokyo-ghoul' ? ' kagune-session-trace' : ''}`}><div className="kagune-trace-time"><strong>{formatUptime((clockNow.getTime() - sessionStartedAt.current) / 1000)}</strong><span>SESSION RECORDER</span></div><div className="kagune-trace-data"><p><span>WALLPAPER ACTIVE</span><b>{wallpaperUrl ? formatUptime((clockNow.getTime() - wallpaperStartedAt.current) / 1000) : 'NOT LOADED'}</b></p><p><span>TELEMETRY FEED</span><b>{hardwareStatusLabel(hardwareFeed.status)}</b></p></div><p className="kagune-trace-wallpaper"><span>ACTIVE IMAGE</span><b>{wallpaperUrl ? wallpaperName.toUpperCase() : 'NONE'}</b></p></div>
           </article>
         )}
         {renderedWidgets.includes(4) && (
@@ -2322,14 +2348,14 @@ function App() {
         )}
         {renderedWidgets.includes(5) && (
           <article className={`system-widget widget-5${leavingWidgetIds.includes(5) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(5)} style={positionWidget(5)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 5)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>05 / ANIME STATUS</span><i>THEME LINKED</i><button className="widget-close" onClick={() => closeWidget(5)} aria-label="Close anime status widget">×</button></header>
-            <div className="anime-status-heading">
+            <header onPointerDown={(event) => startWidgetDrag(event, 5)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>{theme === 'demon-mode' || theme === 'tokyo-ghoul' ? '05 / SYSTEM CONTROL' : '05 / ANIME STATUS'}</span><i>{theme === 'demon-mode' || theme === 'tokyo-ghoul' ? 'UTILITY' : 'THEME LINKED'}</i><button className="widget-close" onClick={() => closeWidget(5)} aria-label="Close anime status widget">×</button></header>
+            {theme === 'demon-mode' || theme === 'tokyo-ghoul' ? <div className={theme === 'demon-mode' ? 'demon-system-control' : 'kagune-system-control'}><div className={theme === 'demon-mode' ? 'demon-control-brand' : 'kagune-control-brand'}><img src={theme === 'demon-mode' ? './assets/emblems/dragon-sin-of-wrath.png' : './assets/emblems/tokyo-ghoul.png'} alt="" /><b>{theme === 'demon-mode' ? 'DRAGON SIN // DEMON MODE' : 'KAGUNE // ELUCIDATOR'}</b></div><p><span>ACTIVE EFFECT</span><b>{visualTheme.toUpperCase()}</b></p><p><span>WALLPAPER FIT</span><b>{wallpaperFit.toUpperCase()}</b></p><p><span>BRIGHTNESS BRIDGE</span><b>{brightnessHelperOnline ? brightnessToken ? 'PAIRED' : 'ONLINE · UNPAIRED' : 'OFFLINE'}</b></p><div className={theme === 'demon-mode' ? 'demon-control-actions' : 'kagune-control-actions'}><button onClick={() => setVisualTheme(visualTheme === 'vignette' ? 'off' : 'vignette')}>EFFECT {visualTheme === 'vignette' ? 'OFF' : 'ON'}</button><button disabled={!brightnessToken || !brightnessHelperOnline} onClick={() => void changeBrightness(brightnessToken, 60, null)}>BRIGHTNESS 60%</button></div></div> : <><div className="anime-status-heading">
               <ThemeEmblem className="anime-status-orb theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title={`${activeThemeSystem?.label ?? 'Theme'} emblem`} />
               <div><small>{theme.replaceAll('-', ' ').toUpperCase()} PROTOCOL</small><strong>{animeStatus.title}</strong></div>
             </div>
             <p className="anime-status-state">{animeStatus.state}</p>
             <div className="anime-signal" aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <i key={index} />)}</div>
-            <p className="anime-status-metric"><span>{animeStatus.metric}</span><b>{animeStatus.value}</b></p>
+            <p className="anime-status-metric"><span>{animeStatus.metric}</span><b>{animeStatus.value}</b></p></>}
           </article>
         )}
       </aside>
