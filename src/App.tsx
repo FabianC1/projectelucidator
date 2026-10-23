@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { siGooglechrome, siNetflix, siRoblox, type SimpleIcon } from 'simple-icons'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
 import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
@@ -51,15 +52,15 @@ type HardwareFeedStatus = 'waiting' | 'live' | 'browser' | 'stale' | 'invalid'
 type HardwareFeed = { status: HardwareFeedStatus; readings: LivelySystemInfo | null; updatedAt: number | null }
 type NowPlayingTrack = { title: string; artist: string; album: string; artwork: string | null; playbackType: string }
 type NowPlayingStatus = 'waiting' | 'browser' | 'none' | 'track' | 'invalid'
-type QuickShortcut = { id: string; label: string; icon: string; target: string }
+type QuickShortcut = { id: string; label: string; icon: string | SimpleIcon; target: string }
 
 const WIDGET_IDS = [1, 2, 3, 4, 5] as const
 const QUICK_SHORTCUTS: QuickShortcut[] = [
   { id: 'warframe', label: 'Warframe', icon: '◈', target: 'warframe' },
   { id: 'vscode', label: 'VS Code', icon: '⌘', target: 'vscode' },
-  { id: 'chrome', label: 'Chrome', icon: '◉', target: 'chrome' },
-  { id: 'roblox', label: 'Roblox', icon: '◇', target: 'roblox' },
-  { id: 'netflix', label: 'Netflix', icon: 'N', target: 'netflix' },
+  { id: 'chrome', label: 'Chrome', icon: siGooglechrome, target: 'chrome' },
+  { id: 'roblox', label: 'Roblox', icon: siRoblox, target: 'roblox' },
+  { id: 'netflix', label: 'Netflix', icon: siNetflix, target: 'netflix' },
   { id: 'alecaframe', label: 'AlecaFrame', icon: 'A', target: 'alecaframe' },
 ]
 const SUN_BREATHING_KATANA = './assets/swords/sun-breathing-katana.png'
@@ -68,11 +69,11 @@ const WIDGET_SCALES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const
 type WidgetScale = (typeof WIDGET_SCALES)[number]
 type WidgetScales = Partial<Record<number, WidgetScale>>
 const WIDGET_TITLES: Record<number, string> = {
-  1: 'HARDWARE TELEMETRY',
-  2: 'WORLD CLOCK',
+  1: 'HARDWARE',
+  2: 'LOCAL TIME',
   3: 'QUICK LAUNCH',
-  4: 'AUDIO LINK',
-  5: 'ANIME STATUS',
+  4: 'NOW PLAYING',
+  5: 'SYSTEM CONTROL',
 }
 const THEME_STATUS: Record<ThemeId, { title: string; state: string; metric: string; value: string }> = {
   sao: { title: 'AINCRAD SYSTEM', state: 'SYSTEM LINK STABLE', metric: 'LINK STATE', value: 'NOMINAL' },
@@ -1056,6 +1057,11 @@ function App() {
     report(['QUICK LAUNCH', `${shortcut.label.toUpperCase()} ............ PLACEHOLDER`, 'LAUNCH INTEGRATION COMING SOON'])
     setStatus(`QUICK LAUNCH · ${shortcut.label.toUpperCase()} · COMING SOON`)
   }
+  const activateVisualEffect = (selected: VisualTheme) => {
+    setVisualTheme(selected)
+    report(selected === 'off' ? ['VISUAL EFFECTS', 'ALL ATMOSPHERIC LAYERS .... OFF'] : ['VISUAL EFFECT UPDATED', `ACTIVE ................. ${selected.toUpperCase()}`, 'WALLPAPER AND SYSTEM THEME .. UNCHANGED'])
+    setStatus(`VISUAL THEME · ${selected.toUpperCase()}`)
+  }
   const openWidget = (id: number) => {
     if (id === 2 || id === 3) setClockNow(new Date())
     const timer = widgetExitTimersRef.current.get(id)
@@ -1380,11 +1386,7 @@ function App() {
         setStatus('VISUAL THEME Â· ' + visualTheme.toUpperCase())
       } else if (VISUAL_THEMES.includes(action as VisualTheme) && args.length === 2) {
         const selected = action as VisualTheme
-        setVisualTheme(selected)
-        report(selected === 'off'
-          ? ['VISUAL EFFECTS', 'ALL ATMOSPHERIC LAYERS .... OFF']
-          : ['VISUAL EFFECT UPDATED', 'ACTIVE ................. ' + selected.toUpperCase(), 'WALLPAPER AND SYSTEM THEME .. UNCHANGED'])
-        setStatus('VISUAL THEME Â· ' + selected.toUpperCase())
+        activateVisualEffect(selected)
       } else {
         report(['VISUAL COMMAND ERROR', 'USAGE Â· VISUAL [LIST|STATUS|HAZE|RAIN|LIGHTNING|PARTICLES|VIGNETTE|OFF]'])
         setStatus('VISUAL COMMAND ERROR')
@@ -2326,7 +2328,7 @@ function App() {
         )}
         {renderedWidgets.includes(2) && (
           <article className={`system-widget widget-2${leavingWidgetIds.includes(2) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(2)} style={positionWidget(2)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 2)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>02 / WORLD CLOCK</span><i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close world clock widget">×</button></header>
+            <header onPointerDown={(event) => startWidgetDrag(event, 2)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>02 / LOCAL TIME</span><i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close local time widget">×</button></header>
             <div className={`clock-widget-display${theme === 'demon-mode' ? ' demon-digital-clock' : theme === 'tokyo-ghoul' ? ' kagune-digital-clock' : ''}`}>
               {theme !== 'demon-mode' && theme !== 'tokyo-ghoul' && <div className="clock-face" style={clockStyle} aria-hidden="true">
                 <span className="clock-hand clock-hand-hour" />
@@ -2345,12 +2347,12 @@ function App() {
         {renderedWidgets.includes(3) && (
           <article className={`system-widget widget-3${leavingWidgetIds.includes(3) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(3)} style={positionWidget(3)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>03 / QUICK LAUNCH</span><i>PLACEHOLDER</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close quick launch widget">×</button></header>
-            <div className="quick-launch-grid">{quickShortcuts.map((shortcut) => <button key={shortcut.id} className={`quick-launch-tile shortcut-${shortcut.id}`} onClick={() => onLaunchShortcut(shortcut)} title={`${shortcut.label} · launch integration coming soon`}><span aria-hidden="true">{shortcut.icon}</span><b>{shortcut.label}</b></button>)}</div>
+            <div className="quick-launch-grid">{quickShortcuts.map((shortcut) => <button key={shortcut.id} className={`quick-launch-tile shortcut-${shortcut.id}`} onClick={() => onLaunchShortcut(shortcut)} title={`${shortcut.label} · launch integration coming soon`}><span className="quick-launch-icon" aria-hidden="true">{typeof shortcut.icon === 'string' ? shortcut.icon : <svg viewBox="0 0 24 24" focusable="false"><path d={shortcut.icon.path} /></svg>}</span><b>{shortcut.label}</b></button>)}</div>
           </article>
         )}
         {renderedWidgets.includes(4) && (
           <article className={`system-widget widget-4${leavingWidgetIds.includes(4) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(4)} style={positionWidget(4)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>04 / AUDIO LINK</span><i>{nowPlayingStatus === 'track' ? 'LINKED' : nowPlayingStatus === 'none' ? 'IDLE' : nowPlayingStatus === 'browser' ? 'LIVELY ONLY' : nowPlayingStatus === 'invalid' ? 'DATA ERROR' : 'WAITING'}</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close audio widget">×</button></header>
+            <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>04 / NOW PLAYING</span><i>{nowPlayingStatus === 'track' ? 'LINKED' : nowPlayingStatus === 'none' ? 'IDLE' : nowPlayingStatus === 'browser' ? 'LIVELY ONLY' : nowPlayingStatus === 'invalid' ? 'DATA ERROR' : 'WAITING'}</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close now playing widget">×</button></header>
             {nowPlaying ? (
               <div className="audio-now-playing">
                 {nowPlaying.artwork
@@ -2374,14 +2376,15 @@ function App() {
         )}
         {renderedWidgets.includes(5) && (
           <article className={`system-widget widget-5${leavingWidgetIds.includes(5) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(5)} style={positionWidget(5)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 5)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>{theme === 'demon-mode' || theme === 'tokyo-ghoul' ? '05 / SYSTEM CONTROL' : '05 / ANIME STATUS'}</span><i>{theme === 'demon-mode' || theme === 'tokyo-ghoul' ? 'UTILITY' : 'THEME LINKED'}</i><button className="widget-close" onClick={() => closeWidget(5)} aria-label="Close anime status widget">×</button></header>
-            {theme === 'demon-mode' || theme === 'tokyo-ghoul' ? <div className={theme === 'demon-mode' ? 'demon-system-control' : 'kagune-system-control'}><div className={theme === 'demon-mode' ? 'demon-control-brand' : 'kagune-control-brand'}><img src={theme === 'demon-mode' ? './assets/emblems/dragon-sin-of-wrath.png' : './assets/emblems/tokyo-ghoul.png'} alt="" /><b>{theme === 'demon-mode' ? 'DRAGON SIN // DEMON MODE' : 'KAGUNE // ELUCIDATOR'}</b></div><p><span>ACTIVE EFFECT</span><b>{visualTheme.toUpperCase()}</b></p><p><span>WALLPAPER FIT</span><b>{wallpaperFit.toUpperCase()}</b></p><p><span>BRIGHTNESS BRIDGE</span><b>{brightnessHelperOnline ? brightnessToken ? 'PAIRED' : 'ONLINE · UNPAIRED' : 'OFFLINE'}</b></p><div className={theme === 'demon-mode' ? 'demon-control-actions' : 'kagune-control-actions'}><button onClick={() => setVisualTheme(visualTheme === 'vignette' ? 'off' : 'vignette')}>EFFECT {visualTheme === 'vignette' ? 'OFF' : 'ON'}</button><button disabled={!brightnessToken || !brightnessHelperOnline} onClick={() => void changeBrightness(brightnessToken, 60, null)}>BRIGHTNESS 60%</button></div></div> : <><div className="anime-status-heading">
+            <header onPointerDown={(event) => startWidgetDrag(event, 5)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>05 / SYSTEM CONTROL</span><i>UTILITY</i><button className="widget-close" onClick={() => closeWidget(5)} aria-label="Close system control widget">×</button></header>
+            {theme === 'demon-mode' || theme === 'tokyo-ghoul' ? <div className={theme === 'demon-mode' ? 'demon-system-control' : 'kagune-system-control'}><div className={theme === 'demon-mode' ? 'demon-control-brand' : 'kagune-control-brand'}><img src={theme === 'demon-mode' ? './assets/emblems/dragon-sin-of-wrath.png' : './assets/emblems/tokyo-ghoul.png'} alt="" /><b>{theme === 'demon-mode' ? 'DRAGON SIN // DEMON MODE' : 'KAGUNE // ELUCIDATOR'}</b></div><p><span>ACTIVE EFFECT</span><b>{visualTheme.toUpperCase()}</b></p><p><span>WALLPAPER FIT</span><b>{wallpaperFit.toUpperCase()}</b></p><p><span>BRIGHTNESS BRIDGE</span><b>{brightnessHelperOnline ? brightnessToken ? 'PAIRED' : 'ONLINE · UNPAIRED' : 'OFFLINE'}</b></p><div className={theme === 'demon-mode' ? 'demon-control-actions' : 'kagune-control-actions'}><button onClick={() => activateVisualEffect(visualTheme === 'vignette' ? 'off' : 'vignette')}>EFFECT {visualTheme === 'vignette' ? 'OFF' : 'ON'}</button><button disabled={!brightnessToken || !brightnessHelperOnline} onClick={() => void changeBrightness(brightnessToken, 60, null)}>BRIGHTNESS 60%</button></div></div> : <><div className="anime-status-heading">
               <ThemeEmblem className="anime-status-orb theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title={`${activeThemeSystem?.label ?? 'Theme'} emblem`} />
               <div><small>{theme.replaceAll('-', ' ').toUpperCase()} PROTOCOL</small><strong>{animeStatus.title}</strong></div>
             </div>
             <p className="anime-status-state">{animeStatus.state}</p>
             <div className="anime-signal" aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <i key={index} />)}</div>
             <p className="anime-status-metric"><span>{animeStatus.metric}</span><b>{animeStatus.value}</b></p></>}
+            <div className="effect-tile-grid" aria-label="Visual effects">{([{ id: 'off', label: 'Off', icon: '○' }, { id: 'haze', label: 'Haze', icon: '≋' }, { id: 'rain', label: 'Rain', icon: '⌇' }, { id: 'lightning', label: 'Lightning', icon: 'ϟ' }, { id: 'particles', label: 'Particles', icon: '✦' }, { id: 'vignette', label: 'Vignette', icon: '◉' }] as const).map((effect) => <button key={effect.id} className={visualTheme === effect.id ? 'is-active' : ''} onClick={() => activateVisualEffect(effect.id)} aria-pressed={visualTheme === effect.id}><span aria-hidden="true">{effect.icon}</span>{effect.label}</button>)}</div>
           </article>
         )}
       </aside>

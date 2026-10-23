@@ -1878,6 +1878,79 @@
   .sao-console.sao-starting * { animation-duration: .01ms !important; animation-delay: 0ms !important; }
 }
 
+/* Shared System Control action surface. Colour and framing inherit from each theme. */
+.effect-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .32rem;
+  margin-top: .5rem;
+  padding-top: .42rem;
+  border-top: 1px solid color-mix(in srgb, var(--widget-accent, var(--theme-primary, #6fd)) 28%, transparent);
+}
+
+.effect-tile-grid button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: .25rem;
+  min-width: 0;
+  min-height: 2rem;
+  padding: .28rem .35rem;
+  border: 1px solid color-mix(in srgb, var(--widget-accent, var(--theme-primary, #6fd)) 38%, transparent);
+  background: rgb(0 0 0 / 20%);
+  color: var(--widget-soft, #b8c5cd);
+  font: 700 9px/1 var(--font-mono, monospace);
+  letter-spacing: .03em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.effect-tile-grid button span { color: var(--widget-accent, var(--theme-primary, #6fd)); font-size: 1rem; line-height: 1; }
+.effect-tile-grid button:hover { border-color: var(--widget-accent, var(--theme-primary, #6fd)); color: var(--widget-bright, #fff); }
+.effect-tile-grid button.is-active { border-color: var(--widget-accent, var(--theme-primary, #6fd)); background: color-mix(in srgb, var(--widget-accent, var(--theme-primary, #6fd)) 18%, rgb(0 0 0 / 28%)); color: var(--widget-bright, #fff); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--widget-accent, var(--theme-primary, #6fd)) 24%, transparent); }
+
+.quick-launch-icon svg { width: 1.15rem; height: 1.15rem; fill: currentColor; }
+.shortcut-chrome .quick-launch-icon { color: #4285f4; }
+.shortcut-roblox .quick-launch-icon { color: #e2231a; }
+.shortcut-netflix .quick-launch-icon { color: #e50914; }
+
+/* Night Fury keeps the compact cyan tile treatment from the approved sidebar design. */
+.wallpaper-experience.theme-dragon .effect-tile-grid { gap: .28rem; margin-top: .38rem; padding-top: .34rem; }
+.wallpaper-experience.theme-dragon .effect-tile-grid button { min-height: 1.82rem; border-color: rgb(112 232 255 / 38%); background: rgb(5 18 27 / 76%); color: #c6f8ff; }
+.wallpaper-experience.theme-dragon .effect-tile-grid button.is-active { border-color: #70e8ff; background: rgb(112 232 255 / 18%); box-shadow: 0 0 0 1px rgb(112 232 255 / 20%), inset 0 0 12px rgb(112 232 255 / 9%); }
+
+/* Kagune's diagnostic language stays legible while leaving space for the fifth control panel. */
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .hardware-host { display: none; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .diagnostic-meter { gap: .45rem; padding: .26rem .34rem; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .diagnostic-meter-history { height: 10px; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .diagnostic-meter small { display: none; }
+.wallpaper-experience.theme-tokyo-ghoul .quick-launch-tile { min-height: 2.7rem; padding: .24rem; }
+.wallpaper-experience.theme-tokyo-ghoul .quick-launch-tile span { width: 1.35rem; height: 1.35rem; }
+.wallpaper-experience.theme-tokyo-ghoul .quick-launch-tile b { font-size: 9px; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-4:not(:has(.audio-now-playing)) { padding: .42rem .62rem; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-4:not(:has(.audio-now-playing)) > small { display: none; }
+.wallpaper-experience.theme-tokyo-ghoul .kagune-system-control p { margin: .1rem 0; padding: .16rem 0; }
+.wallpaper-experience.theme-tokyo-ghoul .kagune-control-actions { margin-top: .25rem; }
+.wallpaper-experience.theme-tokyo-ghoul .kagune-control-actions button:first-child { display: none; }
+
+/* Compact Kagune diagnostic bank: three channels share one short instrument panel. */
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .kagune-hardware-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .32rem; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .diagnostic-meter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 3px 11px;
+  gap: .25rem;
+  align-items: center;
+  padding: .3rem .22rem;
+  border: 1px solid rgb(190 196 204 / 14%);
+  background: rgb(255 255 255 / 2%);
+}
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .diagnostic-meter-label { display: contents; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .diagnostic-meter-label b { grid-column: 1; grid-row: 1; font-size: 9px; text-align: left; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .diagnostic-meter-label strong { grid-column: 2; grid-row: 1; font-size: 15px; text-align: right; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .diagnostic-meter-track { grid-column: 1 / -1; grid-row: 2; width: 100%; height: 3px; }
+.wallpaper-experience.theme-tokyo-ghoul .widget-1 .diagnostic-meter-history { grid-column: 1 / -1; grid-row: 3; width: 100%; height: 11px; }
+
 /* Shared compact Quick Launch content. Individual themes may only change its presentation. */
 .quick-launch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem}.quick-launch-tile{display:grid;place-items:center;gap:.18rem;min-height:4.2rem;padding:.35rem;border:1px solid color-mix(in srgb,var(--widget-accent,var(--theme-primary,#6fd)) 35%,transparent);background:rgb(0 0 0 / 18%);color:var(--widget-bright,var(--theme-bright,#fff));font:inherit}.quick-launch-tile span{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:.32rem;background:color-mix(in srgb,var(--widget-accent,var(--theme-primary,#6fd)) 18%,transparent);font-size:1.05rem;font-weight:800}.quick-launch-tile b{overflow:hidden;max-width:100%;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.quick-launch-tile:hover{border-color:var(--widget-accent,var(--theme-primary,#6fd));background:color-mix(in srgb,var(--widget-accent,var(--theme-primary,#6fd)) 11%,transparent)}
 
