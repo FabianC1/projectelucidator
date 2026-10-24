@@ -24,6 +24,7 @@ export type StartupSettings = {
   enabledWidgets: number[]
   widgetPositions: Record<string, { x: number; y: number }>
   widgetScales: Partial<Record<number, number>>
+  interfaceScale?: number
   widgetLayout: string
   layoutPresets: Record<string, unknown>
   wallpaperFit: string

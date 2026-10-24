@@ -3460,3 +3460,9 @@
 .wallpaper-experience.theme-dragon .widget-5 .effect-tile-grid button { grid-template-columns:1fr; justify-items:center; min-height:3rem; text-align:center; font-size:8px; }
 .wallpaper-experience.theme-dragon .widget-5 .effect-tile-grid button span { font-size:1.15rem; }
 @media (max-width:760px) { .wallpaper-experience.theme-dragon .system-widgets.widget-layout-right { width:min(20.5rem,calc(100vw - 1.25rem)); }.wallpaper-experience.theme-dragon .system-widgets.widget-layout-right .widget-5 { width:100% !important; }.wallpaper-experience.theme-dragon .night-fury-system-control { grid-template-columns:1fr; }.wallpaper-experience.theme-dragon .night-fury-control-identity { min-height:0; padding:0 0 .5rem; border-right:0; border-bottom:1px solid rgb(112 232 255 / 30%); }.wallpaper-experience.theme-dragon .widget-5 .effect-tile-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+
+/* SYS SCALE: zoom the operational interface only. Boot and activation layers stay at native size. */
+.wallpaper-experience > .system-widgets,
+.wallpaper-experience > .command-console {
+  zoom: var(--interface-scale, 1);
+}

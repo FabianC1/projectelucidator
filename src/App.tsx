@@ -131,7 +131,7 @@ const DEFAULT_THEME_PREF_KEY = 'project-elucidator-default-theme'
 const VISUAL_THEME_PREF_KEY = 'project-elucidator-visual-theme'
 const WALLPAPER_FIT_PREF_KEY = 'project-elucidator-wallpaper-fit'
 const ANIMATION_MIRROR_KEY = 'project-elucidator-animation-mirror'
-const STORAGE_PREF_KEYS = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, WIDGET_LAYOUT_KEY, CONSOLE_FRAME_KEY, LAYOUT_PRESETS_KEY, THEME_PREF_KEY, DEFAULT_THEME_PREF_KEY, VISUAL_THEME_PREF_KEY, WALLPAPER_FIT_PREF_KEY, ANIMATION_MIRROR_KEY] as const
+const STORAGE_PREF_KEYS = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, INTERFACE_SCALE_KEY, WIDGET_LAYOUT_KEY, CONSOLE_FRAME_KEY, LAYOUT_PRESETS_KEY, THEME_PREF_KEY, DEFAULT_THEME_PREF_KEY, VISUAL_THEME_PREF_KEY, WALLPAPER_FIT_PREF_KEY, ANIMATION_MIRROR_KEY] as const
 const WALLPAPER_FITS: WallpaperFit[] = ['cover', 'contain', 'stretch', 'span']
 const VISUAL_THEMES: VisualTheme[] = ['off', 'haze', 'rain', 'lightning', 'particles', 'vignette']
 const THEME_IDS = THEME_SYSTEMS.map((system) => system.id)
@@ -459,7 +459,7 @@ const COMMAND_COMPLETIONS = [
   'sys widgets', 'sys widgets all on', 'sys widgets all off', 'sys animation mirror', 'sys animation mirror on', 'sys animation mirror off', 'sys animation mirror status',
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
-  'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys scale 1', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
   'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys limitless',
@@ -490,6 +490,7 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0) {
   }
   if (/^sys widgets\s+$/.test(prefix)) return ['sys widgets all on', 'sys widgets all off', 'sys widgets size ']
   if (/^sys widgets size\s+$/.test(prefix)) return WIDGET_SCALES.map((scale) => `sys widgets size ${scale}`)
+  if (/^sys scale\s+$/.test(prefix)) return WIDGET_SCALES.map((scale) => `sys scale ${scale}`)
   if (/^sys widget size\s+$/.test(prefix)) return WIDGET_IDS.map((id) => `sys widget size ${id} `)
   if (/^sys widget size [1-5]\s+$/.test(prefix)) return WIDGET_SCALES.map((scale) => `sys widget size ${prefix.match(/^sys widget size ([1-5])/i)?.[1]} ${scale}`)
   if (/^sys layout\s+$/.test(prefix)) return ['sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save ', 'sys layout load ', 'sys layout reset']
@@ -737,6 +738,7 @@ function App() {
             )) as WidgetScales
             setWidgetScales(valid)
           }
+          if (WIDGET_SCALES.includes(preferences.interfaceScale as WidgetScale)) setInterfaceScale(preferences.interfaceScale as WidgetScale)
           if (['free', 'left', 'right', 'top', 'bottom'].includes(preferences.widgetLayout)) setWidgetLayout(preferences.widgetLayout as WidgetLayout)
           if (preferences.layoutPresets && typeof preferences.layoutPresets === 'object' && !Array.isArray(preferences.layoutPresets)) setLayoutPresets(preferences.layoutPresets as Record<string, LayoutSnapshot>)
           if (WALLPAPER_FITS.includes(preferences.wallpaperFit as WallpaperFit)) setWallpaperFit(preferences.wallpaperFit as WallpaperFit)
@@ -1170,6 +1172,7 @@ function App() {
             enabledWidgets,
             widgetPositions,
             widgetScales,
+            interfaceScale,
             widgetLayout,
             layoutPresets,
             wallpaperFit,
@@ -1267,7 +1270,7 @@ function App() {
       const localTokenExists = Boolean(localRead('project-elucidator-brightness-token'))
       const tokenExists = localTokenExists || tokenBackupExists || credentialBootstrapAvailable || Boolean(brightnessToken)
       const savedThemeExists = Boolean(localRead(DEFAULT_THEME_PREF_KEY) ?? localRead(THEME_PREF_KEY))
-      const widgetKeys = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, WIDGET_LAYOUT_KEY, LAYOUT_PRESETS_KEY]
+      const widgetKeys = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, INTERFACE_SCALE_KEY, WIDGET_LAYOUT_KEY, LAYOUT_PRESETS_KEY]
       const widgetPrefsExist = widgetKeys.some((key) => Boolean(localRead(key)))
       const savedPrefCount = STORAGE_PREF_KEYS.filter((key) => Boolean(localRead(key))).length
       const restoreIssues = { ...startupStorageErrors, ...storageErrorsRef.current }
@@ -1759,6 +1762,21 @@ function App() {
     } else if (domain === 'standby' && args.length === 1) {
       report(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
       setStatus('MAINFRAME STANDBY · READY')
+    } else if (domain === 'scale') {
+      if (!action && args.length === 1) {
+        report(['INTERFACE SCALE', `CURRENT ................. ${interfaceScale}X`, 'APPLIES TO .............. COMMAND CONSOLE + WIDGETS', 'LOAD ANIMATIONS .......... UNCHANGED', 'USAGE ................... SYS SCALE <0.5|0.75|1|1.25|1.5|1.75|2>'])
+        setStatus(`INTERFACE SCALE Â· ${interfaceScale}X`)
+      } else {
+        const scale = Number(action)
+        if (args.length !== 2 || !WIDGET_SCALES.includes(scale as WidgetScale)) {
+          report(['INTERFACE SCALE ERROR', 'USAGE Â· SYS SCALE <0.5|0.75|1|1.25|1.5|1.75|2>'])
+          setStatus('INVALID INTERFACE SCALE')
+        } else {
+          setInterfaceScale(scale as WidgetScale)
+          report(['INTERFACE SCALE APPLIED', `COMMAND CONSOLE + WIDGETS .. ${scale}X`, 'LOAD ANIMATIONS .......... UNCHANGED', 'SCALE SAVED TO LOCAL SYSTEM.'])
+          setStatus(`INTERFACE SCALE Â· ${scale}X`)
+        }
+      }
     } else if (domain === 'widgets' && args[1] === 'all' && ['on', 'off'].includes(args[2])) {
       const enable = args[2] === 'on'
       if (enable) WIDGET_IDS.forEach(openWidget)
@@ -2241,7 +2259,7 @@ function App() {
   const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
       {wallpaperUrl && (
         <img
           key={bootToken}
