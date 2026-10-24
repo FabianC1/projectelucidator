@@ -414,19 +414,6 @@ function hardwareStatusLabel(status: HardwareFeedStatus) {
   return 'WAITING FOR LIVELY'
 }
 
-function HardwareGauge({ label, percent, value, detail }: { label: string; percent: number | null; value: string; detail?: string }) {
-  const style = { '--gauge-value': `${Math.max(0, Math.min(100, percent ?? 0))}%` } as CSSProperties
-  return (
-    <div className={`hardware-gauge${percent === null ? ' is-unavailable' : ''}`}>
-      <div className="hardware-gauge-ring" style={style}>
-        <span>{value}</span>
-      </div>
-      <b>{label}</b>
-      {detail && <small>{detail}</small>}
-    </div>
-  )
-}
-
 function DiagnosticMeter({ label, value, percent, history, detail }: { label: string; value: string; percent: number | null; history: number[]; detail?: string }) {
   const points = history.length > 1 ? history.map((point, index) => `${(index / (history.length - 1)) * 100},${100 - point}`).join(' ') : ''
   return <div className={`diagnostic-meter${percent === null ? ' is-unavailable' : ''}`}>
@@ -570,6 +557,7 @@ function App() {
       return valid ? stored as QuickShortcut[] : QUICK_SHORTCUTS
     } catch { return QUICK_SHORTCUTS }
   })
+  const [brightnessLevel, setBrightnessLevel] = useState(60)
   const [wallpaperLibrary, setWallpaperLibrary] = useState<Array<{ id: string; wallpaper: SavedWallpaper }>>([])
   const [enabledWidgets, setEnabledWidgets] = useState<number[]>(readEnabledWidgetPreferences)
   const [renderedWidgets, setRenderedWidgets] = useState<number[]>(readEnabledWidgetPreferences)
@@ -2336,35 +2324,15 @@ function App() {
           <article className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
             <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}><span>01 / HARDWARE</span><i>{hardwareStatusLabel(hardwareFeed.status)}</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
             <strong className="hardware-host">{hardwareFeed.readings?.cpuName ?? 'HOST TELEMETRY'} · {hardwareFeed.readings?.gpuName ?? 'GPU'} </strong>
-            {theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon' ? (() => {
+            {(() => {
               const readings = hardwareFeed.readings
               const ramPercent = readings?.ramTotalMb != null && readings.ramTotalMb > 0 && readings.ramAvailableMb != null ? (readings.ramTotalMb - readings.ramAvailableMb) / readings.ramTotalMb * 100 : null
               const ramUsed = readings?.ramTotalMb != null && readings.ramAvailableMb != null ? readings.ramTotalMb - readings.ramAvailableMb : null
-              return <div className={theme === 'demon-mode' ? 'demon-hardware-grid' : theme === 'tokyo-ghoul' ? 'kagune-hardware-grid' : 'night-fury-hardware-grid'}>
+              return <div className={theme === 'demon-mode' ? 'demon-hardware-grid' : theme === 'tokyo-ghoul' ? 'kagune-hardware-grid' : theme === 'dragon' ? 'night-fury-hardware-grid' : 'instrument-hardware-grid'}>
                 <DiagnosticMeter label="CPU LOAD" percent={readings?.cpuPercent ?? null} value={readings?.cpuPercent == null ? 'UNAVAILABLE' : `${Math.round(readings.cpuPercent)}%`} history={hardwareHistory.cpu} />
                 <DiagnosticMeter label="GPU 3D" percent={readings?.gpu3dPercent ?? null} value={readings?.gpu3dPercent == null ? 'UNAVAILABLE' : `${Math.round(readings.gpu3dPercent)}%`} history={hardwareHistory.gpu} />
                 <DiagnosticMeter label="RAM" percent={ramPercent} value={ramPercent == null ? 'UNAVAILABLE' : `${Math.round(ramPercent)}%`} history={hardwareHistory.ram} detail={ramUsed == null || readings?.ramTotalMb == null ? undefined : `${(ramUsed / 1024).toFixed(1)} / ${(readings.ramTotalMb / 1024).toFixed(1)} GB`} />
               </div>
-            })() : (() => {
-              const readings = hardwareFeed.readings
-              const ramPercent = readings?.ramTotalMb != null && readings.ramTotalMb > 0 && readings.ramAvailableMb != null
-                ? Math.max(0, Math.min(100, (readings.ramTotalMb - readings.ramAvailableMb) / readings.ramTotalMb * 100))
-                : null
-              const ramUsed = readings?.ramTotalMb != null && readings.ramAvailableMb != null
-                ? Math.round(readings.ramTotalMb - readings.ramAvailableMb)
-                : null
-              const cpu = readings?.cpuPercent ?? null
-              const gpu = readings?.gpu3dPercent ?? null
-              return (
-                <div className="hardware-gauge-grid">
-                  <HardwareGauge label="CPU LOAD" percent={cpu} value={cpu === null ? '—' : `${Math.round(cpu)}%`} />
-                  <HardwareGauge label="GPU 3D" percent={gpu} value={gpu === null ? '—' : `${Math.round(gpu)}%`} />
-                  <HardwareGauge label="RAM USED" percent={ramPercent} value={ramPercent === null ? '—' : `${Math.round(ramPercent)}%`} detail={ramUsed === null ? 'NO DATA' : `${ramUsed} MB`} />
-                  <HardwareGauge label="CPU TEMP" percent={null} value="—" detail="NO SENSOR" />
-                  <HardwareGauge label="GPU TEMP" percent={null} value="—" detail="NO SENSOR" />
-                  <HardwareGauge label="FRAME RATE" percent={null} value="—" detail="NO FEED" />
-                </div>
-              )
             })()}
             <p>NET DOWN / UP <b>{displayMegabytesPerSecond(hardwareFeed.readings?.networkDownBytesPerSecond ?? null)} / {displayMegabytesPerSecond(hardwareFeed.readings?.networkUpBytesPerSecond ?? null)}</b></p>
             <small>{hardwareFeed.updatedAt ? 'UPDATED ' + new Date(hardwareFeed.updatedAt).toLocaleTimeString() : 'WAITING FOR LIVELY SYSTEM DATA'} · TEMPERATURE / FPS NEED A SENSOR FEED</small>
@@ -2429,6 +2397,7 @@ function App() {
             <p className="anime-status-state">{animeStatus.state}</p>
             <div className="anime-signal" aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <i key={index} />)}</div>
             <p className="anime-status-metric"><span>{animeStatus.metric}</span><b>{animeStatus.value}</b></p></>}
+            {theme !== 'tokyo-ghoul' && <label className="widget-brightness-control">BRIGHTNESS <input type="range" min="0" max="100" value={brightnessLevel} disabled={!brightnessToken || !brightnessHelperOnline} onChange={(event) => { const value = Number(event.target.value); setBrightnessLevel(value); void changeBrightness(brightnessToken, value, null) }} /><output>{brightnessLevel}%</output></label>}
             <div className="effect-tile-grid" aria-label="Visual effects">{([{ id: 'off', label: 'Off', icon: '○' }, { id: 'haze', label: 'Haze', icon: '≋' }, { id: 'rain', label: 'Rain', icon: '⌇' }, { id: 'lightning', label: 'Lightning', icon: 'ϟ' }, { id: 'particles', label: 'Particles', icon: '✦' }, { id: 'vignette', label: 'Vignette', icon: '◉' }] as const).map((effect) => <button key={effect.id} className={visualTheme === effect.id ? 'is-active' : ''} onClick={() => activateVisualEffect(effect.id)} aria-pressed={visualTheme === effect.id}><span aria-hidden="true">{effect.icon}</span>{effect.label}</button>)}</div>
           </article>
         )}
