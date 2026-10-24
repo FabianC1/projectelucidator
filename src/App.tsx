@@ -121,6 +121,7 @@ const DEFAULT_WALLPAPER_NAME = '3d-render-bloom-3840x1080-27150.jpg'
 const WIDGET_PREF_KEY = 'project-elucidator-widgets'
 const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
 const WIDGET_SCALE_KEY = 'project-elucidator-widget-scales'
+const INTERFACE_SCALE_KEY = 'project-elucidator-interface-scale'
 const QUICK_SHORTCUTS_KEY = 'project-elucidator-quick-shortcuts'
 const WIDGET_LAYOUT_KEY = 'project-elucidator-widget-layout'
 const CONSOLE_FRAME_KEY = 'project-elucidator-console-frame'
@@ -511,7 +512,7 @@ function App() {
   const historyIndexRef = useRef(0)
   const commandDraftRef = useRef('')
   const completionRef = useRef<{ lastValue: string; candidates: string[]; index: number } | null>(null)
-  const draggingWidgetRef = useRef<{ id: number; offsetX: number; offsetY: number; startX: number; startY: number; activated: boolean } | null>(null)
+  const draggingWidgetRef = useRef<{ id: number; pointerId: number; offsetX: number; offsetY: number; startX: number; startY: number; activated: boolean } | null>(null)
   const widgetExitTimersRef = useRef<Map<number, number>>(new Map())
   const draggingConsoleRef = useRef<{ offsetX: number; offsetY: number; frame: ConsoleFrame } | null>(null)
   const effectIdRef = useRef(0)
@@ -528,6 +529,7 @@ function App() {
   const [bootToken, setBootToken] = useState(0)
   const [command, setCommand] = useState('')
   const [brightnessToken, setBrightnessToken] = useState('')
+  const [brightnessLevel, setBrightnessLevel] = useState(60)
   const [credentialBootstrapAvailable, setCredentialBootstrapAvailable] = useState(false)
   const [brightnessHelperOnline, setBrightnessHelperOnline] = useState(false)
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
@@ -583,6 +585,9 @@ function App() {
           : [],
       )) as WidgetScales
     } catch (error) { startupStorageErrors['widget scales restore'] = describeStorageError(error); return {} }
+  })
+  const [interfaceScale, setInterfaceScale] = useState<WidgetScale>(() => {
+    try { const stored = Number(localStorage.getItem(INTERFACE_SCALE_KEY)); return WIDGET_SCALES.includes(stored as WidgetScale) ? stored as WidgetScale : 1 } catch { return 1 }
   })
   const [widgetLayout, setWidgetLayout] = useState<WidgetLayout>(() => {
     try {
@@ -837,6 +842,12 @@ function App() {
     try { localStorage.setItem(WIDGET_SCALE_KEY, JSON.stringify(widgetScales)); setStorageIssue('widget scale write', null) }
     catch (error) { setStorageIssue('widget scale write', error) }
   }, [setStorageIssue, startupConfigHydrated, widgetScales])
+
+  useEffect(() => {
+    if (!startupConfigHydrated) return
+    try { localStorage.setItem(INTERFACE_SCALE_KEY, String(interfaceScale)) }
+    catch { /* The current session remains scaled if storage is unavailable. */ }
+  }, [interfaceScale, startupConfigHydrated])
 
   useEffect(() => {
     try { localStorage.setItem(QUICK_SHORTCUTS_KEY, JSON.stringify(quickShortcuts)) } catch { /* shortcuts remain usable for this session */ }
@@ -1771,6 +1782,12 @@ function App() {
       if (!action || action === 'list') {
         report(['WIDGET LAYOUT PRESETS', 'LEFT · VERTICAL STACK ALONG LEFT EDGE', 'RIGHT · VERTICAL STACK ALONG RIGHT EDGE', 'TOP · EVEN HORIZONTAL ROW AT TOP', 'BOTTOM · EVEN HORIZONTAL ROW AT BOTTOM', ...Object.keys(layoutPresets).map((name) => `SAVED · ${name.toUpperCase()}`), 'WIDGET PRESETS LEAVE THE CONSOLE IN PLACE.'])
         setStatus('LAYOUT PRESETS READY')
+      } else if ((action === 'night-fury' || action === 'nightfury') && args.length === 2) {
+        setWidgetPositions({})
+        setWidgetScales({})
+        setWidgetLayout('right')
+        report(['NIGHT FURY WIDGET PRESET APPLIED', 'COMPACT WIDGETS ........ RIGHT DOCK', 'SYSTEM CONTROL ......... WIDE LANDSCAPE SURFACE', 'USE SYS LAYOUT RIGHT TO REAPPLY THE SAME DOCK.'])
+        setStatus('NIGHT FURY WIDGET PRESET APPLIED')
       } else if (['left', 'right', 'top', 'bottom'].includes(action) && args.length === 2) {
         setWidgetLayout(action as WidgetLayout)
         report(['WIDGET LAYOUT APPLIED', `ARRANGEMENT ............ ${action.toUpperCase()}`, `ACTIVE WIDGETS ......... ${renderedWidgets.length} / ${WIDGET_IDS.length}`, 'COMMAND CONSOLE POSITION UNCHANGED.'])
@@ -1954,18 +1971,18 @@ function App() {
   }
 
   const startWidgetDrag = (event: ReactPointerEvent<HTMLElement>, id: number) => {
-    if ((event.target as HTMLElement).closest('button')) return
+    if ((event.target as HTMLElement).closest('button,input,select,textarea,label,a,[data-widget-control]')) return
+    if (event.button !== 0) return
     const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
     if (!card) return
     const bounds = card.getBoundingClientRect()
-    draggingWidgetRef.current = { id, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top, startX: event.clientX, startY: event.clientY, activated: widgetLayout === 'free' }
+    draggingWidgetRef.current = { id, pointerId: event.pointerId, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top, startX: event.clientX, startY: event.clientY, activated: widgetLayout === 'free' }
     event.currentTarget.setPointerCapture(event.pointerId)
-    event.preventDefault()
   }
 
   const moveWidgetDrag = (event: ReactPointerEvent<HTMLElement>) => {
     const drag = draggingWidgetRef.current
-    if (!drag) return
+    if (!drag || drag.id !== Number(event.currentTarget.closest('.system-widget')?.className.match(/widget-(\d+)/)?.[1]) || drag.pointerId !== event.pointerId) return
     if (!drag.activated) {
       if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 7) return
       const visiblePositions = Object.fromEntries(Array.from(document.querySelectorAll<HTMLElement>('.system-widget:not(.widget-leaving)')).flatMap((widget) => {
@@ -1987,6 +2004,13 @@ function App() {
       ...current,
       [drag.id]: { x: left / window.innerWidth * 100, y: top / window.innerHeight * 100 },
     }))
+  }
+
+  const finishWidgetDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    const drag = draggingWidgetRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    draggingWidgetRef.current = null
   }
 
   const positionWidget = (id: number) => {
@@ -2293,7 +2317,7 @@ function App() {
       <aside className={`system-widgets widget-layout-${widgetLayout}`} aria-label="System widgets">
         {renderedWidgets.includes(1) && (
           <article className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>01 / HARDWARE</span><i>{hardwareStatusLabel(hardwareFeed.status)}</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
+            <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}><span>01 / HARDWARE</span><i>{hardwareStatusLabel(hardwareFeed.status)}</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
             <strong className="hardware-host">{hardwareFeed.readings?.cpuName ?? 'HOST TELEMETRY'} · {hardwareFeed.readings?.gpuName ?? 'GPU'} </strong>
             {theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon' ? (() => {
               const readings = hardwareFeed.readings
@@ -2331,7 +2355,7 @@ function App() {
         )}
         {renderedWidgets.includes(2) && (
           <article className={`system-widget widget-2${leavingWidgetIds.includes(2) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(2)} style={positionWidget(2)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 2)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>02 / LOCAL TIME</span><i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close local time widget">×</button></header>
+            <header onPointerDown={(event) => startWidgetDrag(event, 2)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}><span>02 / LOCAL TIME</span><i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close local time widget">×</button></header>
             <div className={`clock-widget-display${theme === 'demon-mode' ? ' demon-digital-clock' : theme === 'tokyo-ghoul' ? ' kagune-digital-clock' : ''}`}>
               {theme !== 'demon-mode' && theme !== 'tokyo-ghoul' && theme !== 'dragon' && <div className="clock-face" style={clockStyle} aria-hidden="true">
                 <span className="clock-hand clock-hand-hour" />
@@ -2349,13 +2373,13 @@ function App() {
         )}
         {renderedWidgets.includes(3) && (
           <article className={`system-widget widget-3${leavingWidgetIds.includes(3) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(3)} style={positionWidget(3)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>03 / QUICK LAUNCH</span><i>PLACEHOLDER</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close quick launch widget">×</button></header>
+            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}><span>03 / QUICK LAUNCH</span><i>PLACEHOLDER</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close quick launch widget">×</button></header>
             <div className="quick-launch-grid">{quickShortcuts.map((shortcut) => <button key={shortcut.id} className={`quick-launch-tile shortcut-${shortcut.id}`} onClick={() => onLaunchShortcut(shortcut)} title={`${shortcut.label} · launch integration coming soon`}><span className="quick-launch-icon" aria-hidden="true">{typeof shortcut.icon === 'string' ? shortcut.icon : <svg viewBox="0 0 24 24" focusable="false"><path d={shortcut.icon.path} /></svg>}</span><b>{shortcut.label}</b></button>)}</div>
           </article>
         )}
         {renderedWidgets.includes(4) && (
           <article className={`system-widget widget-4${leavingWidgetIds.includes(4) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(4)} style={positionWidget(4)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>04 / NOW PLAYING</span><i>{nowPlayingStatus === 'track' ? 'LINKED' : nowPlayingStatus === 'none' ? 'IDLE' : nowPlayingStatus === 'browser' ? 'LIVELY ONLY' : nowPlayingStatus === 'invalid' ? 'DATA ERROR' : 'WAITING'}</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close now playing widget">×</button></header>
+            <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}><span>04 / NOW PLAYING</span><i>{nowPlayingStatus === 'track' ? 'LINKED' : nowPlayingStatus === 'none' ? 'IDLE' : nowPlayingStatus === 'browser' ? 'LIVELY ONLY' : nowPlayingStatus === 'invalid' ? 'DATA ERROR' : 'WAITING'}</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close now playing widget">×</button></header>
             {nowPlaying ? (
               <div className="audio-now-playing">
                 {nowPlaying.artwork
@@ -2379,8 +2403,8 @@ function App() {
         )}
         {renderedWidgets.includes(5) && (
           <article className={`system-widget widget-5${leavingWidgetIds.includes(5) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(5)} style={positionWidget(5)}>
-            <header onPointerDown={(event) => startWidgetDrag(event, 5)} onPointerMove={moveWidgetDrag} onPointerUp={() => { draggingWidgetRef.current = null }} onPointerCancel={() => { draggingWidgetRef.current = null }}><span>05 / SYSTEM CONTROL</span><i>UTILITY</i><button className="widget-close" onClick={() => closeWidget(5)} aria-label="Close system control widget">×</button></header>
-            {theme === 'dragon' && <div className="night-fury-system-control"><div className="night-fury-control-identity"><img src="./assets/emblems/night-fury-header-emblem-trimmed.png" alt="" /><div><strong>NIGHT FURY</strong><small>{brightnessHelperOnline ? brightnessToken ? 'HELPER CONNECTED' : 'HELPER ONLINE · UNPAIRED' : 'HELPER UNAVAILABLE'}</small></div></div><div className="night-fury-control-settings"><label>EFFECT <select value={visualTheme} onChange={(event) => activateVisualEffect(event.target.value as VisualTheme)}>{VISUAL_THEMES.map((effect) => <option key={effect} value={effect}>{effect.toUpperCase()}</option>)}</select></label><label>FIT <select value={wallpaperFit} onChange={(event) => setWallpaperFit(event.target.value as WallpaperFit)}>{WALLPAPER_FITS.map((fit) => <option key={fit} value={fit}>{fit.toUpperCase()}</option>)}</select></label><button disabled={!brightnessToken || !brightnessHelperOnline} onClick={() => void changeBrightness(brightnessToken, 60, null)}>BRIGHTNESS 60%</button></div></div>}
+            <header onPointerDown={(event) => startWidgetDrag(event, 5)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}><span>05 / SYSTEM CONTROL</span><i>UTILITY</i><button className="widget-close" onClick={() => closeWidget(5)} aria-label="Close system control widget">×</button></header>
+            {theme === 'dragon' && <div className="night-fury-system-control"><div className="night-fury-control-identity"><img src="./assets/emblems/night-fury-header-emblem-trimmed.png" alt="" /><div><strong>NIGHT FURY</strong><small>{brightnessHelperOnline ? brightnessToken ? 'HELPER CONNECTED' : 'HELPER ONLINE · UNPAIRED' : 'HELPER UNAVAILABLE'}</small></div></div><div className="night-fury-control-settings"><label>EFFECT <select value={visualTheme} onChange={(event) => activateVisualEffect(event.target.value as VisualTheme)}>{VISUAL_THEMES.map((effect) => <option key={effect} value={effect}>{effect.toUpperCase()}</option>)}</select></label><label>FIT <select value={wallpaperFit} onChange={(event) => setWallpaperFit(event.target.value as WallpaperFit)}>{WALLPAPER_FITS.map((fit) => <option key={fit} value={fit}>{fit.toUpperCase()}</option>)}</select></label><label className="night-fury-brightness">BRIGHTNESS <input type="range" min="0" max="100" value={brightnessLevel} disabled={!brightnessToken || !brightnessHelperOnline} onChange={(event) => { const value = Number(event.target.value); setBrightnessLevel(value); void changeBrightness(brightnessToken, value, null) }} /><output>{brightnessLevel}%</output></label></div></div>}
             {theme === 'demon-mode' || theme === 'tokyo-ghoul' ? <div className={theme === 'demon-mode' ? 'demon-system-control' : 'kagune-system-control'}><div className={theme === 'demon-mode' ? 'demon-control-brand' : 'kagune-control-brand'}><img src={theme === 'demon-mode' ? './assets/emblems/dragon-sin-of-wrath.png' : './assets/emblems/tokyo-ghoul.png'} alt="" /><b>{theme === 'demon-mode' ? 'DRAGON SIN // DEMON MODE' : 'KAGUNE // ELUCIDATOR'}</b></div><p><span>ACTIVE EFFECT</span><b>{visualTheme.toUpperCase()}</b></p><p><span>WALLPAPER FIT</span><b>{wallpaperFit.toUpperCase()}</b></p><p><span>BRIGHTNESS BRIDGE</span><b>{brightnessHelperOnline ? brightnessToken ? 'PAIRED' : 'ONLINE · UNPAIRED' : 'OFFLINE'}</b></p><div className={theme === 'demon-mode' ? 'demon-control-actions' : 'kagune-control-actions'}><button onClick={() => activateVisualEffect(visualTheme === 'vignette' ? 'off' : 'vignette')}>EFFECT {visualTheme === 'vignette' ? 'OFF' : 'ON'}</button><button disabled={!brightnessToken || !brightnessHelperOnline} onClick={() => void changeBrightness(brightnessToken, 60, null)}>BRIGHTNESS 60%</button></div></div> : theme !== 'dragon' && <><div className="anime-status-heading">
               <ThemeEmblem className="anime-status-orb theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title={`${activeThemeSystem?.label ?? 'Theme'} emblem`} />
               <div><small>{theme.replaceAll('-', ' ').toUpperCase()} PROTOCOL</small><strong>{animeStatus.title}</strong></div>

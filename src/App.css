@@ -3441,3 +3441,22 @@
   .visual-rain-streak { opacity: .18; }
   .visual-particle { opacity: .2; }
 }
+
+/* Resolved Night Fury dock: a wide rail for System Control, compact cards right-aligned within it. */
+.wallpaper-experience.theme-dragon .system-widgets.widget-layout-right { left:auto; right:0; width:100%; overflow-y:auto; overflow-x:hidden; }
+.wallpaper-experience.theme-dragon .system-widgets.widget-layout-right .system-widget:not(.widget-5) { width:min(20rem,100%) !important; }
+.wallpaper-experience.theme-dragon .system-widgets.widget-layout-right .widget-5 { width:100% !important; max-width:42rem; }
+.wallpaper-experience.theme-dragon .system-widget.widget-2 { min-height:0 !important; height:auto !important; }
+.wallpaper-experience.theme-dragon .widget-2 .clock-widget-display { min-height:0; padding-block:.35rem .15rem; }
+.wallpaper-experience.theme-dragon .widget-5 { display:block; min-height:0; }
+.wallpaper-experience.theme-dragon .night-fury-system-control { grid-template-columns:minmax(12rem,1.05fr) minmax(14rem,1fr); align-items:center; gap:1rem; }
+.wallpaper-experience.theme-dragon .night-fury-control-identity { min-height:7.2rem; padding:0 1rem 0 0; border-right:1px solid rgb(112 232 255 / 30%); border-bottom:0; }
+.wallpaper-experience.theme-dragon .night-fury-control-identity img { width:5.6rem; height:5.5rem; }
+.wallpaper-experience.theme-dragon .night-fury-control-settings { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.wallpaper-experience.theme-dragon .night-fury-brightness { grid-column:1/-1; grid-template-columns:auto minmax(4rem,1fr) auto; align-items:center; }
+.wallpaper-experience.theme-dragon .night-fury-brightness input { accent-color:#70e8ff; min-width:0; }
+.wallpaper-experience.theme-dragon .night-fury-brightness output { color:#effbff; font-size:10px; }
+.wallpaper-experience.theme-dragon .widget-5 .effect-tile-grid { grid-column:1/-1; grid-template-columns:repeat(6,minmax(0,1fr)); margin-top:0; padding-top:.55rem; }
+.wallpaper-experience.theme-dragon .widget-5 .effect-tile-grid button { grid-template-columns:1fr; justify-items:center; min-height:3rem; text-align:center; font-size:8px; }
+.wallpaper-experience.theme-dragon .widget-5 .effect-tile-grid button span { font-size:1.15rem; }
+@media (max-width:760px) { .wallpaper-experience.theme-dragon .system-widgets.widget-layout-right { width:min(20.5rem,calc(100vw - 1.25rem)); }.wallpaper-experience.theme-dragon .system-widgets.widget-layout-right .widget-5 { width:100% !important; }.wallpaper-experience.theme-dragon .night-fury-system-control { grid-template-columns:1fr; }.wallpaper-experience.theme-dragon .night-fury-control-identity { min-height:0; padding:0 0 .5rem; border-right:0; border-bottom:1px solid rgb(112 232 255 / 30%); }.wallpaper-experience.theme-dragon .widget-5 .effect-tile-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
