@@ -1174,14 +1174,17 @@ function App() {
             settings,
             installIntoLively: true,
           })
-          if (!saved.saved || !saved.reloadRequested) throw new Error('HELPER DID NOT CONFIRM THE INSTALLED DEFAULT AND LIVELY RELOAD REQUEST')
+          if (!saved.saved) throw new Error('HELPER DID NOT CONFIRM THE DURABLE CONFIGURATION SAVE')
           try { await writeDefaultWallpaper({ name: wallpaperName, blob }) }
           catch (error) { setStorageIssue('startup wallpaper browser cache write', error) }
           setDefaultWallpaperName(wallpaperName)
           setDefaultTheme(theme)
           setCredentialBootstrapAvailable(true)
-          report(['STARTUP CONFIGURATION SAVED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WIDGET LAYOUT + SETTINGS ........ SAVED', 'INSTALLED LIVELY PROJECT UPDATED', 'LIVELY RELOAD REQUEST ACCEPTED'])
-          setStatus('STARTUP CONFIG SAVED · LIVELY RELOADING')
+          const saveReport = ['STARTUP CONFIGURATION SAVED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WIDGET LAYOUT + SETTINGS ........ SAVED']
+          saveReport.push(saved.installedProjectUpdated ? 'INSTALLED LIVELY PROJECT UPDATED' : 'INSTALLED LIVELY PROJECT UPDATE NOT REQUESTED')
+          saveReport.push(saved.reloadRequested ? 'LIVELY RELOAD REQUEST ACCEPTED' : `LIVELY RELOAD NOT REQUESTED · ${(saved.reloadMessage ?? 'CHECK LIVELY INSTALLATION').toUpperCase()}`)
+          report(saveReport)
+          setStatus(saved.reloadRequested ? 'STARTUP CONFIG SAVED · LIVELY RELOADING' : 'STARTUP CONFIG SAVED · RELOAD UNAVAILABLE')
         } catch (error) {
           const message = error instanceof Error ? error.message : 'STARTUP CONFIGURATION SAVE FAILED'
           report(['STARTUP CONFIGURATION SAVE FAILED', message.toUpperCase(), 'NO DURABLE SAVE WAS CONFIRMED.'])

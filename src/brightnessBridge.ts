@@ -9,6 +9,7 @@ export type BrightnessMonitor = {
 type MonitorResponse = { monitors: BrightnessMonitor[] }
 type ChangeResponse = MonitorResponse & { ok: boolean; message: string }
 type LockResponse = { ok: boolean; message: string }
+export type HelperHealth = { state: 'online' | 'starting' | 'offline' | 'unsupported'; version?: string; capabilities?: string[]; message: string }
 export type StartupConfiguration = {
   wallpaperName: string | null
   wallpaperType: string | null
@@ -37,16 +38,25 @@ const STORAGE_DATABASE = 'project-elucidator-wallpaper'
 const STORAGE_STORE = 'selection'
 const BRIGHTNESS_TOKEN_BACKUP_KEY = 'brightness-token-backup'
 
-export async function checkBrightnessHelperHealth() {
+export async function getBrightnessHelperHealth(): Promise<HelperHealth> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 2500)
   try {
-    const response = await fetch(`${HELPER_URL}/health`, { cache: 'no-store' })
-    if (!response.ok) return false
-    const health = await response.json() as { available?: boolean }
-    return health.available === true
-  } catch {
-    return false
+    const response = await fetch(`${HELPER_URL}/health`, { cache: 'no-store', signal: controller.signal })
+    if (!response.ok) return { state: 'offline', message: `WINDOWS HELPER HTTP ${response.status}` }
+    const health = await response.json() as { available?: boolean; version?: unknown; capabilities?: unknown }
+    if (!health.available) return { state: 'starting', message: 'WINDOWS HELPER IS STARTING OR RESTARTING' }
+    const capabilities = Array.isArray(health.capabilities) ? health.capabilities.filter((item): item is string => typeof item === 'string') : []
+    if (!capabilities.includes('startup-config')) return { state: 'unsupported', version: typeof health.version === 'string' ? health.version : undefined, capabilities, message: 'WINDOWS HELPER IS OUTDATED · RUN THE ELUCIDATOR HELPER REPAIR' }
+    return { state: 'online', version: typeof health.version === 'string' ? health.version : undefined, capabilities, message: 'WINDOWS HELPER ONLINE' }
+  } catch (error) {
+    return { state: 'offline', message: error instanceof DOMException && error.name === 'AbortError' ? 'WINDOWS HELPER TIMED OUT' : 'WINDOWS HELPER IS NOT LISTENING ON 127.0.0.1:17384' }
+  } finally {
+    window.clearTimeout(timeout)
   }
 }
+
+export async function checkBrightnessHelperHealth() { return (await getBrightnessHelperHealth()).state === 'online' }
 
 
 export function getBrightnessToken() {
@@ -129,11 +139,14 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
       cache: 'no-store',
     })
   } catch {
-    throw new Error('WINDOWS HELPER OFFLINE · INSTALL OR START THE ELUCIDATOR HELPER')
+    throw new Error((await getBrightnessHelperHealth()).message)
   }
 
   const result = await response.json() as T & { message?: string }
-  if (!response.ok) throw new Error(result.message ?? `BRIGHTNESS HELPER ERROR · HTTP ${response.status}`)
+  if (!response.ok) {
+    const health = response.status === 404 ? await getBrightnessHelperHealth() : null
+    throw new Error(health?.state === 'unsupported' ? health.message : result.message ?? `BRIGHTNESS HELPER ERROR · HTTP ${response.status}`)
+  }
   return result
 }
 
@@ -156,8 +169,13 @@ export async function lockWindowsSession(token: string) {
 }
 
 export async function readDurableStartupConfiguration() {
-  const response = await fetch(`${HELPER_URL}/api/startup-config`, { cache: 'no-store' })
-  if (!response.ok) throw new Error(`WINDOWS CONFIGURATION HELPER ERROR · HTTP ${response.status}`)
+  let response: Response
+  try { response = await fetch(`${HELPER_URL}/api/startup-config`, { cache: 'no-store' }) }
+  catch { throw new Error((await getBrightnessHelperHealth()).message) }
+  if (!response.ok) {
+    const health = response.status === 404 ? await getBrightnessHelperHealth() : null
+    throw new Error(health?.state === 'unsupported' ? health.message : `WINDOWS CONFIGURATION HELPER ERROR · HTTP ${response.status}`)
+  }
   const result = await response.json() as { available?: boolean; configuration?: StartupConfiguration }
   return result.available ? result.configuration ?? null : null
 }
@@ -200,7 +218,7 @@ export async function removePrivateCredentialBootstrap(token: string) {
 }
 
 export async function saveDurableStartupConfiguration(token: string, configuration: Partial<StartupConfiguration>) {
-  return request<{ ok: boolean; saved: boolean; reloadRequested?: boolean; message: string }>('/api/startup-config', token, {
+  return request<{ ok: boolean; saved: boolean; installedProjectUpdated?: boolean; reloadRequested?: boolean; reloadMessage?: string; message: string }>('/api/startup-config', token, {
     method: 'POST',
     body: JSON.stringify(configuration),
   })

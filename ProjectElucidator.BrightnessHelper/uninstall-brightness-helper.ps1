@@ -15,4 +15,4 @@ Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction Sil
 if (Test-Path -LiteralPath $helperPath) { Remove-Item -LiteralPath $helperPath -Force }
 if (Test-Path -LiteralPath $watchdogPath) { Remove-Item -LiteralPath $watchdogPath -Force }
 if (Test-Path -LiteralPath $tokenPath) { Remove-Item -LiteralPath $tokenPath -Force }
-Write-Host 'Elucidator brightness helper removed. The app pairing remains in browser storage; use sys brightness unpair to clear it.' -ForegroundColor Cyan
+Write-Host 'Elucidator Windows helper removed. Its startup configuration files are retained under LocalAppData\ProjectElucidator\startup.' -ForegroundColor Cyan

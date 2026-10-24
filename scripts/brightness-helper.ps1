@@ -9,6 +9,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $script:SkipLivelyReload = [bool]$SkipLivelyReload
 $script:LivelyRoot = $LivelyRoot
+$script:HelperVersion = '2.1.0'
+$script:HelperCapabilities = @('brightness','lock','startup-config','credential-bootstrap','installation-update')
 
 $nativeSource = @'
 using System;
@@ -235,6 +237,8 @@ $script:ConfigPath = Join-Path $script:ConfigDirectory 'config.json'
 $script:WallpaperDirectory = Join-Path $script:ConfigDirectory 'wallpapers'
 $script:LivelyRoot = $LivelyRoot
 $script:LastReloadRequested = $false
+$script:LastInstallUpdated = $false
+$script:LastReloadMessage = $null
 
 function Get-Sha256Hex {
   param([byte[]]$Bytes)
@@ -276,6 +280,8 @@ function Save-StartupConfiguration {
   if (-not (Test-Path -LiteralPath $script:WallpaperDirectory)) { New-Item -ItemType Directory -Path $script:WallpaperDirectory -Force | Out-Null }
   $previousConfigBytes = if (Test-Path -LiteralPath $script:ConfigPath -PathType Leaf) { [IO.File]::ReadAllBytes($script:ConfigPath) } else { $null }
   $script:LastReloadRequested = $false
+  $script:LastInstallUpdated = $false
+  $script:LastReloadMessage = $null
   $current = Get-StartupConfiguration
   $next = [ordered]@{
     version = 1
@@ -330,8 +336,10 @@ function Save-StartupConfiguration {
   } finally { if (Test-Path -LiteralPath $tempPath) { Remove-Item -LiteralPath $tempPath -Force } }
   try {
     if ($Patch.installIntoLively -eq $true) {
-      Install-StartupConfigurationIntoLively $next $script:BrightnessToken
-      $script:LastReloadRequested = -not $script:SkipLivelyReload
+      $installResult = Install-StartupConfigurationIntoLively $next $script:BrightnessToken
+      $script:LastInstallUpdated = [bool]$installResult.updated
+      $script:LastReloadRequested = [bool]$installResult.reloadRequested
+      $script:LastReloadMessage = $installResult.reloadMessage
     }
   } catch {
     if ($null -ne $previousConfigBytes) { Write-AtomicBytes $script:ConfigPath $previousConfigBytes }
@@ -455,14 +463,21 @@ function Install-StartupConfigurationIntoLively {
   $changedCredential = $true
   [void](Write-CredentialBootstrap $projectDirectory $Token)
 
+  $reloadRequested = $false
+  $reloadMessage = if ($script:SkipLivelyReload) { 'LIVELY RELOAD SKIPPED BY HELPER TEST MODE' } else { 'LIVELY RELOAD NOT REQUESTED' }
   if (-not $script:SkipLivelyReload) {
-    $livelyExe = Join-Path (Join-Path $env:LOCALAPPDATA 'Programs\Lively Wallpaper') 'Lively.exe'
-    if (-not (Test-Path -LiteralPath $livelyExe -PathType Leaf)) { throw 'OFFICIAL LIVELY DESKTOP EXECUTABLE WAS NOT FOUND; CONFIG WAS WRITTEN BUT RELOAD WAS NOT REQUESTED' }
-    $arguments = 'setwp --file "' + $projectDirectory.Replace('"', '\"') + '"'
-    $reloadAttempted = $true
-    $reload = Start-Process -FilePath $livelyExe -ArgumentList $arguments -WindowStyle Hidden -PassThru -Wait
-    if ($reload.ExitCode -ne 0) { throw "LIVELY RELOAD COMMAND FAILED WITH EXIT CODE $($reload.ExitCode)" }
+    try {
+      $livelyExe = Join-Path (Join-Path $env:LOCALAPPDATA 'Programs\Lively Wallpaper') 'Lively.exe'
+      if (-not (Test-Path -LiteralPath $livelyExe -PathType Leaf)) { throw 'OFFICIAL LIVELY DESKTOP EXECUTABLE WAS NOT FOUND' }
+      $arguments = 'setwp --file "' + $projectDirectory.Replace('"', '\"') + '"'
+      $reloadAttempted = $true
+      $reload = Start-Process -FilePath $livelyExe -ArgumentList $arguments -WindowStyle Hidden -PassThru -Wait
+      if ($reload.ExitCode -ne 0) { throw "LIVELY RELOAD COMMAND FAILED WITH EXIT CODE $($reload.ExitCode)" }
+      $reloadRequested = $true
+      $reloadMessage = 'LIVELY RELOAD REQUEST ACCEPTED'
+    } catch { $reloadMessage = $_.Exception.Message }
   }
+  return [PSCustomObject]@{ updated = $true; reloadRequested = $reloadRequested; reloadMessage = $reloadMessage }
   } catch {
     if ($changedManifest) {
       if ($null -ne $priorManifest) { Write-AtomicBytes $manifestPath $priorManifest }
@@ -629,7 +644,8 @@ function Handle-Client {
       return
     }
     if ($request.Method -eq 'GET' -and $request.Path -eq '/health') {
-      Write-HttpResponse $stream 200 '{"available":true,"service":"Elucidator DDC/CI"}' $origin
+      $health = @{ available = $true; service = 'Elucidator Windows Bridge'; version = $script:HelperVersion; capabilities = $script:HelperCapabilities; startupConfig = $true }
+      Write-HttpResponse $stream 200 (ConvertTo-Json -InputObject $health -Compress) $origin
       return
     }
     if ($request.Method -eq 'GET' -and $request.Path -eq '/api/startup-config') {
@@ -693,7 +709,7 @@ function Handle-Client {
     if ($request.Method -eq 'POST' -and $request.Path -eq '/api/startup-config') {
       $requestData = [Text.Encoding]::UTF8.GetString($request.Body) | ConvertFrom-Json
       $saved = Save-StartupConfiguration $requestData
-      $response = ConvertTo-Json -InputObject @{ ok = $true; saved = $true; reloadRequested = $script:LastReloadRequested; message = 'STARTUP CONFIGURATION SAVED'; theme = $saved.theme; wallpaperName = $saved.wallpaperName } -Compress
+      $response = ConvertTo-Json -InputObject @{ ok = $true; saved = $true; installedProjectUpdated = $script:LastInstallUpdated; reloadRequested = $script:LastReloadRequested; reloadMessage = $script:LastReloadMessage; message = 'STARTUP CONFIGURATION SAVED'; theme = $saved.theme; wallpaperName = $saved.wallpaperName } -Compress
       Write-HttpResponse $stream 200 $response $origin
       return
     }
