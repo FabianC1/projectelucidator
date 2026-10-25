@@ -464,7 +464,7 @@ const COMMAND_COMPLETIONS = [
   'sys widgets', 'sys widgets all on', 'sys widgets all off', 'sys animation mirror', 'sys animation mirror on', 'sys animation mirror off', 'sys animation mirror status',
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
-  'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys scale 1', 'sys widget reset', 'sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys scale 1', 'sys widget reset', 'sys layout list', 'sys layout free', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
   'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys limitless',
@@ -498,7 +498,7 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0) {
   if (/^sys scale\s+$/.test(prefix)) return WIDGET_SCALES.map((scale) => `sys scale ${scale}`)
   if (/^sys widget size\s+$/.test(prefix)) return WIDGET_IDS.map((id) => `sys widget size ${id} `)
   if (/^sys widget size [1-5]\s+$/.test(prefix)) return WIDGET_SCALES.map((scale) => `sys widget size ${prefix.match(/^sys widget size ([1-5])/i)?.[1]} ${scale}`)
-  if (/^sys layout\s+$/.test(prefix)) return ['sys layout list', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save ', 'sys layout load ', 'sys layout reset']
+  if (/^sys layout\s+$/.test(prefix)) return ['sys layout list', 'sys layout free', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save ', 'sys layout load ', 'sys layout reset']
   if (/^sys layout (save|load)\s+$/.test(prefix)) return []
   if (/^sys widget\s+$/.test(prefix)) return [
     'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
@@ -518,7 +518,7 @@ function App() {
   const historyIndexRef = useRef(0)
   const commandDraftRef = useRef('')
   const completionRef = useRef<{ lastValue: string; candidates: string[]; index: number } | null>(null)
-  const draggingWidgetRef = useRef<{ id: number; pointerId: number; offsetX: number; offsetY: number; startX: number; startY: number; activated: boolean } | null>(null)
+  const draggingWidgetRef = useRef<{ id: number; pointerId: number; offsetX: number; offsetY: number } | null>(null)
   const widgetExitTimersRef = useRef<Map<number, number>>(new Map())
   const draggingConsoleRef = useRef<{ offsetX: number; offsetY: number; frame: ConsoleFrame } | null>(null)
   const effectIdRef = useRef(0)
@@ -1522,7 +1522,7 @@ function App() {
         }
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       activateTheme('dragon', 'night-fury-stealth')
@@ -1817,7 +1817,7 @@ function App() {
       setStatus(`${enabledWidgets.length} WIDGET${enabledWidgets.length === 1 ? '' : 'S'} ACTIVE`)
     } else if (domain === 'layout') {
       if (!action || action === 'list') {
-        report(['WIDGET LAYOUT PRESETS', 'LEFT · VERTICAL STACK ALONG LEFT EDGE', 'RIGHT · VERTICAL STACK ALONG RIGHT EDGE', 'TOP · EVEN HORIZONTAL ROW AT TOP', 'BOTTOM · EVEN HORIZONTAL ROW AT BOTTOM', ...Object.keys(layoutPresets).map((name) => `SAVED · ${name.toUpperCase()}`), 'WIDGET PRESETS LEAVE THE CONSOLE IN PLACE.'])
+        report(['WIDGET LAYOUT PRESETS', 'FREE · INDIVIDUAL DRAG POSITIONING', 'LEFT · VERTICAL STACK ALONG LEFT EDGE', 'RIGHT · VERTICAL STACK ALONG RIGHT EDGE', 'TOP · EVEN HORIZONTAL ROW AT TOP', 'BOTTOM · EVEN HORIZONTAL ROW AT BOTTOM', ...Object.keys(layoutPresets).map((name) => `SAVED · ${name.toUpperCase()}`), 'WIDGET PRESETS LEAVE THE CONSOLE IN PLACE.'])
         setStatus('LAYOUT PRESETS READY')
       } else if ((action === 'night-fury' || action === 'nightfury') && args.length === 2) {
         setWidgetPositions({})
@@ -1825,6 +1825,17 @@ function App() {
         setWidgetLayout('right')
         report(['NIGHT FURY WIDGET PRESET APPLIED', 'COMPACT WIDGETS ........ RIGHT DOCK', 'SYSTEM CONTROL ......... WIDE LANDSCAPE SURFACE', 'USE SYS LAYOUT RIGHT TO REAPPLY THE SAME DOCK.'])
         setStatus('NIGHT FURY WIDGET PRESET APPLIED')
+      } else if (action === 'free' && args.length === 2) {
+        const visiblePositions = Object.fromEntries(Array.from(document.querySelectorAll<HTMLElement>('.system-widget:not(.widget-leaving)')).flatMap((widget) => {
+          const id = Number(widget.dataset.widgetId)
+          if (!WIDGET_IDS.includes(id as typeof WIDGET_IDS[number])) return []
+          const rect = widget.getBoundingClientRect()
+          return [[id, { x: rect.left / window.innerWidth * 100, y: rect.top / window.innerHeight * 100 }]]
+        })) as WidgetPositions
+        setWidgetPositions(visiblePositions)
+        setWidgetLayout('free')
+        report(['WIDGET LAYOUT APPLIED', 'ARRANGEMENT ............ FREE', 'INDIVIDUAL DRAG POSITIONING ENABLED.'])
+        setStatus('LAYOUT · FREE')
       } else if (['left', 'right', 'top', 'bottom'].includes(action) && args.length === 2) {
         setWidgetLayout(action as WidgetLayout)
         report(['WIDGET LAYOUT APPLIED', `ARRANGEMENT ............ ${action.toUpperCase()}`, `ACTIVE WIDGETS ......... ${renderedWidgets.length} / ${WIDGET_IDS.length}`, 'COMMAND CONSOLE POSITION UNCHANGED.'])
@@ -1857,7 +1868,7 @@ function App() {
         report(['LAYOUT RESET', 'CONSOLE AND WIDGETS RETURNED TO DEFAULT POSITIONS.'])
         setStatus('DEFAULT LAYOUT RESTORED')
       } else {
-        report(['LAYOUT COMMAND ERROR', 'USAGE · SYS LAYOUT [LIST|LEFT|RIGHT|TOP|BOTTOM|SAVE <NAME>|LOAD <NAME>|RESET]'])
+        report(['LAYOUT COMMAND ERROR', 'USAGE · SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE <NAME>|LOAD <NAME>|RESET]'])
       }
     } else if (domain === 'widget' && action === 'position' && args[2] === 'info' && args.length === 3) {
       const viewportWidth = window.innerWidth
@@ -2010,28 +2021,17 @@ function App() {
   const startWidgetDrag = (event: ReactPointerEvent<HTMLElement>, id: number) => {
     if ((event.target as HTMLElement).closest('button,input,select,textarea,label,a,[data-widget-control]')) return
     if (event.button !== 0) return
+    if (widgetLayout !== 'free') return
     const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
     if (!card) return
     const bounds = card.getBoundingClientRect()
-    draggingWidgetRef.current = { id, pointerId: event.pointerId, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top, startX: event.clientX, startY: event.clientY, activated: widgetLayout === 'free' }
+    draggingWidgetRef.current = { id, pointerId: event.pointerId, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
   const moveWidgetDrag = (event: ReactPointerEvent<HTMLElement>) => {
     const drag = draggingWidgetRef.current
     if (!drag || drag.pointerId !== event.pointerId) return
-    if (!drag.activated) {
-      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 7) return
-      const visiblePositions = Object.fromEntries(Array.from(document.querySelectorAll<HTMLElement>('.system-widget:not(.widget-leaving)')).flatMap((widget) => {
-        const widgetClass = Array.from(widget.classList).find((name) => /^widget-[1-5]$/.test(name))
-        if (!widgetClass) return []
-        const rect = widget.getBoundingClientRect()
-        return [[Number(widgetClass.slice('widget-'.length)), { x: rect.left / window.innerWidth * 100, y: rect.top / window.innerHeight * 100 }]]
-      })) as WidgetPositions
-      setWidgetPositions((current) => ({ ...current, ...visiblePositions }))
-      setWidgetLayout('free')
-      drag.activated = true
-    }
     const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
     if (!card) return
     const bounds = card.getBoundingClientRect()
