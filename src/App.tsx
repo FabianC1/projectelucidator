@@ -51,8 +51,16 @@ type BootTimeline = { phases: TimedPhase[]; duration: number }
 type HardwareFeedStatus = 'waiting' | 'live' | 'browser' | 'stale' | 'invalid'
 type HardwareFeed = { status: HardwareFeedStatus; readings: LivelySystemInfo | null; updatedAt: number | null }
 type NowPlayingTrack = { title: string; artist: string; album: string; artwork: string | null; playbackType: string }
-type NowPlayingStatus = 'waiting' | 'browser' | 'none' | 'track' | 'invalid'
+type NowPlayingStatus = 'waiting' | 'browser' | 'none' | 'track' | 'sample' | 'invalid'
 type QuickShortcut = { id: string; label: string; icon: string | SimpleIcon; target: string }
+
+const SAMPLE_HARDWARE_READINGS: LivelySystemInfo = {
+  cpuName: 'Sample CPU', cpuPercent: 32,
+  gpuName: 'Sample GPU', gpu3dPercent: 18,
+  networkName: 'Sample network', networkDownBytesPerSecond: 2.4 * 1024 * 1024, networkUpBytesPerSecond: .6 * 1024 * 1024,
+  ramTotalMb: 16 * 1024, ramAvailableMb: 5.8 * 1024,
+}
+const SAMPLE_NOW_PLAYING: NowPlayingTrack = { title: 'Test Drive', artist: 'John Powell', album: 'Preview track', artwork: null, playbackType: 'Music' }
 
 const WIDGET_IDS = [1, 2, 3, 4, 5] as const
 const QUICK_SHORTCUTS: QuickShortcut[] = [
@@ -457,7 +465,7 @@ function displayMegabytesPerSecond(value: number | null) {
 function hardwareStatusLabel(status: HardwareFeedStatus) {
   if (status === 'live') return 'LIVE'
   if (status === 'stale') return 'STALE'
-  if (status === 'browser') return 'BROWSER MODE'
+  if (status === 'browser') return 'SAMPLE DATA'
   if (status === 'invalid') return 'INVALID DATA'
   return 'WAITING FOR LIVELY'
 }
@@ -494,7 +502,7 @@ const COMMAND_COMPLETIONS = [
   'sys widgets', 'sys widgets all on', 'sys widgets all off', 'sys animation mirror', 'sys animation mirror on', 'sys animation mirror off', 'sys animation mirror status',
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
-  'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys scale 1', 'sys widget reset', 'sys layout list', 'sys layout free', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys scale 1', 'sys compact on', 'sys compact off', 'sys widget reset', 'sys layout list', 'sys layout free', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
   'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys limitless',
@@ -595,9 +603,9 @@ function App() {
   const [consoleEntry, setConsoleEntry] = useState<{ theme: ThemeId; id: number } | null>(null)
   const [saoWidgetsStarting, setSaoWidgetsStarting] = useState(false)
   const [nightStealth, setNightStealth] = useState(false)
-  const [hardwareFeed, setHardwareFeed] = useState<HardwareFeed>({ status: 'waiting', readings: null, updatedAt: null })
-  const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(null)
-  const [nowPlayingStatus, setNowPlayingStatus] = useState<NowPlayingStatus>('waiting')
+  const [hardwareFeed, setHardwareFeed] = useState<HardwareFeed>({ status: 'browser', readings: SAMPLE_HARDWARE_READINGS, updatedAt: null })
+  const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(SAMPLE_NOW_PLAYING)
+  const [nowPlayingStatus, setNowPlayingStatus] = useState<NowPlayingStatus>('sample')
   const [quickShortcuts] = useState<QuickShortcut[]>(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(QUICK_SHORTCUTS_KEY) ?? 'null') as unknown
@@ -633,6 +641,7 @@ function App() {
       return saved && ['free', 'left', 'right', 'top', 'bottom'].includes(saved) ? saved : 'right'
     } catch (error) { startupStorageErrors['widget layout restore'] = describeStorageError(error); return 'right' }
   })
+  const [widgetsCompact, setWidgetsCompact] = useState(false)
   const [consoleFrame, setConsoleFrame] = useState<ConsoleFrame | null>(null)
   const [layoutPresets, setLayoutPresets] = useState<Record<string, LayoutSnapshot>>(() => {
     try {
@@ -641,7 +650,7 @@ function App() {
     } catch (error) { startupStorageErrors['layout presets restore'] = describeStorageError(error); return {} }
   })
   const [clockNow, setClockNow] = useState(() => new Date())
-  const [hardwareHistory, setHardwareHistory] = useState<Record<'cpu' | 'gpu' | 'ram', number[]>>({ cpu: [], gpu: [], ram: [] })
+  const [hardwareHistory, setHardwareHistory] = useState<Record<'cpu' | 'gpu' | 'ram', number[]>>({ cpu: [26, 30, 28, 35, 32, 34, 32], gpu: [12, 15, 17, 16, 21, 18, 18], ram: [61, 62, 63, 62, 64, 63, 64] })
   const saoBootSequenceRef = useRef<number | null>(null)
   const setStorageIssue = useCallback((area: string, error: unknown | null) => {
     if (error === null) delete storageErrorsRef.current[area]
@@ -1833,6 +1842,12 @@ function App() {
           setStatus(`INTERFACE SCALE Â· ${scale}X`)
         }
       }
+    } else if (domain === 'compact' && ['on', 'off'].includes(action) && args.length === 2) {
+      const compact = action === 'on'
+      setWidgetsCompact(compact)
+      if (compact) setWidgetLayout('right')
+      report(['WIDGET COMPACT MODE', `STATE .................. ${compact ? 'ON' : 'OFF'}`, compact ? 'RIGHT DOCK ............. GROUPED' : 'RIGHT DOCK ............. STANDARD SPACING', 'CUSTOM FREE POSITIONS REMAIN SAVED.'])
+      setStatus(`WIDGET COMPACT · ${compact ? 'ON' : 'OFF'}`)
     } else if (domain === 'widgets' && args[1] === 'all' && ['on', 'off'].includes(args[2])) {
       const enable = args[2] === 'on'
       if (enable) WIDGET_IDS.forEach(openWidget)
@@ -2407,7 +2422,7 @@ function App() {
         </div>
       )}
 
-      <aside className={`system-widgets widget-layout-${widgetLayout}${theme === 'sao' && saoWidgetsStarting ? ' sao-widgets-starting' : ''}`} aria-label="System widgets">
+      <aside className={`system-widgets widget-layout-${widgetLayout}${widgetsCompact ? ' widgets-compact' : ''}${theme === 'sao' && saoWidgetsStarting ? ' sao-widgets-starting' : ''}`} aria-label="System widgets">
         {renderedWidgets.includes(1) && (
           <article data-widget-id="1" className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}${consoleEntry?.theme === theme || openingWidgetIds.includes(1) ? ` widget-entering widget-entering-${theme}` : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
             {theme === 'sao' && <SaoWidgetFrame />}
@@ -2447,7 +2462,7 @@ function App() {
               <div className="clock-widget-copy">
                 <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, theme === 'tokyo-ghoul' ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } : theme === 'sao' || theme === 'demon-mode' || theme === 'dragon' ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{(theme === 'sao' || theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon') && <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>}</strong>
                 <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
-                <small>LOCAL CHRONOMETER · {clockZone.toUpperCase()}</small>
+                <small>{theme === 'tokyo-ghoul' ? clockZone.toUpperCase() : `LOCAL CHRONOMETER · ${clockZone.toUpperCase()}`}</small>
               </div>
             </div>
           </article>
@@ -2464,7 +2479,7 @@ function App() {
           <article data-widget-id="4" className={`system-widget widget-4${leavingWidgetIds.includes(4) ? ' widget-leaving' : ''}${consoleEntry?.theme === theme || openingWidgetIds.includes(4) ? ` widget-entering widget-entering-${theme}` : ''}`} aria-hidden={leavingWidgetIds.includes(4)} style={positionWidget(4)}>
             {theme === 'sao' && <SaoWidgetFrame />}
             <ThemeWidgetFrame theme={theme} />
-            <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={4} title="NOW PLAYING" /> : <span>04 / NOW PLAYING</span>}<i>{nowPlayingStatus === 'track' ? 'LINKED' : nowPlayingStatus === 'none' ? 'IDLE' : nowPlayingStatus === 'browser' ? 'LIVELY ONLY' : nowPlayingStatus === 'invalid' ? 'DATA ERROR' : 'WAITING'}</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close now playing widget">×</button></header>
+            <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={4} title="NOW PLAYING" /> : <span>04 / NOW PLAYING</span>}<i>{nowPlayingStatus === 'track' ? 'LINKED' : nowPlayingStatus === 'sample' ? 'SAMPLE DATA' : nowPlayingStatus === 'none' ? 'IDLE' : nowPlayingStatus === 'browser' ? 'LIVELY ONLY' : nowPlayingStatus === 'invalid' ? 'DATA ERROR' : 'WAITING'}</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close now playing widget">×</button></header>
             {nowPlaying ? (
               <div className="audio-now-playing">
                 {nowPlaying.artwork

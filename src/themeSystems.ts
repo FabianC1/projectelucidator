@@ -78,6 +78,7 @@ export const THEME_SYSTEMS: ThemeSystemDefinition[] = [
   {
     id: 'dragon', label: 'HTTYD / NIGHT FURY', command: 'httyd', aliases: ['httyd', 'night fury', 'toothless', 'dragon'],
     status: 'wip', activationEffect: 'night-fury-stealth', signature: 'none',
+    defaultWidgetLayout: 'right',
     emblemAsset: './assets/emblems/night-fury.png',
     activationPresentation: { title: 'HTTYD', subtitle: 'NIGHT FURY SYSTEM', accent: '#70E8FF', secondary: '#5265D8' },
     activationResponse: ['NIGHT FURY', 'ELUCIDATOR // TOOTHLESS PROTOCOL', 'PLASMA CORE ............ STANDBY', 'NIGHT FURY SIGNATURE ... DETECTED'],
