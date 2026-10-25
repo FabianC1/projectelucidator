@@ -563,6 +563,7 @@ function App() {
   })
   const [specialEffect, setSpecialEffect] = useState<SpecialEffect | null>(null)
   const [consoleEntry, setConsoleEntry] = useState<{ theme: ThemeId; id: number } | null>(null)
+  const [saoWidgetsStarting, setSaoWidgetsStarting] = useState(false)
   const [nightStealth, setNightStealth] = useState(false)
   const [hardwareFeed, setHardwareFeed] = useState<HardwareFeed>({ status: 'waiting', readings: null, updatedAt: null })
   const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(null)
@@ -610,6 +611,7 @@ function App() {
   })
   const [clockNow, setClockNow] = useState(() => new Date())
   const [hardwareHistory, setHardwareHistory] = useState<Record<'cpu' | 'gpu' | 'ram', number[]>>({ cpu: [], gpu: [], ram: [] })
+  const saoBootSequenceRef = useRef<number | null>(null)
   const setStorageIssue = useCallback((area: string, error: unknown | null) => {
     if (error === null) delete storageErrorsRef.current[area]
     else storageErrorsRef.current[area] = describeStorageError(error)
@@ -1001,6 +1003,16 @@ function App() {
   }, [consoleEntry])
 
   useEffect(() => {
+    const isInitialSaoBoot = theme === 'sao' && !booting && saoBootSequenceRef.current !== bootToken
+    const isSaoCommandEntry = consoleEntry?.theme === 'sao'
+    if (!isInitialSaoBoot && !isSaoCommandEntry) return
+    saoBootSequenceRef.current = bootToken
+    setSaoWidgetsStarting(true)
+    const timer = window.setTimeout(() => setSaoWidgetsStarting(false), 1150)
+    return () => window.clearTimeout(timer)
+  }, [bootToken, booting, consoleEntry, theme])
+
+  useEffect(() => {
     if (!startupConfigHydrated) return
     try {
       if (consoleFrame) localStorage.setItem(CONSOLE_FRAME_KEY, JSON.stringify(consoleFrame))
@@ -1181,7 +1193,7 @@ function App() {
             widgetLayout,
             layoutPresets,
             wallpaperFit,
-            animationMirror,
+            animationMirror: true,
             visualTheme,
             consoleFrame,
           }
@@ -1194,12 +1206,14 @@ function App() {
             installIntoLively: true,
           })
           if (!saved.saved) throw new Error('HELPER DID NOT CONFIRM THE DURABLE CONFIGURATION SAVE')
+          // A durable startup preserves mirrored activation without another command.
+          setAnimationMirror(true)
           try { await writeDefaultWallpaper({ name: wallpaperName, blob }) }
           catch (error) { setStorageIssue('startup wallpaper browser cache write', error) }
           setDefaultWallpaperName(wallpaperName)
           setDefaultTheme(theme)
           setCredentialBootstrapAvailable(true)
-          const saveReport = ['STARTUP CONFIGURATION SAVED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WIDGET LAYOUT + SETTINGS ........ SAVED']
+          const saveReport = ['STARTUP CONFIGURATION SAVED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WIDGET LAYOUT + SETTINGS ........ SAVED', 'ACTIVATION MIRROR ............... ON + SAVED']
           saveReport.push(saved.installedProjectUpdated ? 'INSTALLED LIVELY PROJECT UPDATED' : 'INSTALLED LIVELY PROJECT UPDATE NOT REQUESTED')
           saveReport.push(saved.reloadRequested ? 'LIVELY RELOAD REQUEST ACCEPTED' : `LIVELY RELOAD NOT REQUESTED · ${(saved.reloadMessage ?? 'CHECK LIVELY INSTALLATION').toUpperCase()}`)
           report(saveReport)
@@ -2005,7 +2019,7 @@ function App() {
 
   const moveWidgetDrag = (event: ReactPointerEvent<HTMLElement>) => {
     const drag = draggingWidgetRef.current
-    if (!drag || drag.id !== Number(event.currentTarget.closest('.system-widget')?.className.match(/widget-(\d+)/)?.[1]) || drag.pointerId !== event.pointerId) return
+    if (!drag || drag.pointerId !== event.pointerId) return
     if (!drag.activated) {
       if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 7) return
       const visiblePositions = Object.fromEntries(Array.from(document.querySelectorAll<HTMLElement>('.system-widget:not(.widget-leaving)')).flatMap((widget) => {
@@ -2337,9 +2351,9 @@ function App() {
         </div>
       )}
 
-      <aside className={`system-widgets widget-layout-${widgetLayout}`} aria-label="System widgets">
+      <aside className={`system-widgets widget-layout-${widgetLayout}${theme === 'sao' && saoWidgetsStarting ? ' sao-widgets-starting' : ''}`} aria-label="System widgets">
         {renderedWidgets.includes(1) && (
-          <article className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
+          <article data-widget-id="1" className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
             {theme === 'sao' && <SaoWidgetFrame />}
             <header onPointerDown={(event) => startWidgetDrag(event, 1)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={1} title="HARDWARE" /> : <span>01 / HARDWARE</span>}<i>{hardwareStatusLabel(hardwareFeed.status)}</i><button className="widget-close" onClick={() => closeWidget(1)} aria-label="Close hardware widget">×</button></header>
             <strong className="hardware-host">{hardwareFeed.readings?.cpuName ?? 'HOST TELEMETRY'} · {hardwareFeed.readings?.gpuName ?? 'GPU'} </strong>
@@ -2360,7 +2374,7 @@ function App() {
           </article>
         )}
         {renderedWidgets.includes(2) && (
-          <article className={`system-widget widget-2${leavingWidgetIds.includes(2) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(2)} style={positionWidget(2)}>
+          <article data-widget-id="2" className={`system-widget widget-2${leavingWidgetIds.includes(2) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(2)} style={positionWidget(2)}>
             {theme === 'sao' && <SaoWidgetFrame />}
             <header onPointerDown={(event) => startWidgetDrag(event, 2)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={2} title="LOCAL TIME" /> : <span>02 / LOCAL TIME</span>}<i>SYNC</i><button className="widget-close" onClick={() => closeWidget(2)} aria-label="Close local time widget">×</button></header>
             <div className={`clock-widget-display${theme === 'demon-mode' ? ' demon-digital-clock' : theme === 'tokyo-ghoul' ? ' kagune-digital-clock' : ''}`}>
@@ -2379,14 +2393,14 @@ function App() {
           </article>
         )}
         {renderedWidgets.includes(3) && (
-          <article className={`system-widget widget-3${leavingWidgetIds.includes(3) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(3)} style={positionWidget(3)}>
+          <article data-widget-id="3" className={`system-widget widget-3${leavingWidgetIds.includes(3) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(3)} style={positionWidget(3)}>
             {theme === 'sao' && <SaoWidgetFrame />}
             <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={3} title="QUICK LAUNCH" /> : <span>03 / QUICK LAUNCH</span>}<i>PLACEHOLDER</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close quick launch widget">×</button></header>
             <div className="quick-launch-grid">{quickShortcuts.map((shortcut) => <button key={shortcut.id} className={`quick-launch-tile shortcut-${shortcut.id}`} onClick={() => onLaunchShortcut(shortcut)} title={`${shortcut.label} · launch integration coming soon`}><span className="quick-launch-icon" aria-hidden="true">{typeof shortcut.icon === 'string' ? shortcut.icon : <svg viewBox="0 0 24 24" focusable="false"><path d={shortcut.icon.path} /></svg>}</span><b>{shortcut.label}</b></button>)}</div>
           </article>
         )}
         {renderedWidgets.includes(4) && (
-          <article className={`system-widget widget-4${leavingWidgetIds.includes(4) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(4)} style={positionWidget(4)}>
+          <article data-widget-id="4" className={`system-widget widget-4${leavingWidgetIds.includes(4) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(4)} style={positionWidget(4)}>
             {theme === 'sao' && <SaoWidgetFrame />}
             <header onPointerDown={(event) => startWidgetDrag(event, 4)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={4} title="NOW PLAYING" /> : <span>04 / NOW PLAYING</span>}<i>{nowPlayingStatus === 'track' ? 'LINKED' : nowPlayingStatus === 'none' ? 'IDLE' : nowPlayingStatus === 'browser' ? 'LIVELY ONLY' : nowPlayingStatus === 'invalid' ? 'DATA ERROR' : 'WAITING'}</i><button className="widget-close" onClick={() => closeWidget(4)} aria-label="Close now playing widget">×</button></header>
             {nowPlaying ? (
@@ -2411,11 +2425,11 @@ function App() {
           </article>
         )}
         {renderedWidgets.includes(5) && (
-          <article className={`system-widget widget-5${leavingWidgetIds.includes(5) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(5)} style={positionWidget(5)}>
+          <article data-widget-id="5" className={`system-widget widget-5${leavingWidgetIds.includes(5) ? ' widget-leaving' : ''}`} aria-hidden={leavingWidgetIds.includes(5)} style={positionWidget(5)}>
             {theme === 'sao' && <SaoWidgetFrame />}
             <header onPointerDown={(event) => startWidgetDrag(event, 5)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={5} title="SYSTEM CONTROL" /> : <span>05 / SYSTEM CONTROL</span>}<i>UTILITY</i><button className="widget-close" onClick={() => closeWidget(5)} aria-label="Close system control widget">×</button></header>
             {theme === 'dragon' && <div className="night-fury-system-control"><div className="night-fury-control-identity"><img src="./assets/emblems/night-fury-header-emblem-trimmed.png" alt="" /><div><strong>NIGHT FURY</strong><small>{brightnessHelperOnline ? brightnessToken ? 'HELPER CONNECTED' : 'HELPER ONLINE · UNPAIRED' : 'HELPER UNAVAILABLE'}</small></div></div></div>}
-            {theme === 'sao' ? <div className="sao-control-identity"><small>AINCRAD SYSTEM</small><strong><i className={brightnessHelperOnline ? 'is-online' : ''} />{brightnessHelperOnline ? brightnessToken ? 'HELPER CONNECTED' : 'HELPER ONLINE · UNPAIRED' : 'HELPER UNAVAILABLE'}</strong></div> : theme === 'demon-mode' || theme === 'tokyo-ghoul' ? <div className={theme === 'demon-mode' ? 'demon-system-control' : 'kagune-system-control'}><div className={theme === 'demon-mode' ? 'demon-control-brand' : 'kagune-control-brand'}><img src={theme === 'demon-mode' ? './assets/emblems/dragon-sin-of-wrath.png' : './assets/emblems/tokyo-ghoul.png'} alt="" /><b>{theme === 'demon-mode' ? 'DRAGON SIN // DEMON MODE' : 'KAGUNE // ELUCIDATOR'}</b></div><p><span>ACTIVE EFFECT</span><b>{visualTheme.toUpperCase()}</b></p><p><span>WALLPAPER FIT</span><b>{wallpaperFit.toUpperCase()}</b></p><p><span>BRIGHTNESS BRIDGE</span><b>{brightnessHelperOnline ? brightnessToken ? 'PAIRED' : 'ONLINE · UNPAIRED' : 'OFFLINE'}</b></p><div className={theme === 'demon-mode' ? 'demon-control-actions' : 'kagune-control-actions'}><button onClick={() => activateVisualEffect(visualTheme === 'vignette' ? 'off' : 'vignette')}>EFFECT {visualTheme === 'vignette' ? 'OFF' : 'ON'}</button><button disabled={!brightnessToken || !brightnessHelperOnline} onClick={() => void changeBrightness(brightnessToken, 60, null)}>BRIGHTNESS 60%</button></div></div> : theme !== 'dragon' && <><div className="anime-status-heading">
+            {theme === 'sao' ? <div className="sao-control-identity"><ThemeEmblem className="sao-control-emblem" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title="AINCRAD SYSTEM" /><div><small>AINCRAD SYSTEM</small><strong><i className={brightnessHelperOnline ? 'is-online' : ''} />{brightnessHelperOnline ? brightnessToken ? 'HELPER CONNECTED' : 'HELPER ONLINE · UNPAIRED' : 'HELPER UNAVAILABLE'}</strong></div></div> : theme === 'demon-mode' || theme === 'tokyo-ghoul' ? <div className={theme === 'demon-mode' ? 'demon-system-control' : 'kagune-system-control'}><div className={theme === 'demon-mode' ? 'demon-control-brand' : 'kagune-control-brand'}><img src={theme === 'demon-mode' ? './assets/emblems/dragon-sin-of-wrath.png' : './assets/emblems/tokyo-ghoul.png'} alt="" /><b>{theme === 'demon-mode' ? 'DRAGON SIN // DEMON MODE' : 'KAGUNE // ELUCIDATOR'}</b></div><p><span>ACTIVE EFFECT</span><b>{visualTheme.toUpperCase()}</b></p><p><span>WALLPAPER FIT</span><b>{wallpaperFit.toUpperCase()}</b></p><p><span>BRIGHTNESS BRIDGE</span><b>{brightnessHelperOnline ? brightnessToken ? 'PAIRED' : 'ONLINE · UNPAIRED' : 'OFFLINE'}</b></p><div className={theme === 'demon-mode' ? 'demon-control-actions' : 'kagune-control-actions'}><button onClick={() => activateVisualEffect(visualTheme === 'vignette' ? 'off' : 'vignette')}>EFFECT {visualTheme === 'vignette' ? 'OFF' : 'ON'}</button><button disabled={!brightnessToken || !brightnessHelperOnline} onClick={() => void changeBrightness(brightnessToken, 60, null)}>BRIGHTNESS 60%</button></div></div> : theme !== 'dragon' && <><div className="anime-status-heading">
               <ThemeEmblem className="anime-status-orb theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title={`${activeThemeSystem?.label ?? 'Theme'} emblem`} />
               <div><small>{theme.replaceAll('-', ' ').toUpperCase()} PROTOCOL</small><strong>{animeStatus.title}</strong></div>
             </div>
@@ -2429,7 +2443,7 @@ function App() {
       </aside>
 
       <section
-        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${themeSignature === 'aincrad' && consoleEntry?.theme === 'sao' ? ' sao-starting' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}${theme === 'demon-mode' ? ' demon-mode-console' : ''}${theme === 'dragon' ? ' night-fury-console' : ''}${theme === 'tokyo-ghoul' ? ' tokyo-ghoul-console' : ''}${consoleEntryClass}`}
+        className={`command-console mode-${mode.toLowerCase()}${booting ? ' is-hidden' : ''}${themeSignature === 'aincrad' ? ' sao-console' : ''}${themeSignature === 'aincrad' && (consoleEntry?.theme === 'sao' || saoWidgetsStarting) ? ' sao-starting' : ''}${theme === 'grimoire' ? ' grimoire-console' : ''}${theme === 'limitless' ? ' limitless-console' : ''}${theme === 'breathing-sun' ? ' hinokami-console' : ''}${theme === 'demon-mode' ? ' demon-mode-console' : ''}${theme === 'dragon' ? ' night-fury-console' : ''}${theme === 'tokyo-ghoul' ? ' tokyo-ghoul-console' : ''}${consoleEntryClass}`}
         aria-label="Elucidator system console"
         style={consoleFrame ? {
           left: consoleFrame.x,

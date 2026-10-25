@@ -48,6 +48,28 @@ await evaluate(`(() => {
 await send('Page.reload', { ignoreCache: true })
 await wait(6500)
 await evaluate(`(() => {
+  const input = document.querySelector('.command-line input')
+  const form = input?.closest('form')
+  if (!input || !form) return false
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+  setter?.call(input, 'sys link start')
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  form.requestSubmit()
+  return true
+})()`)
+await wait(2400)
+await evaluate(`(() => {
+  const input = document.querySelector('.command-line input')
+  const form = input?.closest('form')
+  if (!input || !form) return false
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+  setter?.call(input, 'sys widgets all on')
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  form.requestSubmit()
+  return true
+})()`)
+await wait(650)
+await evaluate(`(() => {
   for (const selector of ['.command-console', '.boot-sequence']) {
     const panel = document.querySelector(selector);
     if (panel) panel.style.display = 'none';
