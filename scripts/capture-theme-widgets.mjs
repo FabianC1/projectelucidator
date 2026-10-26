@@ -14,7 +14,7 @@ const evaluate = (expression) => send('Runtime.evaluate', { expression, awaitPro
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const positions = { 1: { x: 3, y: 5 }, 2: { x: 3, y: 37 }, 3: { x: 50, y: 5 }, 4: { x: 3, y: 61 }, 5: { x: 50, y: 43 } }
 
-await send('Page.enable'); await send('Runtime.enable'); await send('Emulation.setDeviceMetricsOverride', { width: 1400, height: 820, deviceScaleFactor: 1, mobile: false }); await mkdir('artifacts/theme-review', { recursive: true })
+await send('Page.enable'); await send('Runtime.enable'); await send('Emulation.setDeviceMetricsOverride', { width: 1400, height: 1400, deviceScaleFactor: 1, mobile: false }); await mkdir('artifacts/theme-review', { recursive: true })
 const reviewThemes = process.env.THEME ? [process.env.THEME] : ['arise', 'grimoire', 'demon-mode', 'breathing-sun', 'limitless', 'tokyo-ghoul', 'dragon']
 for (const theme of reviewThemes) {
   await evaluate(`(() => { const compact=${process.env.COMPACT === '1'}; localStorage.setItem('project-elucidator-theme', '${theme}'); localStorage.setItem('project-elucidator-widgets', JSON.stringify({version:2,enabled:[1,2,3,4,5]})); localStorage.setItem('project-elucidator-widget-layout', compact ? 'free' : 'right'); localStorage.setItem('project-elucidator-widget-positions', compact ? '${JSON.stringify(positions)}' : '{}'); localStorage.setItem('project-elucidator-widget-compact', JSON.stringify({enabled:false,restore:null,panelPosition:null})); localStorage.setItem('project-elucidator-interface-scale', '1'); localStorage.setItem('project-elucidator-widget-scales', '{}'); return true })()`)
