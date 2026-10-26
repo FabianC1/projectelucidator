@@ -31,6 +31,9 @@ export type StartupSettings = {
   animationMirror: boolean
   visualTheme: string
   consoleFrame: { x: number; y: number; width: number; height: number; anchor?: string } | null
+  widgetsCompact?: boolean
+  compactRestore?: { widgetLayout: string; widgetPositions: Record<string, { x: number; y: number; width?: number }> } | null
+  compactPanelPosition?: { x: number; y: number } | null
 }
 
 const HELPER_URL = 'http://127.0.0.1:17384'

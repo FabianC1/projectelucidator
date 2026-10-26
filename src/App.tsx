@@ -41,6 +41,8 @@ type SpecialEffect = { kind: string; id: number }
 type WidgetPosition = { x: number; y: number; width?: number }
 type WidgetPositions = Record<number, WidgetPosition>
 type WidgetLayout = 'free' | 'left' | 'right' | 'top' | 'bottom'
+type CompactRestore = { widgetLayout: WidgetLayout; widgetPositions: WidgetPositions }
+type CompactPanelPosition = { x: number; y: number }
 type ConsoleFrame = { x: number; y: number; width: number; height: number; anchor?: 'top' | 'bottom' }
 type LayoutSnapshot = { consoleFrame: ConsoleFrame | null; widgetPositions: WidgetPositions; widgetLayout?: WidgetLayout }
 type BootMessage = { text: string; result: string; pause?: number }
@@ -132,6 +134,7 @@ const WIDGET_SCALE_KEY = 'project-elucidator-widget-scales'
 const INTERFACE_SCALE_KEY = 'project-elucidator-interface-scale'
 const QUICK_SHORTCUTS_KEY = 'project-elucidator-quick-shortcuts'
 const WIDGET_LAYOUT_KEY = 'project-elucidator-widget-layout'
+const WIDGET_COMPACT_KEY = 'project-elucidator-widget-compact'
 const CONSOLE_FRAME_KEY = 'project-elucidator-console-frame'
 const LAYOUT_PRESETS_KEY = 'project-elucidator-layout-presets'
 const THEME_PREF_KEY = 'project-elucidator-theme'
@@ -139,7 +142,7 @@ const DEFAULT_THEME_PREF_KEY = 'project-elucidator-default-theme'
 const VISUAL_THEME_PREF_KEY = 'project-elucidator-visual-theme'
 const WALLPAPER_FIT_PREF_KEY = 'project-elucidator-wallpaper-fit'
 const ANIMATION_MIRROR_KEY = 'project-elucidator-animation-mirror'
-const STORAGE_PREF_KEYS = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, INTERFACE_SCALE_KEY, WIDGET_LAYOUT_KEY, CONSOLE_FRAME_KEY, LAYOUT_PRESETS_KEY, THEME_PREF_KEY, DEFAULT_THEME_PREF_KEY, VISUAL_THEME_PREF_KEY, WALLPAPER_FIT_PREF_KEY, ANIMATION_MIRROR_KEY] as const
+const STORAGE_PREF_KEYS = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, INTERFACE_SCALE_KEY, WIDGET_LAYOUT_KEY, WIDGET_COMPACT_KEY, CONSOLE_FRAME_KEY, LAYOUT_PRESETS_KEY, THEME_PREF_KEY, DEFAULT_THEME_PREF_KEY, VISUAL_THEME_PREF_KEY, WALLPAPER_FIT_PREF_KEY, ANIMATION_MIRROR_KEY] as const
 const WALLPAPER_FITS: WallpaperFit[] = ['cover', 'contain', 'stretch', 'span']
 const VISUAL_THEMES: VisualTheme[] = ['off', 'haze', 'rain', 'lightning', 'particles', 'vignette']
 const THEME_IDS = THEME_SYSTEMS.map((system) => system.id)
@@ -397,7 +400,7 @@ function ThemeControlIdentity({ theme, connected }: { theme: ThemeId; connected:
   const identity = theme === 'arise'
     ? { label: 'ARISE / SHADOW MONARCH', src: './assets/emblems/arise-shadow-monarch.png' }
     : theme === 'grimoire'
-      ? { label: 'FIVE-LEAF GRIMOIRE', src: './assets/emblems/grimoire.png' }
+      ? { label: 'GRIMOIRE / BLACK CLOVER', src: './assets/emblems/grimoire.png' }
       : theme === 'limitless'
         ? { label: 'LIMITLESS / SPATIAL INTERFACE', src: './assets/emblems/limitless.png' }
         : { label: 'HINOKAMI KAGURA / SUN BREATHING', src: './assets/emblems/hinokami-kagura.png' }
@@ -557,6 +560,8 @@ function App() {
   const commandDraftRef = useRef('')
   const completionRef = useRef<{ lastValue: string; candidates: string[]; index: number } | null>(null)
   const draggingWidgetRef = useRef<{ id: number; pointerId: number; offsetX: number; offsetY: number; startX: number; startY: number; activated: boolean } | null>(null)
+  const draggingCompactPanelRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null)
+  const compactPreferencesLoadedRef = useRef(false)
   const widgetExitTimersRef = useRef<Map<number, number>>(new Map())
   const draggingConsoleRef = useRef<{ offsetX: number; offsetY: number; frame: ConsoleFrame } | null>(null)
   const effectIdRef = useRef(0)
@@ -642,6 +647,8 @@ function App() {
     } catch (error) { startupStorageErrors['widget layout restore'] = describeStorageError(error); return 'right' }
   })
   const [widgetsCompact, setWidgetsCompact] = useState(false)
+  const [compactRestore, setCompactRestore] = useState<CompactRestore | null>(null)
+  const [compactPanelPosition, setCompactPanelPosition] = useState<CompactPanelPosition | null>(null)
   const [consoleFrame, setConsoleFrame] = useState<ConsoleFrame | null>(null)
   const [layoutPresets, setLayoutPresets] = useState<Record<string, LayoutSnapshot>>(() => {
     try {
@@ -787,6 +794,16 @@ function App() {
           }
           if (WIDGET_SCALES.includes(preferences.interfaceScale as WidgetScale)) setInterfaceScale(preferences.interfaceScale as WidgetScale)
           if (['free', 'left', 'right', 'top', 'bottom'].includes(preferences.widgetLayout)) setWidgetLayout(preferences.widgetLayout as WidgetLayout)
+          if (typeof preferences.widgetsCompact === 'boolean') {
+            setWidgetsCompact(preferences.widgetsCompact)
+            const restore = preferences.compactRestore
+            if (restore && ['free', 'left', 'right', 'top', 'bottom'].includes(restore.widgetLayout) && restore.widgetPositions && typeof restore.widgetPositions === 'object') {
+              setCompactRestore({ widgetLayout: restore.widgetLayout as WidgetLayout, widgetPositions: restore.widgetPositions as WidgetPositions })
+            }
+            const panel = preferences.compactPanelPosition
+            if (panel && Number.isFinite(panel.x) && Number.isFinite(panel.y)) setCompactPanelPosition({ x: panel.x, y: panel.y })
+            compactPreferencesLoadedRef.current = true
+          }
           if (preferences.layoutPresets && typeof preferences.layoutPresets === 'object' && !Array.isArray(preferences.layoutPresets)) setLayoutPresets(preferences.layoutPresets as Record<string, LayoutSnapshot>)
           if (WALLPAPER_FITS.includes(preferences.wallpaperFit as WallpaperFit)) setWallpaperFit(preferences.wallpaperFit as WallpaperFit)
           if (typeof preferences.animationMirror === 'boolean') setAnimationMirror(preferences.animationMirror)
@@ -907,6 +924,25 @@ function App() {
     try { localStorage.setItem(WIDGET_LAYOUT_KEY, widgetLayout); setStorageIssue('widget layout write', null) }
     catch (error) { setStorageIssue('widget layout write', error) }
   }, [setStorageIssue, startupConfigHydrated, widgetLayout])
+
+  useEffect(() => {
+    if (!startupConfigHydrated) return
+    if (!compactPreferencesLoadedRef.current) {
+      compactPreferencesLoadedRef.current = true
+      try {
+        const saved = JSON.parse(localStorage.getItem(WIDGET_COMPACT_KEY) ?? 'null') as { enabled?: unknown; restore?: unknown; panelPosition?: unknown } | null
+        if (saved?.enabled === true) setWidgetsCompact(true)
+        const restore = saved?.restore as CompactRestore | undefined
+        if (restore && ['free', 'left', 'right', 'top', 'bottom'].includes(restore.widgetLayout) && restore.widgetPositions && typeof restore.widgetPositions === 'object') setCompactRestore(restore)
+        const panel = saved?.panelPosition as CompactPanelPosition | undefined
+        if (panel && Number.isFinite(panel.x) && Number.isFinite(panel.y)) setCompactPanelPosition(panel)
+      } catch (error) { setStorageIssue('compact panel restore', error) }
+    }
+    try {
+      localStorage.setItem(WIDGET_COMPACT_KEY, JSON.stringify({ enabled: widgetsCompact, restore: compactRestore, panelPosition: compactPanelPosition }))
+      setStorageIssue('compact panel write', null)
+    } catch (error) { setStorageIssue('compact panel write', error) }
+  }, [compactPanelPosition, compactRestore, setStorageIssue, startupConfigHydrated, widgetsCompact])
 
   useEffect(() => {
     try {
@@ -1233,6 +1269,9 @@ function App() {
             widgetScales,
             interfaceScale,
             widgetLayout,
+            widgetsCompact,
+            compactRestore,
+            compactPanelPosition,
             layoutPresets,
             wallpaperFit,
             animationMirror: true,
@@ -1844,9 +1883,26 @@ function App() {
       }
     } else if (domain === 'compact' && ['on', 'off'].includes(action) && args.length === 2) {
       const compact = action === 'on'
-      setWidgetsCompact(compact)
-      if (compact) setWidgetLayout('right')
-      report(['WIDGET COMPACT MODE', `STATE .................. ${compact ? 'ON' : 'OFF'}`, compact ? 'RIGHT DOCK ............. GROUPED' : 'RIGHT DOCK ............. STANDARD SPACING', 'CUSTOM FREE POSITIONS REMAIN SAVED.'])
+      if (compact) {
+        // Snapshot once. Repeating ON must never replace the layout the user
+        // expects OFF to restore.
+        if (!widgetsCompact) {
+          setCompactRestore({
+            widgetLayout,
+            widgetPositions: Object.fromEntries(Object.entries(widgetPositions).map(([id, position]) => [id, { ...position }])) as WidgetPositions,
+          })
+        }
+        setWidgetsCompact(true)
+        report(['WIDGET COMPACT PANEL', 'STATE .................. ON', 'COMPOSITION ............ 3 + 2 GRID', 'DRAG HANDLE ............ PANEL HEADER', 'INDIVIDUAL LAYOUT ...... SNAPSHOTTED'])
+      } else {
+        setWidgetsCompact(false)
+        if (compactRestore) {
+          setWidgetLayout(compactRestore.widgetLayout)
+          setWidgetPositions(compactRestore.widgetPositions)
+          setCompactRestore(null)
+        }
+        report(['WIDGET COMPACT PANEL', 'STATE .................. OFF', compactRestore ? 'PREVIOUS LAYOUT ........ RESTORED' : 'PREVIOUS LAYOUT ........ ALREADY ACTIVE'])
+      }
       setStatus(`WIDGET COMPACT · ${compact ? 'ON' : 'OFF'}`)
     } else if (domain === 'widgets' && args[1] === 'all' && ['on', 'off'].includes(args[2])) {
       const enable = args[2] === 'on'
@@ -2085,7 +2141,37 @@ function App() {
     })) as WidgetPositions
   }
 
+  const startCompactPanelDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0) return
+    const panel = event.currentTarget.closest('.system-widgets') as HTMLElement | null
+    if (!panel) return
+    const bounds = panel.getBoundingClientRect()
+    draggingCompactPanelRef.current = { pointerId: event.pointerId, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    event.preventDefault()
+  }
+
+  const moveCompactPanelDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    const drag = draggingCompactPanelRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    const panel = event.currentTarget.closest('.system-widgets') as HTMLElement | null
+    const canvas = panel?.parentElement?.getBoundingClientRect()
+    const bounds = panel?.getBoundingClientRect()
+    if (!canvas?.width || !canvas.height || !bounds) return
+    const left = Math.max(canvas.left, Math.min(canvas.right - bounds.width, event.clientX - drag.offsetX))
+    const top = Math.max(canvas.top, Math.min(canvas.bottom - bounds.height, event.clientY - drag.offsetY))
+    setCompactPanelPosition({ x: (left - canvas.left) / canvas.width * 100, y: (top - canvas.top) / canvas.height * 100 })
+  }
+
+  const finishCompactPanelDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    const drag = draggingCompactPanelRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    draggingCompactPanelRef.current = null
+  }
+
   const startWidgetDrag = (event: ReactPointerEvent<HTMLElement>, id: number) => {
+    if (widgetsCompact) return
     if ((event.target as HTMLElement).closest('button,input,select,textarea,label,a,[data-widget-control]')) return
     if (event.button !== 0) return
     const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
@@ -2128,6 +2214,7 @@ function App() {
   }
 
   const positionWidget = (id: number) => {
+    if (widgetsCompact) return undefined
     const scale = widgetScales[id] ?? 1
     const scaleStyle = { '--widget-user-scale': scale } as CSSProperties
     if (widgetLayout !== 'free') return scale === 1 ? undefined : scaleStyle
@@ -2422,7 +2509,8 @@ function App() {
         </div>
       )}
 
-      <aside className={`system-widgets widget-layout-${widgetLayout}${widgetsCompact ? ' widgets-compact' : ''}${theme === 'sao' && saoWidgetsStarting ? ' sao-widgets-starting' : ''}`} aria-label="System widgets">
+      <aside className={`system-widgets widget-layout-${widgetLayout}${widgetsCompact ? ' widgets-compact' : ''}${theme === 'sao' && saoWidgetsStarting ? ' sao-widgets-starting' : ''}`} aria-label="System widgets" style={widgetsCompact && compactPanelPosition ? { '--compact-panel-left': `${compactPanelPosition.x}%`, '--compact-panel-top': `${compactPanelPosition.y}%`, '--compact-panel-right': 'auto' } as CSSProperties : undefined}>
+        {widgetsCompact && <div className="compact-panel-handle" aria-label="Drag compact widget panel" onPointerDown={startCompactPanelDrag} onPointerMove={moveCompactPanelDrag} onPointerUp={finishCompactPanelDrag} onPointerCancel={finishCompactPanelDrag} onLostPointerCapture={finishCompactPanelDrag} />}
         {renderedWidgets.includes(1) && (
           <article data-widget-id="1" className={`system-widget widget-1${leavingWidgetIds.includes(1) ? ' widget-leaving' : ''}${consoleEntry?.theme === theme || openingWidgetIds.includes(1) ? ` widget-entering widget-entering-${theme}` : ''}`} aria-hidden={leavingWidgetIds.includes(1)} style={positionWidget(1)}>
             {theme === 'sao' && <SaoWidgetFrame />}
@@ -2460,7 +2548,7 @@ function App() {
                 <span className="clock-pin" />
               </div>}
               <div className="clock-widget-copy">
-                <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, theme === 'tokyo-ghoul' ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } : theme === 'sao' || theme === 'demon-mode' || theme === 'dragon' ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{(theme === 'sao' || theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon') && <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>}</strong>
+                <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, theme === 'tokyo-ghoul' || theme === 'grimoire' ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } : theme === 'sao' || theme === 'demon-mode' || theme === 'dragon' ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{(theme === 'sao' || theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon' || theme === 'grimoire') && <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>}</strong>
                 <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
                 <small>{theme === 'tokyo-ghoul' ? clockZone.toUpperCase() : `LOCAL CHRONOMETER · ${clockZone.toUpperCase()}`}</small>
               </div>
