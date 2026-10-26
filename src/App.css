@@ -3597,3 +3597,33 @@
 
 /* SYS COMPACT: a denser protected right-side panel without changing any saved free positions. */
 .system-widgets.widgets-compact.widget-layout-right{justify-content:flex-start;gap:.3rem;overflow-y:auto;scroll-padding-block:5.75rem 1rem}.system-widgets.widgets-compact.widget-layout-right .system-widget{margin:0}.wallpaper-experience.theme-tokyo-ghoul .system-widgets.widgets-compact.widget-layout-right{padding-top:3.8rem;padding-bottom:1rem;gap:.28rem}.wallpaper-experience.theme-tokyo-ghoul .system-widgets.widget-layout-right .widget-4{width:min(18rem,calc(100vw - 1.5rem))!important;max-width:100%;align-self:flex-end}
+
+/* Prompt-parity widget entrances.  The outer card is never transformed: saved
+   placement, direct dragging, and widget scaling stay entirely stable. */
+.widget-entering>header,.widget-entering>:not(.theme-widget-frame):not(.sao-widget-frame):not(.sao-widget-surface):not(header){will-change:opacity,transform,filter,clip-path}
+
+/* Aincrad / Link Start: trace the same double frame, then reveal details. */
+.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-frame-outer,.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-frame-inner{stroke-dasharray:3000;stroke-dashoffset:3000;animation:sao-console-frame-on 760ms ease-out both}.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-frame-inner{animation-delay:90ms}.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-corner-plate,.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-detail-line,.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-ticks{opacity:0;animation:sao-console-details-on 300ms ease-out 390ms both}.system-widgets:not(.sao-widgets-starting) .widget-entering-sao>header,.system-widgets:not(.sao-widgets-starting) .widget-entering-sao>:not(.theme-widget-frame):not(.sao-widget-frame):not(.sao-widget-surface):not(header){opacity:0;animation:sao-console-details-on 300ms ease-out 300ms both}
+
+/* Arise: Shadow Monarch signature rise, followed by its console line resolve. */
+.widget-entering-arise>header{animation:console-shadow-rise 760ms cubic-bezier(.18,.7,.25,1) both}.widget-entering-arise>:not(.theme-widget-frame):not(header){opacity:0;animation:console-shadow-line 480ms ease-out 130ms both}
+
+/* Grimoire: engraved frame, leaf reveal and book-line copy. */
+.widget-entering-grimoire .theme-widget-frame::before{animation:console-book-engrave 580ms ease-out 330ms both}.widget-entering-grimoire .theme-control-emblem{clip-path:inset(100% 0 0);animation:console-leaf-reveal 720ms cubic-bezier(.2,.65,.25,1) both}.widget-entering-grimoire>header{opacity:0;animation:console-book-title 460ms ease-out 260ms both}.widget-entering-grimoire>:not(.theme-widget-frame):not(header){opacity:0;animation:console-book-line 460ms ease-out 180ms both}
+
+/* Limitless: prompt focus, orbital settle and spatial data reveal. */
+.widget-entering-limitless .theme-widget-frame::before{animation:console-space-focus 700ms ease-out both}.widget-entering-limitless .theme-widget-frame::after{animation:console-orbit-settle 820ms cubic-bezier(.2,.65,.25,1) both}.widget-entering-limitless .theme-control-emblem{animation:console-infinity-focus 680ms cubic-bezier(.2,.7,.2,1) both}.widget-entering-limitless>header{animation:console-orbit-settle 720ms ease-out 100ms both}.widget-entering-limitless>:not(.theme-widget-frame):not(header){opacity:0;animation:console-space-line 460ms ease-out 160ms both}
+
+/* Hinokami: katana draw and flame unfurl exactly as the command prompt. */
+.widget-entering-breathing-sun .theme-widget-frame-corner{clip-path:inset(0 100% 0 0);animation:console-katana-draw 660ms cubic-bezier(.18,.7,.23,1) both}.widget-entering-breathing-sun .theme-widget-frame-accent{clip-path:inset(0 100% 0 0);animation:console-flame-unfurl 720ms ease-out 120ms both}.widget-entering-breathing-sun>header{opacity:0;animation:console-sun-title 460ms ease-out 240ms both}.widget-entering-breathing-sun>:not(.theme-widget-frame):not(header){opacity:0;animation:console-sun-line 420ms ease-out 140ms both}
+
+/* Demon Mode: gold seal, title plane and demon-line illumination. */
+.widget-entering-demon-mode .theme-widget-frame-corner{animation:console-gold-seal 700ms ease-out 120ms both}.widget-entering-demon-mode .theme-widget-frame-accent{clip-path:inset(0 100% 0 0);animation:console-demon-title 620ms cubic-bezier(.18,.7,.23,1) both}.widget-entering-demon-mode .demon-control-brand img{animation:console-demon-mark 720ms ease-out both}.widget-entering-demon-mode>header{clip-path:inset(0 100% 0 0);animation:console-demon-title 620ms cubic-bezier(.18,.7,.23,1) both}.widget-entering-demon-mode>:not(.theme-widget-frame):not(header){opacity:0;animation:console-demon-line 480ms ease-out 130ms both}
+
+/* Night Fury: stealth-emerge copy with the console's plasma-link tail. */
+.widget-entering-dragon .theme-widget-frame-corner{opacity:0;animation:console-stealth-emerge 600ms ease-out both}.widget-entering-dragon .theme-widget-frame-accent{animation:console-plasma-link 900ms ease-out 150ms both}.widget-entering-dragon>header{opacity:0;animation:console-stealth-emerge 600ms ease-out both}.widget-entering-dragon>:not(.theme-widget-frame):not(header){opacity:0;animation:console-stealth-line 420ms ease-out 150ms both}
+
+/* Kagune: RC signal and console text line layered over the tendril sweep. */
+.widget-entering-tokyo-ghoul .theme-widget-frame-corner{animation:console-rc-signal 680ms steps(1,end) both}.widget-entering-tokyo-ghoul>header{animation:console-rc-signal 680ms steps(1,end) both}.widget-entering-tokyo-ghoul>:not(.theme-widget-frame):not(header){opacity:0;animation:console-kagune-line 430ms ease-out 120ms both}
+
+@media(prefers-reduced-motion:reduce){.widget-entering *,.widget-entering::before,.widget-entering::after{animation-duration:.01ms!important;animation-delay:0ms!important}}
