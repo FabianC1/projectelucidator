@@ -3640,6 +3640,7 @@
 .system-widgets.widgets-compact .system-widget{position:relative!important;inset:auto!important;display:block;align-self:start;width:auto!important;min-width:0;max-width:none!important;max-height:none!important;min-height:0!important;margin:0!important;zoom:1!important;animation:none!important}
 .wallpaper-experience .system-widgets.widgets-compact .system-widget{width:auto!important;max-width:none!important;zoom:1!important}
 .wallpaper-experience .system-widgets.widgets-compact .quick-launch-tile{min-height:2.65rem!important}
+.system-widgets.widgets-compact .system-widget{transform:translate(var(--compact-widget-x,0px),var(--compact-widget-y,0px));cursor:default}.system-widgets.widgets-compact .system-widget>header{cursor:grab}.system-widgets.widgets-compact .system-widget>header:active{cursor:grabbing}
 .system-widgets.widgets-compact .widget-1 .diagnostic-meter-label strong{font-size:clamp(1.15rem,2.25vw,1.55rem)}.system-widgets.widgets-compact .widget-3 .quick-launch-tile{min-height:2.65rem}.system-widgets.widgets-compact .widget-5 .effect-tile-grid button{min-height:2.35rem}
 /* With no control card there is no reason to reserve its full right-side row. */
 .system-widgets.widgets-compact:not(:has(.widget-5)){grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"handle handle" "hardware launch" "time launch" "audio audio"}.system-widgets.widgets-compact:not(:has(.widget-3)){grid-template-columns:minmax(0,1fr);grid-template-areas:"handle" "hardware" "time" "audio" "control"}

@@ -43,6 +43,8 @@ type WidgetPositions = Record<number, WidgetPosition>
 type WidgetLayout = 'free' | 'left' | 'right' | 'top' | 'bottom'
 type CompactRestore = { widgetLayout: WidgetLayout; widgetPositions: WidgetPositions }
 type CompactPanelPosition = { x: number; y: number }
+type CompactWidgetOffsets = Partial<Record<number, { x: number; y: number }>>
+type CompactThemeLayout = { theme: ThemeId; slot: number; panelPosition: CompactPanelPosition | null; widgetOffsets: CompactWidgetOffsets }
 type ConsoleFrame = { x: number; y: number; width: number; height: number; anchor?: 'top' | 'bottom' }
 type LayoutSnapshot = { consoleFrame: ConsoleFrame | null; widgetPositions: WidgetPositions; widgetLayout?: WidgetLayout }
 type BootMessage = { text: string; result: string; pause?: number }
@@ -559,7 +561,7 @@ function App() {
   const historyIndexRef = useRef(0)
   const commandDraftRef = useRef('')
   const completionRef = useRef<{ lastValue: string; candidates: string[]; index: number } | null>(null)
-  const draggingWidgetRef = useRef<{ id: number; pointerId: number; offsetX: number; offsetY: number; startX: number; startY: number; activated: boolean } | null>(null)
+  const draggingWidgetRef = useRef<{ id: number; pointerId: number; offsetX: number; offsetY: number; startX: number; startY: number; activated: boolean; compact?: boolean; originX?: number; originY?: number } | null>(null)
   const draggingCompactPanelRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null)
   const compactPreferencesLoadedRef = useRef(false)
   const widgetExitTimersRef = useRef<Map<number, number>>(new Map())
@@ -649,6 +651,8 @@ function App() {
   const [widgetsCompact, setWidgetsCompact] = useState(false)
   const [compactRestore, setCompactRestore] = useState<CompactRestore | null>(null)
   const [compactPanelPosition, setCompactPanelPosition] = useState<CompactPanelPosition | null>(null)
+  const [compactWidgetOffsets, setCompactWidgetOffsets] = useState<CompactWidgetOffsets>({})
+  const [compactThemeLayouts, setCompactThemeLayouts] = useState<Record<string, CompactThemeLayout>>({})
   const [consoleFrame, setConsoleFrame] = useState<ConsoleFrame | null>(null)
   const [layoutPresets, setLayoutPresets] = useState<Record<string, LayoutSnapshot>>(() => {
     try {
@@ -802,6 +806,8 @@ function App() {
             }
             const panel = preferences.compactPanelPosition
             if (panel && Number.isFinite(panel.x) && Number.isFinite(panel.y)) setCompactPanelPosition({ x: panel.x, y: panel.y })
+            if (preferences.compactWidgetOffsets && typeof preferences.compactWidgetOffsets === 'object') setCompactWidgetOffsets(preferences.compactWidgetOffsets as CompactWidgetOffsets)
+            if (preferences.compactThemeLayouts && typeof preferences.compactThemeLayouts === 'object') setCompactThemeLayouts(preferences.compactThemeLayouts as Record<string, CompactThemeLayout>)
             compactPreferencesLoadedRef.current = true
           }
           if (preferences.layoutPresets && typeof preferences.layoutPresets === 'object' && !Array.isArray(preferences.layoutPresets)) setLayoutPresets(preferences.layoutPresets as Record<string, LayoutSnapshot>)
@@ -930,19 +936,21 @@ function App() {
     if (!compactPreferencesLoadedRef.current) {
       compactPreferencesLoadedRef.current = true
       try {
-        const saved = JSON.parse(localStorage.getItem(WIDGET_COMPACT_KEY) ?? 'null') as { enabled?: unknown; restore?: unknown; panelPosition?: unknown } | null
+        const saved = JSON.parse(localStorage.getItem(WIDGET_COMPACT_KEY) ?? 'null') as { enabled?: unknown; restore?: unknown; panelPosition?: unknown; widgetOffsets?: unknown; themeLayouts?: unknown } | null
         if (saved?.enabled === true) setWidgetsCompact(true)
         const restore = saved?.restore as CompactRestore | undefined
         if (restore && ['free', 'left', 'right', 'top', 'bottom'].includes(restore.widgetLayout) && restore.widgetPositions && typeof restore.widgetPositions === 'object') setCompactRestore(restore)
         const panel = saved?.panelPosition as CompactPanelPosition | undefined
         if (panel && Number.isFinite(panel.x) && Number.isFinite(panel.y)) setCompactPanelPosition(panel)
+        if (saved?.widgetOffsets && typeof saved.widgetOffsets === 'object') setCompactWidgetOffsets(saved.widgetOffsets as CompactWidgetOffsets)
+        if (saved?.themeLayouts && typeof saved.themeLayouts === 'object') setCompactThemeLayouts(saved.themeLayouts as Record<string, CompactThemeLayout>)
       } catch (error) { setStorageIssue('compact panel restore', error) }
     }
     try {
-      localStorage.setItem(WIDGET_COMPACT_KEY, JSON.stringify({ enabled: widgetsCompact, restore: compactRestore, panelPosition: compactPanelPosition }))
+      localStorage.setItem(WIDGET_COMPACT_KEY, JSON.stringify({ enabled: widgetsCompact, restore: compactRestore, panelPosition: compactPanelPosition, widgetOffsets: compactWidgetOffsets, themeLayouts: compactThemeLayouts }))
       setStorageIssue('compact panel write', null)
     } catch (error) { setStorageIssue('compact panel write', error) }
-  }, [compactPanelPosition, compactRestore, setStorageIssue, startupConfigHydrated, widgetsCompact])
+  }, [compactPanelPosition, compactRestore, compactThemeLayouts, compactWidgetOffsets, setStorageIssue, startupConfigHydrated, widgetsCompact])
 
   useEffect(() => {
     try {
@@ -1272,6 +1280,8 @@ function App() {
             widgetsCompact,
             compactRestore,
             compactPanelPosition,
+            compactWidgetOffsets,
+            compactThemeLayouts,
             layoutPresets,
             wallpaperFit,
             animationMirror: true,
@@ -2171,13 +2181,13 @@ function App() {
   }
 
   const startWidgetDrag = (event: ReactPointerEvent<HTMLElement>, id: number) => {
-    if (widgetsCompact) return
     if ((event.target as HTMLElement).closest('button,input,select,textarea,label,a,[data-widget-control]')) return
     if (event.button !== 0) return
     const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
     if (!card) return
     const bounds = card.getBoundingClientRect()
-    draggingWidgetRef.current = { id, pointerId: event.pointerId, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top, startX: event.clientX, startY: event.clientY, activated: widgetLayout === 'free' }
+    const compactOffset = compactWidgetOffsets[id] ?? { x: 0, y: 0 }
+    draggingWidgetRef.current = { id, pointerId: event.pointerId, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top, startX: event.clientX, startY: event.clientY, activated: widgetsCompact || widgetLayout === 'free', compact: widgetsCompact, originX: compactOffset.x, originY: compactOffset.y }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
@@ -2186,6 +2196,20 @@ function App() {
     if (!drag || drag.pointerId !== event.pointerId) return
     const card = event.currentTarget.closest('.system-widget') as HTMLElement | null
     if (!card) return
+    if (drag.compact) {
+      const panelBounds = card.parentElement?.getBoundingClientRect()
+      const bounds = card.getBoundingClientRect()
+      if (!panelBounds?.width || !panelBounds.height) return
+      const intendedLeft = event.clientX - drag.offsetX
+      const intendedTop = event.clientY - drag.offsetY
+      const left = Math.max(panelBounds.left, Math.min(panelBounds.right - bounds.width, intendedLeft))
+      const top = Math.max(panelBounds.top, Math.min(panelBounds.bottom - bounds.height, intendedTop))
+      setCompactWidgetOffsets((current) => {
+        const currentOffset = current[drag.id] ?? { x: 0, y: 0 }
+        return { ...current, [drag.id]: { x: currentOffset.x + left - bounds.left, y: currentOffset.y + top - bounds.top } }
+      })
+      return
+    }
     if (!drag.activated) {
       if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 7) return
       setWidgetPositions(captureVisibleWidgetPositions())
@@ -2214,7 +2238,10 @@ function App() {
   }
 
   const positionWidget = (id: number) => {
-    if (widgetsCompact) return undefined
+    if (widgetsCompact) {
+      const offset = compactWidgetOffsets[id]
+      return offset ? { '--compact-widget-x': `${offset.x}px`, '--compact-widget-y': `${offset.y}px`, zIndex: 4 } as CSSProperties : undefined
+    }
     const scale = widgetScales[id] ?? 1
     const scaleStyle = { '--widget-user-scale': scale } as CSSProperties
     if (widgetLayout !== 'free') return scale === 1 ? undefined : scaleStyle
