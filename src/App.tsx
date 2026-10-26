@@ -394,7 +394,7 @@ function ThemeWidgetFrame({ theme }: { theme: ThemeId }) {
           ? { corner: './assets/emblems/night-fury-corner-fins-trimmed.png', accent: './assets/emblems/night-fury-bottom-tail-trimmed.png' }
           : null
   return <span className={`theme-widget-frame theme-widget-frame-${theme}`} aria-hidden="true">
-    {art && <><span className="theme-widget-frame-corner"><img src={art.corner} alt="" /></span><img className="theme-widget-frame-accent" src={art.accent} alt="" /></>}
+    {art && <>{theme === 'demon-mode' ? <span className="theme-widget-frame-corner"><img src={art.corner} alt="" /></span> : <img className="theme-widget-frame-corner" src={art.corner} alt="" />}<img className="theme-widget-frame-accent" src={art.accent} alt="" /></>}
   </span>
 }
 
