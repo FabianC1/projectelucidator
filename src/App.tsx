@@ -507,7 +507,7 @@ const COMMAND_COMPLETIONS = [
   'sys widgets', 'sys widgets all on', 'sys widgets all off', 'sys animation mirror', 'sys animation mirror on', 'sys animation mirror off', 'sys animation mirror status',
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
-  'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys scale 1', 'sys compact on', 'sys compact off', 'sys widget reset', 'sys layout list', 'sys layout free', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
+  'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys scale 1', 'sys compact on', 'sys compact off', 'sys compact httyd save 1', 'sys compact kagune save 1', 'sys widget reset', 'sys layout list', 'sys layout free', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
   'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys limitless',
@@ -1890,6 +1890,27 @@ function App() {
           report(['INTERFACE SCALE APPLIED', `COMMAND CONSOLE + WIDGETS .. ${scale}X`, 'LOAD ANIMATIONS .......... UNCHANGED', 'SCALE SAVED TO LOCAL SYSTEM.'])
           setStatus(`INTERFACE SCALE Â· ${scale}X`)
         }
+      }
+    } else if (domain === 'compact' && args[2] === 'save' && args.length === 4) {
+      const targetTheme = resolveThemeChoice(action)
+      const slot = Number(args[3])
+      if (!targetTheme || !Number.isInteger(slot) || slot < 1 || slot > 9) {
+        report(['COMPACT SAVE ERROR', 'USE SYS COMPACT <THEME> SAVE <1-9>.', 'EXAMPLE ............... SYS COMPACT HTTYD SAVE 1'])
+        setStatus('COMPACT SAVE COMMAND INVALID')
+      } else if (targetTheme !== theme) {
+        report(['COMPACT SAVE ERROR', `ACTIVE THEME .......... ${theme.toUpperCase()}`, `ACTIVATE ${targetTheme.toUpperCase()} BEFORE SAVING ITS PANEL.`])
+        setStatus('COMPACT SAVE THEME IS NOT ACTIVE')
+      } else {
+        const key = `${targetTheme}:${slot}`
+        const layout: CompactThemeLayout = {
+          theme: targetTheme,
+          slot,
+          panelPosition: compactPanelPosition ? { ...compactPanelPosition } : null,
+          widgetOffsets: Object.fromEntries(Object.entries(compactWidgetOffsets).map(([id, offset]) => [id, { ...offset }])) as CompactWidgetOffsets,
+        }
+        setCompactThemeLayouts((current) => ({ ...current, [key]: layout }))
+        report(['COMPACT THEME LAYOUT SAVED', `THEME .................. ${targetTheme.toUpperCase()}`, `SLOT ................... ${slot}`, 'PANEL + CARD OFFSETS ... STORED', 'ADMIN SYS CONFIG SAVE .. INCLUDES THIS PROFILE'])
+        setStatus(`COMPACT ${targetTheme.toUpperCase()} SLOT ${slot} SAVED`)
       }
     } else if (domain === 'compact' && ['on', 'off'].includes(action) && args.length === 2) {
       const compact = action === 'on'

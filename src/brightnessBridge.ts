@@ -35,6 +35,7 @@ export type StartupSettings = {
   compactRestore?: { widgetLayout: string; widgetPositions: Record<string, { x: number; y: number; width?: number }> } | null
   compactPanelPosition?: { x: number; y: number } | null
   compactWidgetOffsets?: Partial<Record<number, { x: number; y: number }>>
+  compactThemeLayouts?: Record<string, { theme: string; slot: number; panelPosition: { x: number; y: number } | null; widgetOffsets: Partial<Record<number, { x: number; y: number }>> }>
 }
 
 const HELPER_URL = 'http://127.0.0.1:17384'
