@@ -3590,6 +3590,10 @@
 /* SYS COMPACT: a denser protected right-side panel without changing any saved free positions. */
 .system-widgets.widgets-compact.widget-layout-right{justify-content:flex-start;gap:.3rem;overflow-y:auto;scroll-padding-block:5.75rem 1rem}.system-widgets.widgets-compact.widget-layout-right .system-widget{margin:0}.wallpaper-experience.theme-tokyo-ghoul .system-widgets.widgets-compact.widget-layout-right{padding-top:3.8rem;padding-bottom:1rem;gap:.28rem}.wallpaper-experience.theme-tokyo-ghoul .system-widgets.widget-layout-right .widget-4{width:min(18rem,calc(100vw - 1.5rem))!important;max-width:100%;align-self:flex-end}
 
+/* System Control keeps its clasp in the lower frame corner so its header,
+   utility label and close control remain unobstructed. */
+.wallpaper-experience.theme-demon-mode .widget-5 .theme-widget-frame-corner{top:auto!important;right:.12rem!important;bottom:.12rem!important;width:3.25rem!important;height:3.25rem!important;opacity:.94!important}
+
 /* Prompt-parity widget entrances.  The outer card is never transformed: saved
    placement, direct dragging, and widget scaling stay entirely stable. */
 .widget-entering>header,.widget-entering>:not(.theme-widget-frame):not(.sao-widget-frame):not(.sao-widget-surface):not(header){will-change:opacity,transform,filter,clip-path}
