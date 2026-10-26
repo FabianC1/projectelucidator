@@ -21,7 +21,7 @@ for (const theme of reviewThemes) {
   await send('Page.reload', { ignoreCache: true }); await wait(2600)
   await evaluate(`(() => { const input=document.querySelector('.command-line input'); const form=input?.closest('form'); if (!input || !form) return false; const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.set; setter?.call(input,'sys theme activate ${theme === 'demon-mode' ? 'demon mode' : theme === 'breathing-sun' ? 'hinokami kagura' : theme === 'tokyo-ghoul' ? 'kagune' : theme === 'dragon' ? 'httyd' : theme}'); input.dispatchEvent(new Event('input',{bubbles:true})); form.requestSubmit(); return true })()`)
   await wait(1350)
-  if (theme === 'grimoire') await wait(1000)
+  if (theme === 'grimoire' || theme === 'demon-mode') await wait(1000)
   await evaluate(`window.livelySystemInformation?.(${JSON.stringify({ NameCpu: 'AMD Ryzen', CurrentCpu: 12, NameGpu: 'NVIDIA GeForce', CurrentGpu3D: 8, NameNetCard: 'Ethernet', CurrentNetDown: 13002342, CurrentNetUp: 2202010, TotalRam: 16384, CurrentRamAvail: 5898 })})`)
   await evaluate(`window.livelyCurrentTrack?.(${JSON.stringify({ Title: 'Test Drive', Artist: 'John Powell', AlbumTitle: 'How to Train Your Dragon', Thumbnail: '', PlaybackType: 'Music' })})`)
   await wait(350)
