@@ -634,6 +634,7 @@ function App() {
   const timeline = createBootTimeline(Boolean(wallpaperUrl))
   const progress = Math.min(1, bootElapsed / timeline.duration)
   const progressPercent = Math.round(progress * 100)
+  const handleBootReveal = useCallback(() => setRevealComplete(true), [])
   const clockSeconds = clockNow.getSeconds()
   const clockMinutes = clockNow.getMinutes() + clockSeconds / 60
   const clockHours = (clockNow.getHours() % 12) + clockMinutes / 60
@@ -2480,9 +2481,9 @@ function App() {
         </div>
       )}
 
-      {ready && booting && <BootSequence active={booting} short={bootToken > 1} onReveal={() => setRevealComplete(true)} />}
+      {ready && booting && <BootSequence active={booting} short={bootToken > 1} onReveal={handleBootReveal} />}
       {ready && (
-        <section className={`boot-sequence${booting ? '' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
+        <section className={`boot-sequence${booting ? ' boot-legacy-hidden' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
           <div className="boot-scan" aria-hidden="true" />
           <svg className="boot-aperture" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
             <g className="boot-tunnel-rails"><path d="M110 90H890L760 200H240Z M165 145H835L710 245H290Z M225 200H775L660 290H340Z M285 255H715L610 335H390Z" /><path d="M110 510H890L760 400H240Z M165 455H835L710 355H290Z M225 400H775L660 310H340Z" /></g>
