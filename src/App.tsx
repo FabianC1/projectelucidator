@@ -156,50 +156,9 @@ const SYSTEM_VERSION = '1.0.0'
 
 function createBootTimeline(hasWallpaper: boolean): BootTimeline {
   const phases: BootPhase[] = [
-    {
-      id: '01',
-      title: 'SYSTEM INITIALIZATION',
-      messages: [
-        { text: 'SYSTEM.INIT()', result: 'OK', pause: 0.09 },
-        { text: 'MEMORY.CHECK: 16384 MB', result: 'OK' },
-        { text: 'KERNEL: INITIALIZING...', result: 'READY', pause: 0.12 },
-        { text: 'SYSTEM.CLOCK: SYNCHRONIZED', result: 'OK' },
-        { text: 'SECURITY.CORE: ONLINE', result: 'READY' },
-        { text: 'PROCESS.TABLE: MOUNTED', result: 'OK' },
-        { text: 'CACHE.CONTROLLER: READY', result: 'OK' },
-        { text: 'SIGNAL.BUS: 12/12 CHANNELS', result: 'STABLE' },
-      ],
-    },
-    {
-      id: '02',
-      title: 'WORLD / DISPLAY INITIALIZATION',
-      messages: [
-        { text: 'DISPLAY.DRIVER: LOADED', result: 'OK' },
-        { text: 'RENDER.ENGINE: ONLINE', result: 'READY' },
-        { text: 'FRAME.BUFFER: ALLOCATED', result: 'OK' },
-        { text: 'ASSET.DECODER: READY', result: 'READY' },
-        { text: 'SHADER.CACHE: WARM', result: 'OK' },
-        { text: 'COLOR.PIPELINE: SYNCHRONIZED', result: 'OK' },
-        { text: 'WORLD.INSTANCE: RESTORING', result: 'RUN', pause: 0.12 },
-        { text: 'SCENE.GRAPH: LINKED', result: 'OK' },
-        { text: 'RESOLUTION.ADAPTER: ONLINE', result: 'READY' },
-      ],
-    },
-    {
-      id: '03',
-      title: 'WALLPAPER SYNCHRONIZATION',
-      messages: [
-        { text: `WALLPAPER.CACHE: ${hasWallpaper ? 'RESTORED' : 'EMPTY'}`, result: hasWallpaper ? 'HIT' : 'MISS' },
-        { text: 'FILE.SELECTOR: READY', result: 'READY' },
-        { text: `IMAGE.BUFFER: ${hasWallpaper ? 'SYNCHRONIZING' : 'AWAITING FILE'}`, result: hasWallpaper ? 'RUN' : 'IDLE' },
-        { text: `TEXTURE.DECODER: ${hasWallpaper ? 'ONLINE' : 'STANDBY'}`, result: hasWallpaper ? 'OK' : 'IDLE' },
-        { text: `VISUAL.LAYER: ${hasWallpaper ? 'MATERIALIZING' : 'AWAITING IMAGE'}`, result: hasWallpaper ? 'RUN' : 'IDLE', pause: 0.12 },
-        { text: 'ENVIRONMENT: STABLE', result: 'OK' },
-        { text: 'COMPOSITOR: LOCKED', result: 'OK' },
-        { text: 'DISPLAY.SYNC: COMPLETE', result: 'READY' },
-        { text: 'INPUT.CONSOLE: ACTIVE', result: 'READY' },
-      ],
-    },
+    { id: '01', title: 'CONNECTION', messages: [{ text: 'ELUCIDATOR.LINK: ESTABLISHED', result: 'LINKED' }, { text: 'INITIALISING ELUCIDATOR', result: 'ACTIVE', pause: .16 }] },
+    { id: '02', title: 'COMPILATION', messages: [{ text: 'DISPLAY: LINKED', result: 'READY' }, { text: 'THEME PROFILE: LOADED', result: 'READY' }, { text: `WALLPAPER: ${hasWallpaper ? 'DECODED' : 'AWAITING SOURCE'}`, result: hasWallpaper ? 'READY' : 'IDLE', pause: .16 }] },
+    { id: '03', title: 'INTERFACE ASSEMBLY', messages: [{ text: 'INTERFACE RAILS: ALIGNED', result: 'READY' }, { text: 'SYSTEM BUS: STABLE', result: 'READY' }] },
   ]
 
   let cursor = 0.12
@@ -207,7 +166,7 @@ function createBootTimeline(hasWallpaper: boolean): BootTimeline {
     const start = cursor
     cursor += PHASE_PAUSE
     const messages = phase.messages.map((message) => {
-      const duration = Math.max(0.13, message.text.length / TYPE_RATE)
+      const duration = Math.max(.24, message.text.length / TYPE_RATE)
       const timedMessage = { ...message, start: cursor, duration, end: cursor + duration }
       cursor = timedMessage.end + LINE_GAP + (message.pause ?? 0)
       return timedMessage
@@ -1617,7 +1576,7 @@ function App() {
         }
       }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS TEST · REPLAY THE SYSTEM BOOT SEQUENCE', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       activateTheme('dragon', 'night-fury-stealth')
@@ -1873,6 +1832,14 @@ function App() {
         ? ['AUDIO LINK // NOW PLAYING', `TRACK .................. ${nowPlaying.title.toUpperCase()}`, `ARTIST ................. ${nowPlaying.artist.toUpperCase()}`, `ALBUM .................. ${nowPlaying.album.toUpperCase()}`, 'PLAYBACK CONTROLS ...... NOT EXPOSED BY LIVELY']
         : ['AUDIO LINK // MEDIA SESSION', `STATUS ................. ${audioStatus}`, nowPlayingStatus === 'browser' ? 'LOAD THIS WALLPAPER IN LIVELY TO CONNECT.' : 'TRACK INFO APPEARS WHEN A SUPPORTED PLAYER IS ACTIVE.', 'PLAYBACK CONTROLS ...... NOT EXPOSED BY LIVELY'])
       setStatus(`AUDIO LINK · ${audioStatus}`)
+    } else if (domain === 'test' && args.length === 1) {
+      setBootElapsed(0)
+      setRevealComplete(false)
+      setReadyMessage(false)
+      setBooting(true)
+      setBootToken((token) => token + 1)
+      report(['SYSTEM BOOT TEST', 'REPLAYING CONNECTION / COMPILATION / ASSEMBLY.', wallpaperUrl ? 'WALLPAPER REVEAL WILL FOLLOW READINESS.' : 'NO WALLPAPER ACTIVE · SYSTEM-ONLY REVEAL.'])
+      setStatus('SYSTEM BOOT TEST STARTED')
     } else if (domain === 'standby' && args.length === 1) {
       report(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
       setStatus('MAINFRAME STANDBY · READY')
@@ -2513,7 +2480,8 @@ function App() {
         <section className={`boot-sequence${booting ? '' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
           <div className="boot-scan" aria-hidden="true" />
           <div className="boot-log">
-            <p className="boot-prompt">&gt; SYS<span className="boot-cursor">_</span></p>
+            <div className="boot-assembly" aria-hidden="true"><i /><i /><i /><i /></div>
+            <p className="boot-prompt">ELUCIDATOR // SYSTEM LINK<span className="boot-cursor">_</span></p>
             <div className="boot-progress-row">
               <span>BOOT.PROGRESS</span>
               <span className="boot-progress-track" role="progressbar" aria-label="Boot progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent}>
@@ -2527,11 +2495,10 @@ function App() {
                 <p className="boot-phase-title"><span>PHASE {phase.id}</span>{phase.title}</p>
                 {phase.messages.map((message) => {
                   if (bootElapsed < message.start) return null
-                  const count = Math.min(message.text.length, Math.floor((bootElapsed - message.start) * TYPE_RATE))
-                  const complete = count >= message.text.length
+                  const complete = bootElapsed >= message.end
                   return (
-                    <p className="boot-line" key={message.text}>
-                      <span>{message.text.slice(0, count)}</span>
+                    <p className={`boot-line${complete ? ' is-complete' : ' is-active'}`} key={message.text}>
+                      <span>{message.text}</span>
                       {!complete && <span className="line-cursor" aria-hidden="true">▌</span>}
                       {complete && <span className="line-result">[ {message.result} ]</span>}
                     </p>
