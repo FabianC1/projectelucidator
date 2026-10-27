@@ -3,8 +3,12 @@ import * as THREE from 'three'
 import { gsap } from 'gsap'
 import './BootSequence.css'
 
+type TimelineWindow = Window & { __elucidatorBootTimeline?: gsap.core.Timeline }
+const leftModules = ['INIT_DISPLAY_DRV', 'LOAD_THEME_CORE', 'PARSE_WALLPAPER']
+const rightModules = ['RESOLVE_ASSETS', 'BUILD_SCENE_GRAPH', 'SYNC_DISPLAY_LINK']
+
 export function BootSequence({ active, short, onReveal }: { active: boolean; short: boolean; onReveal: () => void }) {
-  const mount = useRef<HTMLDivElement>(null)
+  const mount = useRef<HTMLElement>(null)
   const revealRef = useRef(onReveal)
   useEffect(() => { revealRef.current = onReveal }, [onReveal])
   useEffect(() => {
@@ -12,21 +16,39 @@ export function BootSequence({ active, short, onReveal }: { active: boolean; sho
     if (!host || !active || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (active) revealRef.current(); return }
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); host.appendChild(renderer.domElement)
-    const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(48, 1, .1, 80)
-    camera.position.z = 13
+    const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(48, 1, .1, 90); camera.position.z = 13
     const group = new THREE.Group(); scene.add(group)
-    const material = new THREE.LineBasicMaterial({ color: 0x65dfff, transparent: true, opacity: 0 })
-    const panels: THREE.Mesh[] = []
-    const depth = Array.from({ length: 8 }, (_, index) => -index * 4.2)
-    for (const z of depth) { const geo = new THREE.EdgesGeometry(new THREE.BoxGeometry(7.2, 4.4, .01)); const frame = new THREE.LineSegments(geo, material.clone()); frame.position.z = z; group.add(frame); for (const side of [-1, 1]) { const panel = new THREE.Mesh(new THREE.PlaneGeometry(3.1, 2.9), new THREE.MeshBasicMaterial({ color: 0x2277aa, transparent: true, opacity: 0, side: THREE.DoubleSide })); panel.position.set(side * 4.35, 0, z); panel.rotation.y = side * Math.PI / 2; panels.push(panel); group.add(panel) } }
-    const railVertices: number[] = []; for (let i = 0; i < depth.length - 1; i++) for (const [x, y] of [[-3.6, -2.2], [-3.6, 2.2], [3.6, -2.2], [3.6, 2.2]]) railVertices.push(x, y, depth[i], x, y, depth[i + 1]); const rails = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(railVertices, 3)), material.clone()); group.add(rails)
-    const floorVertices: number[] = []; for (const z of depth) { floorVertices.push(-3.6, -2.2, z, 3.6, -2.2, z, -3.6, 2.2, z, 3.6, 2.2, z) } const floor = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(floorVertices, 3)), material.clone()); group.add(floor)
+    const lineMaterial = () => new THREE.LineBasicMaterial({ color: 0x65dfff, transparent: true, opacity: 0 })
+    const frames: THREE.LineSegments[] = []; const panels: THREE.Mesh[] = []; const depth = Array.from({ length: 8 }, (_, i) => -i * 4.2)
+    depth.forEach(z => {
+      const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(7.2, 4.4, .01)), lineMaterial()); frame.position.z = z; frames.push(frame); group.add(frame)
+      ;[-1, 1].forEach(side => { const panel = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshBasicMaterial({ color: 0x2277aa, transparent: true, opacity: 0, side: THREE.DoubleSide })); panel.position.set(side * 4.35, 0, z); panel.rotation.y = side * Math.PI / 2; panels.push(panel); group.add(panel) })
+    })
+    const railPoints: number[] = []
+    for (let i = 0; i < depth.length - 1; i++) for (const [x, y] of [[-3.6, -2.2], [-3.6, 2.2], [3.6, -2.2], [3.6, 2.2]]) railPoints.push(x, y, depth[i], x, y, depth[i + 1])
+    const rails = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(railPoints, 3)), lineMaterial()); group.add(rails)
+    const detailPoints: number[] = []; depth.slice(1).forEach(z => detailPoints.push(-2.4, -2.05, z, -.7, -2.05, z, .7, -2.05, z, 2.4, -2.05, z, -2.4, 2.05, z, -.7, 2.05, z, .7, 2.05, z, 2.4, 2.05, z))
+    const details = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(detailPoints, 3)), lineMaterial()); group.add(details)
+    const pulses: THREE.Line[] = []
+    for (let i = 0; i < 6; i++) { const y = i % 2 ? -2.2 : 2.2; const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3.6, y, 0), new THREE.Vector3(-3.6, y, -1.35)]), new THREE.LineBasicMaterial({ color: 0xb9f5ff, transparent: true, opacity: 0 })); pulse.position.z = -29; pulses.push(pulse); group.add(pulse) }
     const resize = () => { const w = host.clientWidth, h = host.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize)
-    let raf = 0; const draw = () => { renderer.render(scene, camera); raf = requestAnimationFrame(draw) }; draw()
-    const lines = group.children.filter((child): child is THREE.LineSegments => child instanceof THREE.LineSegments)
-    const shutters = host.querySelectorAll('.boot-shutters i'); const status = host.querySelector('.boot-status-columns'); const title = host.querySelector('.boot-assemble')
-    const tl = gsap.timeline(); tl.to(host.querySelector('.boot-connect'), { autoAlpha: 1, duration: .45 }).to(lines.map(x => x.material), { opacity: .72, duration: short ? .8 : 1.8, stagger: -.1 }, .3).to(panels.map(x => x.material), { opacity: .09, duration: .9, stagger: .04 }, .8).to(status, { autoAlpha: 1, duration: .4 }, .9).to(group.position, { z: 7, duration: short ? 1.5 : 3, ease: 'power2.inOut' }, short ? .8 : 2).to(panels.map(panel => panel.position), { x: (index: number) => panels[index].position.x * 1.35, duration: short ? 1.2 : 2.5, ease: 'power2.inOut' }, short ? .9 : 2.1).to(host.querySelector('.boot-connect'), { autoAlpha: 0, duration: .25 }, short ? 1.25 : 3.1).to(title, { autoAlpha: 1, duration: .5 }, short ? 1.35 : 3.2).call(() => revealRef.current(), [], short ? 1.9 : 5.1).to(shutters, { scale: 0, duration: .85, ease: 'power3.inOut' }, short ? 1.9 : 5.1).to(group.position, { z: 14, duration: .55, ease: 'power2.in' }, short ? 2.25 : 5.55).to([...lines.map(x => x.material), ...panels.map(x => x.material)], { opacity: 0, duration: .45 }, short ? 2.25 : 5.55).to([title, status], { autoAlpha: 0, duration: .45 }, short ? 2.25 : 5.55).to(host, { autoAlpha: 0, duration: .25 }, short ? 2.7 : 6.05)
-    return () => { tl.kill(); cancelAnimationFrame(raf); removeEventListener('resize', resize); group.traverse((object) => { const mesh = object as THREE.Mesh; mesh.geometry?.dispose(); const material = mesh.material; if (Array.isArray(material)) material.forEach((item) => item.dispose()); else material?.dispose() }); renderer.dispose(); renderer.domElement.remove() }
+    let running = true; let raf = 0; const draw = () => { renderer.render(scene, camera); if (running) raf = requestAnimationFrame(draw) }; draw()
+    const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!
+    const connect = get<HTMLElement>('.boot-connect'), compile = get<HTMLElement>('.boot-status-columns'), assemble = get<HTMLElement>('.boot-assemble'), titleRail = get<HTMLElement>('.boot-title-rail')
+    const shutters = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const moduleLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]
+    const duration = short ? 1.5 : 3; const tl = gsap.timeline(); (window as TimelineWindow).__elucidatorBootTimeline = tl
+    tl.to(connect, { autoAlpha: 1, duration: .45 })
+      .to(frames.slice().reverse().map(frame => frame.material), { opacity: .72, duration: short ? .8 : 1.6, stagger: .12 }, .35)
+      .to(rails.material, { opacity: .52, duration: .55 }, short ? .5 : 1.35).to(details.material, { opacity: .26, duration: .5 }, short ? .7 : 1.72)
+      .to(panels.map(panel => panel.material), { opacity: .09, duration: .7, stagger: .03 }, short ? .7 : 1.8).to(compile, { autoAlpha: 1, duration: .3 }, short ? .65 : 1.5).to(moduleLines, { autoAlpha: 1, duration: .18, stagger: .16 }, short ? .7 : 1.72)
+      .to(moduleLines[0], { className: '+=is-complete' }, short ? .95 : 2.05).to(moduleLines[1], { className: '+=is-active' }, short ? .98 : 2.1)
+      .to(group.position, { z: 7, duration, ease: 'power2.inOut' }, short ? .82 : 1.88).to(panels.map(panel => panel.position), { x: (i: number) => panels[i].position.x * 1.35, duration: duration * .82, ease: 'power2.inOut' }, short ? .9 : 2.1)
+    pulses.forEach((pulse, i) => { const at = (short ? .9 : 2.05) + i * (short ? .14 : .24); tl.set(pulse.material, { opacity: .95 }, at).to(pulse.position, { z: 8, duration: short ? .75 : 1.25, ease: 'none' }, at).set(pulse.material, { opacity: 0 }) })
+    tl.to(connect, { autoAlpha: 0, duration: .25 }, short ? 1.2 : 3.3).to(moduleLines, { className: '+=is-complete' }, short ? 1.25 : 3.4).to(assemble, { autoAlpha: 1, duration: .45 }, short ? 1.32 : 3.55).to(titleRail, { scaleX: 1, duration: .6, ease: 'power2.out' }, short ? 1.35 : 3.6)
+      .to(shutters, { '--open': '1', duration: .9, ease: 'power3.inOut' }, short ? 1.9 : 5.05).call(() => revealRef.current(), [], short ? 2.82 : 5.95)
+      .to(group.position, { z: 14, duration: .5, ease: 'power2.in' }, short ? 2.45 : 5.6).to([frames.map(frame => frame.material), rails.material, details.material, panels.map(panel => panel.material)].flat(), { opacity: 0, duration: .42 }, short ? 2.42 : 5.58).to([assemble, compile, titleRail], { autoAlpha: 0, duration: .35 }, short ? 2.45 : 5.65).to(host, { autoAlpha: 0, duration: .22, onComplete: () => { running = false; cancelAnimationFrame(raf); renderer.render(scene, camera) } }, short ? 2.85 : 6.08)
+    return () => { tl.kill(); running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; group.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); renderer.dispose(); renderer.domElement.remove() }
   }, [active, short])
-  return <section ref={mount} className="boot-scene" aria-hidden="true"><div className="boot-shutters"><i /><i /><i /><i /></div><div className="boot-status-columns"><span>DISPLAY // LINKED</span><span>THEME // LOADED</span><span>WALLPAPER // READY</span></div><div className="boot-connect">ELUCIDATOR<small>ESTABLISHING DISPLAY LINK</small></div><div className="boot-assemble">ELUCIDATOR<small>SYSTEM SYNCHRONISED</small></div><div className="boot-reveal">SYSTEM READY</div></section>
+  const seek = (seconds: number) => (window as TimelineWindow).__elucidatorBootTimeline?.pause().seek(seconds)
+  return <><section ref={mount} className="boot-scene" aria-hidden="true"><div className="boot-shutters"><i className="top" /><i className="right" /><i className="bottom" /><i className="left" /><b /><b /><b /><b /></div><div className="boot-status-columns"><div>{leftModules.map((line, i) => <span className="boot-module" key={line}>› {line} <em>{i === 2 ? 'BUFFERED' : 'OK'}</em></span>)}</div><div>{rightModules.map(line => <span className="boot-module" key={line}>› {line} <em>OK</em></span>)}</div></div><div className="boot-connect">ELUCIDATOR<small>ESTABLISHING DISPLAY LINK</small></div><div className="boot-assemble">ELUCIDATOR<small>SYSTEM SYNCHRONISED</small></div><div className="boot-title-rail"><i /><i /><i /><i /><i /><i /><i /></div></section>{import.meta.env.DEV && <div className="boot-debug" aria-label="Boot timeline preview"><button onClick={() => seek(0)}>Connect</button><button onClick={() => seek(short ? .85 : 1.8)}>Compile</button><button onClick={() => seek(short ? 1.5 : 3.7)}>Assemble</button><button onClick={() => seek(short ? 2 : 5.15)}>Reveal</button></div>}</>
 }
