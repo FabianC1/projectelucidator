@@ -1,11 +1,22 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import * as THREE from 'three'
 import { gsap } from 'gsap'
 import './BootSequence.css'
 
 type TimelineWindow = Window & { __elucidatorBootTimeline?: gsap.core.Timeline }
-const leftModules = ['INIT_DISPLAY_DRV', 'LOAD_THEME_CORE', 'PARSE_WALLPAPER']
-const rightModules = ['RESOLVE_ASSETS', 'BUILD_SCENE_GRAPH', 'SYNC_DISPLAY_LINK']
+type DiagnosticLine = { label: string; value: string }
+const leftModules: DiagnosticLine[] = [
+  { label: 'SYS_CORE', value: 'INITIALISING' }, { label: 'DISPLAY_DRIVER', value: 'ONLINE' },
+  { label: 'MEMORY_BUFFER', value: 'ALLOCATED' }, { label: 'THEME_ENGINE', value: 'LOADED' },
+  { label: 'WALLPAPER_DECODER', value: 'BUFFERED' }, { label: 'RENDER_PIPELINE', value: 'ACTIVE' },
+  { label: 'MODULES', value: '08 / 08' }, { label: 'SYSTEM_INTEGRITY', value: 'VERIFIED' },
+]
+const rightModules: DiagnosticLine[] = [
+  { label: 'SCENE_GRAPH', value: 'BUILDING' }, { label: 'GEOMETRY_NODES', value: '128' },
+  { label: 'FRAME_ASSEMBLY', value: 'COMPLETE' }, { label: 'SHADER_PIPELINE', value: 'LINKED' },
+  { label: 'TEXTURE_BUFFER', value: 'BUFFERED' }, { label: 'DISPLAY_SYNC', value: 'ESTABLISHED' },
+  { label: 'ASSET_VALIDATION', value: 'PASSED' }, { label: 'REVEAL_SEQUENCE', value: 'ARMED' },
+]
 
 export function BootSequence({ active, short, wallpaperReady, onReveal }: { active: boolean; short: boolean; wallpaperReady: boolean; onReveal: () => void }) {
   const mount = useRef<HTMLElement>(null)
@@ -61,5 +72,6 @@ export function BootSequence({ active, short, wallpaperReady, onReveal }: { acti
     return () => { tl.kill(); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; group.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); renderer.dispose(); renderer.domElement.remove() }
   }, [active, short])
   const seek = (seconds: number) => (window as TimelineWindow).__elucidatorBootTimeline?.pause().seek(seconds)
-  return <><section ref={mount} className="boot-scene" aria-hidden="true"><div className="boot-shutters"><i className="top" /><i className="right" /><i className="bottom" /><i className="left" /><b /><b /><b /><b /></div><div className="boot-status-columns"><div>{leftModules.map((line, i) => <span className="boot-module" key={line}>› {line} <em>{i === 2 ? 'BUFFERED' : 'OK'}</em></span>)}</div><div>{rightModules.map(line => <span className="boot-module" key={line}>› {line} <em>OK</em></span>)}</div></div><div className="boot-connect">ELUCIDATOR<small>ESTABLISHING DISPLAY LINK</small></div><div className="boot-assemble">ELUCIDATOR<small>SYSTEM SYNCHRONISED</small></div><div className="boot-title-rail"><i /><i /><i /><i /><i /><i /><i /></div></section>{import.meta.env.DEV && <div className="boot-debug" aria-label="Boot timeline preview"><button onClick={() => seek(0)}>Connect</button><button onClick={() => seek(short ? .85 : 1.8)}>Compile</button><button onClick={() => seek(short ? 1.5 : 3.7)}>Assemble</button><button onClick={() => seek(short ? 2 : 5.15)}>Reveal</button></div>}</>
+  const renderPanel = (title: string, lines: DiagnosticLine[], side: 'left' | 'right') => <section className={`boot-diagnostic-panel boot-diagnostic-${side}`}><header><span>{title}</span><i>LINKED</i></header><div className="boot-diagnostic-rule" />{lines.map((line, index) => <p className="boot-module" key={line.label}><b>› {line.label}</b><em>{line.label === 'WALLPAPER_DECODER' || line.label === 'TEXTURE_BUFFER' ? wallpaperReady ? 'READY' : 'BUFFERED' : line.value}</em><i style={{ '--line-delay': index } as CSSProperties} /></p>)}<footer><span>MODULES</span><i /><b>{side === 'left' ? '08 / 08' : 'SYNC // 01'}</b></footer></section>
+  return <><section ref={mount} className="boot-scene" aria-hidden="true"><div className="boot-shutters"><i className="top" /><i className="right" /><i className="bottom" /><i className="left" /><b /><b /><b /><b /></div><div className="boot-status-columns">{renderPanel('CORE MODULES', leftModules, 'left')}{renderPanel('SYSTEM LAYERS', rightModules, 'right')}</div><div className="boot-connect">ELUCIDATOR<small>ESTABLISHING DISPLAY LINK</small></div><div className="boot-assemble">ELUCIDATOR<small>SYSTEM SYNCHRONISED</small></div><div className="boot-title-rail"><i /><i /><i /><i /><i /><i /><i /></div></section>{import.meta.env.DEV && <div className="boot-debug" aria-label="Boot timeline preview"><button onClick={() => seek(0)}>Connect</button><button onClick={() => seek(short ? .85 : 1.8)}>Compile</button><button onClick={() => seek(short ? 1.5 : 3.7)}>Assemble</button><button onClick={() => seek(short ? 2 : 5.15)}>Reveal</button></div>}</>
 }
