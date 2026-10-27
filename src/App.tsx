@@ -435,11 +435,14 @@ function hardwareStatusLabel(status: HardwareFeedStatus) {
 }
 
 function DiagnosticMeter({ label, value, percent, history, detail }: { label: string; value: string; percent: number | null; history: number[]; detail?: string }) {
-  const points = history.length > 1 ? history.map((point, index) => `${(index / (history.length - 1)) * 100},${100 - point}`).join(' ') : ''
+  const samples = history.filter((point) => Number.isFinite(point)).map((point) => Math.max(0, Math.min(100, point)))
+  const points = samples.length > 1 ? samples.map((point, index) => `${(index / (samples.length - 1)) * 100},${100 - point}`).join(' ') : ''
+  const area = points ? `M0 100 L${points.replaceAll(',', ' ').replaceAll(' ', ' ')} L100 100 Z` : ''
+  const gradientId = `meter-area-${label.replace(/[^a-z0-9]/gi, '').toLowerCase()}`
   return <div className={`diagnostic-meter${percent === null ? ' is-unavailable' : ''}`}>
     <div className="diagnostic-meter-label"><b>{label}</b><strong>{value}</strong></div>
     <div className="diagnostic-meter-track" style={{ '--meter-value': `${percent ?? 0}%` } as CSSProperties}><i /></div>
-    {points ? <svg className="diagnostic-meter-history" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points={points} /></svg> : <span className="diagnostic-meter-history empty">NO SAMPLE HISTORY</span>}
+    {points ? <svg className="diagnostic-meter-history" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="currentColor" stopOpacity=".28" /><stop offset="1" stopColor="currentColor" stopOpacity="0" /></linearGradient></defs><path className="diagnostic-meter-area" d={area} fill={`url(#${gradientId})`} /><polyline points={points} /></svg> : <span className="diagnostic-meter-history empty">NO SAMPLE HISTORY</span>}
     {detail && <small>{detail}</small>}
   </div>
 }
@@ -2479,6 +2482,12 @@ function App() {
       {ready && (
         <section className={`boot-sequence${booting ? '' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
           <div className="boot-scan" aria-hidden="true" />
+          <svg className="boot-aperture" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+            <g className="boot-tunnel-rails"><path d="M110 90H890L760 200H240Z M165 145H835L710 245H290Z M225 200H775L660 290H340Z M285 255H715L610 335H390Z" /><path d="M110 510H890L760 400H240Z M165 455H835L710 355H290Z M225 400H775L660 310H340Z" /></g>
+            <path className="boot-aperture-brackets" d="M455 270h-24v24M545 270h24v24M455 330h-24v-24M545 330h24v-24" />
+            <path className="boot-aperture-axis" d="M60 300H940M500 60V540" />
+          </svg>
+          <div className="boot-core" aria-hidden="true"><strong>ELUCIDATOR</strong><span>SYSTEM SYNCHRONISATION</span></div>
           <div className="boot-log">
             <div className="boot-assembly" aria-hidden="true"><i /><i /><i /><i /></div>
             <p className="boot-prompt">ELUCIDATOR // SYSTEM LINK<span className="boot-cursor">_</span></p>
@@ -2564,9 +2573,9 @@ function App() {
               </div>}
               {theme === 'demon-mode' && <img className="demon-clock-gem" src="./assets/emblems/demon-seal-gem-trimmed.png" alt="" aria-hidden="true" />}
               <div className="clock-widget-copy">
-                <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, theme === 'tokyo-ghoul' || theme === 'grimoire' || theme === 'demon-mode' ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } : theme === 'sao' || theme === 'dragon' ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{(theme === 'sao' || theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon' || theme === 'grimoire') && <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>}</strong>
+                <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, theme === 'tokyo-ghoul' || theme === 'grimoire' || theme === 'demon-mode' || theme === 'limitless' ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } : theme === 'sao' || theme === 'dragon' ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{(theme === 'sao' || theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon' || theme === 'grimoire' || theme === 'limitless') && <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>}</strong>
                 <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
-                <small>{theme === 'tokyo-ghoul' || theme === 'grimoire' || theme === 'demon-mode' ? clockZone.toUpperCase() : `LOCAL CHRONOMETER · ${clockZone.toUpperCase()}`}</small>
+                <small>{theme === 'tokyo-ghoul' || theme === 'grimoire' || theme === 'demon-mode' || theme === 'limitless' ? clockZone.toUpperCase() : `LOCAL CHRONOMETER · ${clockZone.toUpperCase()}`}</small>
               </div>
             </div>
           </article>
@@ -2620,7 +2629,7 @@ function App() {
             <p className="anime-status-state">{animeStatus.state}</p>
             <div className="anime-signal" aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <i key={index} />)}</div>
             <p className="anime-status-metric"><span>{animeStatus.metric}</span><b>{animeStatus.value}</b></p></>}
-            <label className="widget-brightness-control">BRIGHTNESS <input type="range" min="0" max="100" value={brightnessLevel} disabled={!brightnessToken || !brightnessHelperOnline} onChange={(event) => { const value = Number(event.target.value); setBrightnessLevel(value); void changeBrightness(brightnessToken, value, null) }} /><output>{brightnessLevel}%</output></label>
+            <label className="widget-brightness-control" style={{ '--brightness-value': brightnessLevel } as CSSProperties}>BRIGHTNESS <input type="range" min="0" max="100" value={brightnessLevel} disabled={!brightnessToken || !brightnessHelperOnline} onChange={(event) => { const value = Number(event.target.value); setBrightnessLevel(value); void changeBrightness(brightnessToken, value, null) }} /><output>{brightnessLevel}%</output></label>
             <div className="effect-tile-grid" aria-label="Visual effects">{([{ id: 'off', label: 'Off', icon: '○' }, { id: 'haze', label: 'Haze', icon: '≋' }, { id: 'rain', label: 'Rain', icon: '⌇' }, { id: 'lightning', label: 'Lightning', icon: 'ϟ' }, { id: 'particles', label: 'Particles', icon: '✦' }, { id: 'vignette', label: 'Vignette', icon: '◉' }] as const).map((effect) => <button key={effect.id} className={visualTheme === effect.id ? 'is-active' : ''} onClick={() => activateVisualEffect(effect.id)} aria-pressed={visualTheme === effect.id}><span aria-hidden="true">{effect.icon}</span>{effect.label}</button>)}</div>
           </article>
         )}
