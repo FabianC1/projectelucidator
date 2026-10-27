@@ -2595,6 +2595,7 @@ function App() {
                 <span className="clock-hand clock-hand-second" />
                 <span className="clock-pin" />
               </div>}
+              {theme === 'demon-mode' && <img className="demon-clock-gem" src="./assets/emblems/demon-seal-gem-trimmed.png" alt="" aria-hidden="true" />}
               <div className="clock-widget-copy">
                 <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, theme === 'tokyo-ghoul' || theme === 'grimoire' || theme === 'demon-mode' ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } : theme === 'sao' || theme === 'dragon' ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{(theme === 'sao' || theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon' || theme === 'grimoire') && <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>}</strong>
                 <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
