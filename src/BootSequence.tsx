@@ -7,10 +7,20 @@ type TimelineWindow = Window & { __elucidatorBootTimeline?: gsap.core.Timeline }
 const leftModules = ['INIT_DISPLAY_DRV', 'LOAD_THEME_CORE', 'PARSE_WALLPAPER']
 const rightModules = ['RESOLVE_ASSETS', 'BUILD_SCENE_GRAPH', 'SYNC_DISPLAY_LINK']
 
-export function BootSequence({ active, short, onReveal }: { active: boolean; short: boolean; onReveal: () => void }) {
+export function BootSequence({ active, short, wallpaperReady, onReveal }: { active: boolean; short: boolean; wallpaperReady: boolean; onReveal: () => void }) {
   const mount = useRef<HTMLElement>(null)
   const revealRef = useRef(onReveal)
+  const wallpaperReadyRef = useRef(wallpaperReady)
+  const timelineRef = useRef<gsap.core.Timeline | null>(null)
+  const waitingForWallpaperRef = useRef(false)
   useEffect(() => { revealRef.current = onReveal }, [onReveal])
+  useEffect(() => {
+    wallpaperReadyRef.current = wallpaperReady
+    if (wallpaperReady && waitingForWallpaperRef.current) {
+      waitingForWallpaperRef.current = false
+      timelineRef.current?.play()
+    }
+  }, [wallpaperReady])
   useEffect(() => {
     const host = mount.current
     if (!host || !active || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (active) revealRef.current(); return }
@@ -36,7 +46,7 @@ export function BootSequence({ active, short, onReveal }: { active: boolean; sho
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!
     const connect = get<HTMLElement>('.boot-connect'), compile = get<HTMLElement>('.boot-status-columns'), assemble = get<HTMLElement>('.boot-assemble'), titleRail = get<HTMLElement>('.boot-title-rail')
     const shutters = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const moduleLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]
-    const duration = short ? 1.5 : 3; const tl = gsap.timeline(); (window as TimelineWindow).__elucidatorBootTimeline = tl
+    const duration = short ? 1.5 : 3; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl
     tl.to(connect, { autoAlpha: 1, duration: .45 })
       .to(frames.slice().reverse().map(frame => frame.material), { opacity: .72, duration: short ? .8 : 1.6, stagger: .12 }, .35)
       .to(rails.material, { opacity: .52, duration: .55 }, short ? .5 : 1.35).to(details.material, { opacity: .26, duration: .5 }, short ? .7 : 1.72)
@@ -45,9 +55,10 @@ export function BootSequence({ active, short, onReveal }: { active: boolean; sho
       .to(group.position, { z: 7, duration, ease: 'power2.inOut' }, short ? .82 : 1.88).to(panels.map(panel => panel.position), { x: (i: number) => panels[i].position.x * 1.35, duration: duration * .82, ease: 'power2.inOut' }, short ? .9 : 2.1)
     pulses.forEach((pulse, i) => { const at = (short ? .9 : 2.05) + i * (short ? .14 : .24); tl.set(pulse.material, { opacity: .95 }, at).to(pulse.position, { z: 8, duration: short ? .75 : 1.25, ease: 'none' }, at).set(pulse.material, { opacity: 0 }) })
     tl.to(connect, { autoAlpha: 0, duration: .25 }, short ? 1.2 : 3.3).to(moduleLines, { className: '+=is-complete' }, short ? 1.25 : 3.4).to(assemble, { autoAlpha: 1, duration: .45 }, short ? 1.32 : 3.55).to(titleRail, { scaleX: 1, duration: .6, ease: 'power2.out' }, short ? 1.35 : 3.6)
+      .addPause(short ? 1.9 : 5.05, () => { if (!wallpaperReadyRef.current) waitingForWallpaperRef.current = true; else requestAnimationFrame(() => tl.play()) })
       .to(shutters, { '--open': '1', duration: .9, ease: 'power3.inOut' }, short ? 1.9 : 5.05).call(() => revealRef.current(), [], short ? 2.82 : 5.95)
       .to(group.position, { z: 14, duration: .5, ease: 'power2.in' }, short ? 2.45 : 5.6).to([frames.map(frame => frame.material), rails.material, details.material, panels.map(panel => panel.material)].flat(), { opacity: 0, duration: .42 }, short ? 2.42 : 5.58).to([assemble, compile, titleRail], { autoAlpha: 0, duration: .35 }, short ? 2.45 : 5.65).to(host, { autoAlpha: 0, duration: .22, onComplete: () => { running = false; cancelAnimationFrame(raf); renderer.render(scene, camera) } }, short ? 2.85 : 6.08)
-    return () => { tl.kill(); running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; group.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); renderer.dispose(); renderer.domElement.remove() }
+    return () => { tl.kill(); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; group.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); renderer.dispose(); renderer.domElement.remove() }
   }, [active, short])
   const seek = (seconds: number) => (window as TimelineWindow).__elucidatorBootTimeline?.pause().seek(seconds)
   return <><section ref={mount} className="boot-scene" aria-hidden="true"><div className="boot-shutters"><i className="top" /><i className="right" /><i className="bottom" /><i className="left" /><b /><b /><b /><b /></div><div className="boot-status-columns"><div>{leftModules.map((line, i) => <span className="boot-module" key={line}>› {line} <em>{i === 2 ? 'BUFFERED' : 'OK'}</em></span>)}</div><div>{rightModules.map(line => <span className="boot-module" key={line}>› {line} <em>OK</em></span>)}</div></div><div className="boot-connect">ELUCIDATOR<small>ESTABLISHING DISPLAY LINK</small></div><div className="boot-assemble">ELUCIDATOR<small>SYSTEM SYNCHRONISED</small></div><div className="boot-title-rail"><i /><i /><i /><i /><i /><i /><i /></div></section>{import.meta.env.DEV && <div className="boot-debug" aria-label="Boot timeline preview"><button onClick={() => seek(0)}>Connect</button><button onClick={() => seek(short ? .85 : 1.8)}>Compile</button><button onClick={() => seek(short ? 1.5 : 3.7)}>Assemble</button><button onClick={() => seek(short ? 2 : 5.15)}>Reveal</button></div>}</>

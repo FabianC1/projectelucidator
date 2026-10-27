@@ -50,9 +50,7 @@
 }
 
 .wallpaper-backdrop.is-booting {
-  clip-path: inset(0 0 100% 0);
   filter: brightness(0.72) saturate(0.9);
-  animation: decode-wallpaper var(--reveal-duration) cubic-bezier(0.18, 0.64, 0.38, 1) var(--reveal-delay) forwards;
 }
 
 .wallpaper-backdrop.is-ready {

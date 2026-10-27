@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { siGooglechrome, siNetflix, siRoblox, type SimpleIcon } from 'simple-icons'
 import { BootSequence } from './BootSequence'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
@@ -48,11 +48,8 @@ type CompactWidgetOffsets = Partial<Record<number, { x: number; y: number }>>
 type CompactThemeLayout = { theme: ThemeId; slot: number; panelPosition: CompactPanelPosition | null; widgetOffsets: CompactWidgetOffsets }
 type ConsoleFrame = { x: number; y: number; width: number; height: number; anchor?: 'top' | 'bottom' }
 type LayoutSnapshot = { consoleFrame: ConsoleFrame | null; widgetPositions: WidgetPositions; widgetLayout?: WidgetLayout }
-type BootMessage = { text: string; result: string; pause?: number }
-type BootPhase = { id: string; title: string; messages: BootMessage[] }
-type TimedMessage = BootMessage & { start: number; duration: number; end: number }
-type TimedPhase = { id: string; title: string; start: number; messages: TimedMessage[] }
-type BootTimeline = { phases: TimedPhase[]; duration: number }
+type LegacyBootMessage = { text: string; result: string; start: number; end: number }
+type LegacyBootTimeline = { phases: Array<{ id: string; title: string; start: number; messages: LegacyBootMessage[] }>; duration: number }
 type HardwareFeedStatus = 'waiting' | 'live' | 'browser' | 'stale' | 'invalid'
 type HardwareFeed = { status: HardwareFeedStatus; readings: LivelySystemInfo | null; updatedAt: number | null }
 type NowPlayingTrack = { title: string; artist: string; album: string; artwork: string | null; playbackType: string }
@@ -150,34 +147,7 @@ const WALLPAPER_FITS: WallpaperFit[] = ['cover', 'contain', 'stretch', 'span']
 const VISUAL_THEMES: VisualTheme[] = ['off', 'haze', 'rain', 'lightning', 'particles', 'vignette']
 const THEME_IDS = THEME_SYSTEMS.map((system) => system.id)
 const THEME_CHOICES = THEME_SYSTEMS
-const TYPE_RATE = 185
-const LINE_GAP = 0.035
-const PHASE_PAUSE = 0.2
 const SYSTEM_VERSION = '1.0.0'
-
-function createBootTimeline(hasWallpaper: boolean): BootTimeline {
-  const phases: BootPhase[] = [
-    { id: '01', title: 'CONNECTION', messages: [{ text: 'ELUCIDATOR.LINK: ESTABLISHED', result: 'LINKED' }, { text: 'INITIALISING ELUCIDATOR', result: 'ACTIVE', pause: .16 }] },
-    { id: '02', title: 'COMPILATION', messages: [{ text: 'DISPLAY: LINKED', result: 'READY' }, { text: 'THEME PROFILE: LOADED', result: 'READY' }, { text: `WALLPAPER: ${hasWallpaper ? 'DECODED' : 'AWAITING SOURCE'}`, result: hasWallpaper ? 'READY' : 'IDLE', pause: .16 }] },
-    { id: '03', title: 'INTERFACE ASSEMBLY', messages: [{ text: 'INTERFACE RAILS: ALIGNED', result: 'READY' }, { text: 'SYSTEM BUS: STABLE', result: 'READY' }] },
-  ]
-
-  let cursor = 0.12
-  const timedPhases = phases.map((phase) => {
-    const start = cursor
-    cursor += PHASE_PAUSE
-    const messages = phase.messages.map((message) => {
-      const duration = Math.max(.24, message.text.length / TYPE_RATE)
-      const timedMessage = { ...message, start: cursor, duration, end: cursor + duration }
-      cursor = timedMessage.end + LINE_GAP + (message.pause ?? 0)
-      return timedMessage
-    })
-    cursor += PHASE_PAUSE
-    return { id: phase.id, title: phase.title, start, messages }
-  })
-
-  return { phases: timedPhases, duration: cursor }
-}
 
 function openWallpaperDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -537,9 +507,8 @@ function App() {
   const [ready, setReady] = useState(false)
   const storageErrorsRef = useRef<Record<string, string>>({})
   const [booting, setBooting] = useState(true)
-  const [bootElapsed, setBootElapsed] = useState(0)
   const [revealComplete, setRevealComplete] = useState(false)
-  const [readyMessage, setReadyMessage] = useState(false)
+  const [wallpaperMediaReady, setWallpaperMediaReady] = useState(false)
   const [bootToken, setBootToken] = useState(0)
   const [command, setCommand] = useState('')
   const [brightnessToken, setBrightnessToken] = useState('')
@@ -631,10 +600,13 @@ function App() {
     else storageErrorsRef.current[area] = describeStorageError(error)
   }, [])
   const [consoleLines, setConsoleLines] = useState<string[]>(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
-  const timeline = createBootTimeline(Boolean(wallpaperUrl))
-  const progress = Math.min(1, bootElapsed / timeline.duration)
-  const progressPercent = Math.round(progress * 100)
   const handleBootReveal = useCallback(() => setRevealComplete(true), [])
+  // Retained solely for the unreachable legacy markup until that markup is removed in
+  // a dedicated cleanup; the cinematic component owns the actual boot timeline.
+  const timeline: LegacyBootTimeline = { phases: [], duration: 0 }
+  const bootElapsed = 0
+  const progressPercent = 0
+  const readyMessage = false
   const clockSeconds = clockNow.getSeconds()
   const clockMinutes = clockNow.getMinutes() + clockSeconds / 60
   const clockHours = (clockNow.getHours() % 12) + clockMinutes / 60
@@ -1097,33 +1069,25 @@ function App() {
     if (!ready) return
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     finishingBootRef.current = false
-    setReadyMessage(false)
-    setBootElapsed(0)
     setRevealComplete(!wallpaperUrl || reducedMotion)
 
     if (reducedMotion) {
       setBooting(false)
-      setBootElapsed(timeline.duration)
       return
     }
 
     setBooting(true)
-    const startedAt = performance.now()
-    const interval = window.setInterval(() => {
-      const elapsed = Math.min(timeline.duration, (performance.now() - startedAt) / 1000)
-      setBootElapsed(elapsed)
-      if (elapsed >= timeline.duration) window.clearInterval(interval)
-    }, 32)
-    return () => window.clearInterval(interval)
   }, [ready, bootToken, wallpaperUrl])
 
   useEffect(() => {
-    if (!ready || !booting || finishingBootRef.current || !revealComplete || bootElapsed < timeline.duration) return
+    if (!ready || !booting || finishingBootRef.current || !revealComplete || (wallpaperUrl && !wallpaperMediaReady)) return
     finishingBootRef.current = true
-    setReadyMessage(true)
-    const timer = window.setTimeout(() => setBooting(false), 1050)
-    return () => window.clearTimeout(timer)
-  }, [ready, booting, revealComplete, bootElapsed, timeline.duration])
+    setBooting(false)
+  }, [ready, booting, revealComplete, wallpaperMediaReady, wallpaperUrl])
+
+  useEffect(() => {
+    setWallpaperMediaReady(!wallpaperUrl)
+  }, [wallpaperUrl])
 
   const openFilePicker = () => {
     setStatus('SELECT A WALLPAPER FILE')
@@ -1181,9 +1145,7 @@ function App() {
       wallpaperStartedAt.current = Date.now()
       setWallpaperUrl(nextUrl)
       setWallpaperName(selection.name)
-      setBootElapsed(0)
       setRevealComplete(false)
-      setReadyMessage(false)
       setBooting(true)
       setStatus(`WALLPAPER ACTIVE · ${selection.name.toUpperCase()}`)
       setBootToken((token) => token + 1)
@@ -1757,9 +1719,7 @@ function App() {
           report(['WALLPAPER SCAN', 'NO ACTIVE WALLPAPER · USE SYS WALLPAPER SELECT'])
           setStatus('SCAN UNAVAILABLE · NO WALLPAPER SELECTED')
         } else {
-          setBootElapsed(0)
           setRevealComplete(false)
-          setReadyMessage(false)
           setBooting(true)
           setBootToken((token) => token + 1)
           report(['WALLPAPER SCAN', `TARGET ................. ${wallpaperName.toUpperCase()}`, 'IMAGE BUFFER ........... SYNCHRONIZING', 'VISUAL LAYER ........... MATERIALIZING'])
@@ -1838,9 +1798,7 @@ function App() {
         : ['AUDIO LINK // MEDIA SESSION', `STATUS ................. ${audioStatus}`, nowPlayingStatus === 'browser' ? 'LOAD THIS WALLPAPER IN LIVELY TO CONNECT.' : 'TRACK INFO APPEARS WHEN A SUPPORTED PLAYER IS ACTIVE.', 'PLAYBACK CONTROLS ...... NOT EXPOSED BY LIVELY'])
       setStatus(`AUDIO LINK · ${audioStatus}`)
     } else if (domain === 'test' && args.length === 1) {
-      setBootElapsed(0)
       setRevealComplete(false)
-      setReadyMessage(false)
       setBooting(true)
       setBootToken((token) => token + 1)
       report(['SYSTEM BOOT TEST', 'REPLAYING CONNECTION / COMPILATION / ASSEMBLY.', wallpaperUrl ? 'WALLPAPER REVEAL WILL FOLLOW READINESS.' : 'NO WALLPAPER ACTIVE · SYSTEM-ONLY REVEAL.'])
@@ -2291,9 +2249,7 @@ function App() {
       wallpaperStartedAt.current = Date.now()
       setWallpaperUrl(nextUrl)
       setWallpaperName(file.name)
-      setBootElapsed(0)
       setRevealComplete(false)
-      setReadyMessage(false)
       setBooting(true)
       setStatus(persisted
         ? `WALLPAPER STORED · ${file.name.toUpperCase()}`
@@ -2304,10 +2260,6 @@ function App() {
       URL.revokeObjectURL(nextUrl)
       setStatus(error instanceof Error ? error.message.toUpperCase() : 'WALLPAPER LOAD FAILED')
     }
-  }
-
-  const handleWallpaperAnimationEnd = (event: AnimationEvent<HTMLImageElement>) => {
-    if (event.animationName === 'decode-wallpaper') setRevealComplete(true)
   }
 
   const renderActivationScene = (activationKind: string, stageId: string) => (
@@ -2463,8 +2415,8 @@ function App() {
           className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready ? ' is-loading' : booting ? ' is-booting' : ' is-ready'}`}
           src={wallpaperUrl}
           alt={wallpaperName}
-          onAnimationEnd={handleWallpaperAnimationEnd}
-          onError={() => setRevealComplete(true)}
+          onLoad={() => setWallpaperMediaReady(true)}
+          onError={() => { setWallpaperMediaReady(true); setRevealComplete(true) }}
         />
       )}
 
@@ -2481,8 +2433,8 @@ function App() {
         </div>
       )}
 
-      {ready && booting && <BootSequence active={booting} short={bootToken > 1} onReveal={handleBootReveal} />}
-      {ready && (
+      {ready && booting && <BootSequence active={booting} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onReveal={handleBootReveal} />}
+      {false && ready && (
         <section className={`boot-sequence${booting ? ' boot-legacy-hidden' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
           <div className="boot-scan" aria-hidden="true" />
           <svg className="boot-aperture" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
