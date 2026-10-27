@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type AnimationEvent, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { siGooglechrome, siNetflix, siRoblox, type SimpleIcon } from 'simple-icons'
+import { BootSequence } from './BootSequence'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
 import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
@@ -2479,6 +2480,7 @@ function App() {
         </div>
       )}
 
+      {ready && booting && <BootSequence active={booting} short={bootToken > 1} onReveal={() => setRevealComplete(true)} />}
       {ready && (
         <section className={`boot-sequence${booting ? '' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
           <div className="boot-scan" aria-hidden="true" />
