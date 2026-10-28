@@ -3,7 +3,8 @@ import * as THREE from 'three'
 import { gsap } from 'gsap'
 import './BootSequence.css'
 
-type TimelineWindow = Window & { __elucidatorBootTimeline?: gsap.core.Timeline }
+type BootDiagnostics = { viewport: { width: number; height: number }; scene: DOMRect; hud: DOMRect; canvas: { width: number; height: number; clientWidth: number; clientHeight: number; pixelRatio: number }; assignedViewport?: CSSProperties; ancestors: Array<{ tag: string; className: string; position: string; transform: string; width: string; height: string }> }
+type TimelineWindow = Window & { __elucidatorBootTimeline?: gsap.core.Timeline; __elucidatorBootDiagnostics?: BootDiagnostics[] }
 type DiagnosticLine = { label: string; value: string }
 const coreModules: DiagnosticLine[] = [
   { label: 'SYS_CORE', value: 'INITIALISING' }, { label: 'DISPLAY_DRIVER', value: 'ONLINE' },
@@ -60,6 +61,18 @@ export function BootSequence({ active, short, wallpaperReady, onReveal, viewport
     let running = true; let raf = 0; const render = () => { renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render) }; render()
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!
     const connect = get<HTMLElement>('.boot-connect'), diagnostics = get<HTMLElement>('.boot-status-columns'), assemble = get<HTMLElement>('.boot-assemble'), titleRail = get<HTMLElement>('.boot-title-rail'), core = get<HTMLElement>('.boot-focal-core'), hud = get<HTMLElement>('.boot-hud')
+    if (import.meta.env.DEV) requestAnimationFrame(() => {
+      const ancestors: BootDiagnostics['ancestors'] = []
+      for (let node: HTMLElement | null = host.parentElement; node && ancestors.length < 4; node = node.parentElement) {
+        const style = getComputedStyle(node)
+        ancestors.push({ tag: node.tagName, className: node.className, position: style.position, transform: style.transform, width: style.width, height: style.height })
+      }
+      const canvas = renderer.domElement
+      const report: BootDiagnostics = { viewport: { width: window.innerWidth, height: window.innerHeight }, scene: host.getBoundingClientRect(), hud: hud.getBoundingClientRect(), canvas: { width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight, pixelRatio: renderer.getPixelRatio() }, assignedViewport: viewport, ancestors }
+      const browser = window as TimelineWindow
+      browser.__elucidatorBootDiagnostics = [...(browser.__elucidatorBootDiagnostics ?? []).filter((entry) => entry.scene.width !== report.scene.width || entry.scene.height !== report.scene.height), report]
+      console.info('[Elucidator boot diagnostics]', report)
+    })
     const shutterParts = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const diagnosticLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]
     const diagnosticPanels = [...host.querySelectorAll<HTMLElement>('.boot-diagnostic-panel')]
     const moveDuration = short ? 1.5 : 3; const revealAt = short ? 2.12 : 5.25; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl
