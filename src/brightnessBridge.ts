@@ -29,6 +29,7 @@ export type StartupSettings = {
   layoutPresets: Record<string, unknown>
   wallpaperFit: string
   animationMirror: boolean
+  sequenceMirror?: boolean
   visualTheme: string
   consoleFrame: { x: number; y: number; width: number; height: number; anchor?: string } | null
   widgetsCompact?: boolean

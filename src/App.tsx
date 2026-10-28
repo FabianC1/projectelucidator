@@ -54,6 +54,8 @@ type HardwareFeedStatus = 'waiting' | 'live' | 'browser' | 'stale' | 'invalid'
 type HardwareFeed = { status: HardwareFeedStatus; readings: LivelySystemInfo | null; updatedAt: number | null }
 type NowPlayingTrack = { title: string; artist: string; album: string; artwork: string | null; playbackType: string }
 type NowPlayingStatus = 'waiting' | 'browser' | 'none' | 'track' | 'sample' | 'invalid'
+type SequenceViewport = { left: number; top: number; width: number; height: number }
+type ScreenDetailsLike = { screens: Array<{ left: number; top: number; width: number; height: number }> }
 type QuickShortcut = { id: string; label: string; icon: string | SimpleIcon; target: string }
 
 const SAMPLE_HARDWARE_READINGS: LivelySystemInfo = {
@@ -142,7 +144,8 @@ const DEFAULT_THEME_PREF_KEY = 'project-elucidator-default-theme'
 const VISUAL_THEME_PREF_KEY = 'project-elucidator-visual-theme'
 const WALLPAPER_FIT_PREF_KEY = 'project-elucidator-wallpaper-fit'
 const ANIMATION_MIRROR_KEY = 'project-elucidator-animation-mirror'
-const STORAGE_PREF_KEYS = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, INTERFACE_SCALE_KEY, WIDGET_LAYOUT_KEY, WIDGET_COMPACT_KEY, CONSOLE_FRAME_KEY, LAYOUT_PRESETS_KEY, THEME_PREF_KEY, DEFAULT_THEME_PREF_KEY, VISUAL_THEME_PREF_KEY, WALLPAPER_FIT_PREF_KEY, ANIMATION_MIRROR_KEY] as const
+const SEQUENCE_MIRROR_KEY = 'project-elucidator-sequence-mirror'
+const STORAGE_PREF_KEYS = [WIDGET_PREF_KEY, WIDGET_POSITION_KEY, WIDGET_SCALE_KEY, INTERFACE_SCALE_KEY, WIDGET_LAYOUT_KEY, WIDGET_COMPACT_KEY, CONSOLE_FRAME_KEY, LAYOUT_PRESETS_KEY, THEME_PREF_KEY, DEFAULT_THEME_PREF_KEY, VISUAL_THEME_PREF_KEY, WALLPAPER_FIT_PREF_KEY, ANIMATION_MIRROR_KEY, SEQUENCE_MIRROR_KEY] as const
 const WALLPAPER_FITS: WallpaperFit[] = ['cover', 'contain', 'stretch', 'span']
 const VISUAL_THEMES: VisualTheme[] = ['off', 'haze', 'rain', 'lightning', 'particles', 'vignette']
 const THEME_IDS = THEME_SYSTEMS.map((system) => system.id)
@@ -383,8 +386,9 @@ async function saveWallpaper(selection: SavedWallpaper, addToLibrary = true) {
 function decodeImage(url: string) {
   return new Promise<void>((resolve, reject) => {
     const image = new Image()
-    image.onload = () => resolve()
-    image.onerror = () => reject(new Error('The selected file is not a readable image.'))
+    const timeout = window.setTimeout(() => reject(new Error('Wallpaper decoding timed out.')), 10000)
+    image.onload = () => { window.clearTimeout(timeout); resolve() }
+    image.onerror = () => { window.clearTimeout(timeout); reject(new Error('The selected file is not a readable image.')) }
     image.src = url
   })
 }
@@ -428,6 +432,30 @@ async function detectConnectedMonitorCount(token: string): Promise<number | null
   }
 }
 
+async function detectSequenceViewports(): Promise<SequenceViewport[] | null> {
+  const getScreenDetails = (window as Window & { getScreenDetails?: () => Promise<ScreenDetailsLike> }).getScreenDetails
+  if (!getScreenDetails) return null
+  try {
+    const details = await getScreenDetails()
+    if (details.screens.length !== 2) return null
+    const left = Math.min(...details.screens.map((screen) => screen.left))
+    const top = Math.min(...details.screens.map((screen) => screen.top))
+    const right = Math.max(...details.screens.map((screen) => screen.left + screen.width))
+    const bottom = Math.max(...details.screens.map((screen) => screen.top + screen.height))
+    if (!(right > left && bottom > top)) return null
+    const scaleX = window.innerWidth / (right - left)
+    const scaleY = window.innerHeight / (bottom - top)
+    return details.screens.map((screen) => ({
+      left: (screen.left - left) * scaleX,
+      top: (screen.top - top) * scaleY,
+      width: screen.width * scaleX,
+      height: screen.height * scaleY,
+    }))
+  } catch {
+    return null
+  }
+}
+
 const COMMAND_COMPLETIONS = [
   'admin sys config save',
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
@@ -437,7 +465,7 @@ const COMMAND_COMPLETIONS = [
   'sys wallpaper next', 'sys wallpaper previous', 'sys wallpaper scan', 'sys hardware', 'sys time', 'sys audio',
   'sys mode', 'sys mode normal', 'sys mode stealth', 'sys mode combat', 'sys mode idle', 'sys mode diagnostic',
   'sys session', 'sys anime',
-  'sys widgets', 'sys widgets all on', 'sys widgets all off', 'sys animation mirror', 'sys animation mirror on', 'sys animation mirror off', 'sys animation mirror status',
+  'sys widgets', 'sys widgets all on', 'sys widgets all off', 'sys animation mirror', 'sys animation mirror on', 'sys animation mirror off', 'sys animation mirror status', 'sys sequence mirror', 'sys sequence mirror on', 'sys sequence mirror off', 'sys sequence mirror status',
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
   'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys scale 1', 'sys compact on', 'sys compact off', 'sys compact httyd save 1', 'sys compact kagune save 1', 'sys widget reset', 'sys layout list', 'sys layout free', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
@@ -488,6 +516,7 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const objectUrlRef = useRef<string | null>(null)
   const finishingBootRef = useRef(false)
+  const wallpaperRequestRef = useRef(0)
   const sessionStartedAt = useRef(Date.now())
   const wallpaperStartedAt = useRef(Date.now())
   const commandHistoryRef = useRef<string[]>([])
@@ -528,6 +557,10 @@ function App() {
   const [animationMirror, setAnimationMirror] = useState<boolean>(() => {
     try { return localStorage.getItem(ANIMATION_MIRROR_KEY) === 'true' } catch (error) { startupStorageErrors['animation preference restore'] = describeStorageError(error); return false }
   })
+  const [sequenceMirror, setSequenceMirror] = useState<boolean>(() => {
+    try { return localStorage.getItem(SEQUENCE_MIRROR_KEY) === 'true' } catch (error) { startupStorageErrors['sequence preference restore'] = describeStorageError(error); return false }
+  })
+  const [sequenceViewports, setSequenceViewports] = useState<SequenceViewport[] | null>(null)
   const [connectedMonitorCount, setConnectedMonitorCount] = useState<number | null>(null)
   const [visualTheme, setVisualTheme] = useState<VisualTheme>(() => {
     try {
@@ -749,6 +782,7 @@ function App() {
           if (preferences.layoutPresets && typeof preferences.layoutPresets === 'object' && !Array.isArray(preferences.layoutPresets)) setLayoutPresets(preferences.layoutPresets as Record<string, LayoutSnapshot>)
           if (WALLPAPER_FITS.includes(preferences.wallpaperFit as WallpaperFit)) setWallpaperFit(preferences.wallpaperFit as WallpaperFit)
           if (typeof preferences.animationMirror === 'boolean') setAnimationMirror(preferences.animationMirror)
+          if (typeof preferences.sequenceMirror === 'boolean') setSequenceMirror(preferences.sequenceMirror)
           if (VISUAL_THEMES.includes(preferences.visualTheme as VisualTheme)) setVisualTheme(preferences.visualTheme as VisualTheme)
           const frame = preferences.consoleFrame
           if (frame && [frame.x, frame.y, frame.width, frame.height].every(Number.isFinite)) {
@@ -779,11 +813,13 @@ function App() {
           const url = URL.createObjectURL(startupWallpaper.blob)
           objectUrlRef.current = url
           wallpaperStartedAt.current = Date.now()
+          setWallpaperMediaReady(false)
           setWallpaperUrl(url)
           setWallpaperName(startupWallpaper.name)
           setStatus(`${durableWallpaper ? 'DURABLE DEFAULT' : savedDefault?.blob ? 'DEFAULT WALLPAPER' : 'WALLPAPER'} RESTORED · ${startupWallpaper.name.toUpperCase()}`)
         } else {
           wallpaperStartedAt.current = Date.now()
+          setWallpaperMediaReady(false)
           setWallpaperUrl(DEFAULT_WALLPAPER_URL)
           setWallpaperName(DEFAULT_WALLPAPER_NAME)
           setStatus('DEFAULT WALLPAPER LOADED · 3D RENDER')
@@ -792,6 +828,7 @@ function App() {
         if (!cancelled) {
           setStorageIssue('wallpaper restore', error)
           wallpaperStartedAt.current = Date.now()
+          setWallpaperMediaReady(false)
           setWallpaperUrl(DEFAULT_WALLPAPER_URL)
           setWallpaperName(DEFAULT_WALLPAPER_NAME)
         }
@@ -998,6 +1035,19 @@ function App() {
   }, [animationMirror, setStorageIssue, startupConfigHydrated])
 
   useEffect(() => {
+    if (!startupConfigHydrated) return
+    try { localStorage.setItem(SEQUENCE_MIRROR_KEY, String(sequenceMirror)); setStorageIssue('sequence preference write', null) }
+    catch (error) { setStorageIssue('sequence preference write', error) }
+  }, [sequenceMirror, setStorageIssue, startupConfigHydrated])
+
+  useEffect(() => {
+    if (!sequenceMirror) { setSequenceViewports(null); return }
+    let active = true
+    void detectSequenceViewports().then((viewports) => { if (active) setSequenceViewports(viewports) })
+    return () => { active = false }
+  }, [sequenceMirror])
+
+  useEffect(() => {
     let active = true
     if (!brightnessToken) {
       setConnectedMonitorCount(null)
@@ -1085,9 +1135,20 @@ function App() {
     setBooting(false)
   }, [ready, booting, revealComplete, wallpaperMediaReady, wallpaperUrl])
 
+  // A selected image is decoded before a boot starts. This recovery only runs
+  // when a lifecycle race prevents either the mounted image or the timeline
+  // from reporting completion; it keeps the console reachable on failure.
   useEffect(() => {
-    setWallpaperMediaReady(!wallpaperUrl)
-  }, [wallpaperUrl])
+    if (!ready || !booting) return
+    const request = wallpaperRequestRef.current
+    const timeout = window.setTimeout(() => {
+      if (request !== wallpaperRequestRef.current || finishingBootRef.current) return
+      setStatus('BOOT RECOVERY · REVEAL TIMEOUT')
+      setWallpaperMediaReady(true)
+      setRevealComplete(true)
+    }, 15000)
+    return () => window.clearTimeout(timeout)
+  }, [bootToken, booting, ready])
 
   const openFilePicker = () => {
     setStatus('SELECT A WALLPAPER FILE')
@@ -1143,6 +1204,10 @@ function App() {
       const previousUrl = objectUrlRef.current
       objectUrlRef.current = nextUrl
       wallpaperStartedAt.current = Date.now()
+      wallpaperRequestRef.current += 1
+      // Set this before mounting the keyed image. Doing it in a later effect
+      // can overwrite a synchronous cached-image load and deadlock the reveal.
+      setWallpaperMediaReady(false)
       setWallpaperUrl(nextUrl)
       setWallpaperName(selection.name)
       setRevealComplete(false)
@@ -1210,7 +1275,8 @@ function App() {
             compactThemeLayouts,
             layoutPresets,
             wallpaperFit,
-            animationMirror: true,
+            animationMirror,
+            sequenceMirror,
             visualTheme,
             consoleFrame,
           }
@@ -1223,14 +1289,12 @@ function App() {
             installIntoLively: true,
           })
           if (!saved.saved) throw new Error('HELPER DID NOT CONFIRM THE DURABLE CONFIGURATION SAVE')
-          // A durable startup preserves mirrored activation without another command.
-          setAnimationMirror(true)
           try { await writeDefaultWallpaper({ name: wallpaperName, blob }) }
           catch (error) { setStorageIssue('startup wallpaper browser cache write', error) }
           setDefaultWallpaperName(wallpaperName)
           setDefaultTheme(theme)
           setCredentialBootstrapAvailable(true)
-          const saveReport = ['STARTUP CONFIGURATION SAVED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WIDGET LAYOUT + SETTINGS ........ SAVED', 'ACTIVATION MIRROR ............... ON + SAVED']
+          const saveReport = ['STARTUP CONFIGURATION SAVED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WIDGET LAYOUT + SETTINGS ........ SAVED', `ACTIVATION MIRROR ............... ${animationMirror ? 'ON' : 'OFF'} + SAVED`, `SEQUENCE MIRROR ................. ${sequenceMirror ? 'ON' : 'OFF'} + SAVED`]
           saveReport.push(saved.installedProjectUpdated ? 'INSTALLED LIVELY PROJECT UPDATED' : 'INSTALLED LIVELY PROJECT UPDATE NOT REQUESTED')
           saveReport.push(saved.reloadRequested ? 'LIVELY RELOAD REQUEST ACCEPTED' : `LIVELY RELOAD NOT REQUESTED · ${(saved.reloadMessage ?? 'CHECK LIVELY INSTALLATION').toUpperCase()}`)
           report(saveReport)
@@ -1542,8 +1606,29 @@ function App() {
           setStatus(`ACTIVATION MIRROR · ${state}`)
         }
       }
+    } else if (domain === 'sequence' && action === 'mirror' && args.length <= 3 && (!args[2] || ['on', 'off', 'status'].includes(args[2]))) {
+      if (args[2] === 'off') {
+        setSequenceMirror(false)
+        setSequenceViewports(null)
+        report(['SEQUENCE MIRROR DISABLED', 'CINEMATIC BOOT WILL USE THE FULL LIVELY SPAN.'])
+        setStatus('SEQUENCE MIRROR DISABLED')
+      } else {
+        const viewports = await detectSequenceViewports()
+        if (viewports) setSequenceViewports(viewports)
+        if (args[2] === 'status') {
+          const state = !sequenceMirror ? 'DISABLED' : viewports ? 'READY · TWO DISPLAY RECTANGLES' : 'SAFE FALLBACK · DISPLAY GEOMETRY UNAVAILABLE'
+          report(['SEQUENCE MIRROR STATUS', `SETTING ................. ${sequenceMirror ? 'ON' : 'OFF'}`, `DISPLAY GEOMETRY ....... ${viewports ? 'TWO SCREENS RESOLVED' : 'UNAVAILABLE'}`, `MIRROR STATE ............ ${state}`])
+          setStatus(`SEQUENCE MIRROR · ${state}`)
+        } else {
+          const nextMirror = args[2] === 'on' ? true : !sequenceMirror
+          setSequenceMirror(nextMirror)
+          const state = !nextMirror ? 'DISABLED' : viewports ? 'READY · NEXT BOOT MIRRORS PER DISPLAY' : 'ARMED · FULL-SPAN FALLBACK UNTIL DISPLAY GEOMETRY IS AVAILABLE'
+          report(['SEQUENCE MIRROR', `SETTING ................. ${nextMirror ? 'ON' : 'OFF'}`, `DISPLAY GEOMETRY ....... ${viewports ? 'TWO SCREENS RESOLVED' : 'UNAVAILABLE'}`, `MIRROR STATE ............ ${state}`])
+          setStatus(`SEQUENCE MIRROR · ${state}`)
+        }
+      }
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS TEST · REPLAY THE SYSTEM BOOT SEQUENCE', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS TEST · REPLAY THE SYSTEM BOOT SEQUENCE', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS SEQUENCE MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       activateTheme('dragon', 'night-fury-stealth')
@@ -2247,6 +2332,8 @@ function App() {
       const previousUrl = objectUrlRef.current
       objectUrlRef.current = nextUrl
       wallpaperStartedAt.current = Date.now()
+      wallpaperRequestRef.current += 1
+      setWallpaperMediaReady(false)
       setWallpaperUrl(nextUrl)
       setWallpaperName(file.name)
       setRevealComplete(false)
@@ -2404,6 +2491,7 @@ function App() {
   )
 
   const shouldMirrorActivation = animationMirror && connectedMonitorCount === 2
+  const sequenceBootViewports = sequenceMirror && sequenceViewports?.length === 2 ? sequenceViewports : null
   const animationMirrorClass = shouldMirrorActivation ? ' activation-mirror-enabled' : ''
   const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
 
@@ -2433,7 +2521,9 @@ function App() {
         </div>
       )}
 
-      {ready && booting && <BootSequence active={booting} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onReveal={handleBootReveal} />}
+      {ready && booting && (sequenceBootViewports
+        ? sequenceBootViewports.map((viewport, index) => <BootSequence key={`${bootToken}-${index}`} active={booting} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onReveal={index === 0 ? handleBootReveal : () => undefined} debug={index === 0} viewport={{ left: viewport.left, top: viewport.top, width: viewport.width, height: viewport.height, right: 'auto', bottom: 'auto' }} />)
+        : <BootSequence key={bootToken} active={booting} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onReveal={handleBootReveal} />)}
       {false && ready && (
         <section className={`boot-sequence${booting ? ' boot-legacy-hidden' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
           <div className="boot-scan" aria-hidden="true" />
