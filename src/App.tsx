@@ -554,6 +554,7 @@ function App() {
   const storageErrorsRef = useRef<Record<string, string>>({})
   const [booting, setBooting] = useState(true)
   const [bootStage, setBootStage] = useState<'sequence' | 'standby'>('sequence')
+  const [standbyActive, setStandbyActive] = useState(false)
   const [revealComplete, setRevealComplete] = useState(false)
   const [wallpaperMediaReady, setWallpaperMediaReady] = useState(false)
   const [bootToken, setBootToken] = useState(0)
@@ -653,11 +654,12 @@ function App() {
   const [consoleLines, setConsoleLines] = useState<string[]>(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
   const handleBootStandby = useCallback(() => {
     setRevealComplete(true)
-    setBootStage('standby')
+    setStandbyActive(true)
   }, [])
   const handleBootActivate = useCallback(() => {
     finishingBootRef.current = true
     setBootStage('sequence')
+    setStandbyActive(false)
     setBooting(false)
   }, [])
   // Retained solely for the unreachable legacy markup until that markup is removed in
@@ -1146,6 +1148,7 @@ function App() {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     finishingBootRef.current = false
     setBootStage('sequence')
+    setStandbyActive(false)
     setRevealComplete(!wallpaperUrl || reducedMotion)
 
     if (reducedMotion) {
@@ -1157,7 +1160,7 @@ function App() {
   }, [ready, bootToken, wallpaperUrl])
 
   useEffect(() => {
-    if (!ready || !booting || bootStage === 'standby' || finishingBootRef.current || !revealComplete || (wallpaperUrl && !wallpaperMediaReady)) return
+    if (!ready || !booting || standbyActive || finishingBootRef.current || !revealComplete || (wallpaperUrl && !wallpaperMediaReady)) return
     finishingBootRef.current = true
     setBooting(false)
   }, [ready, booting, revealComplete, wallpaperMediaReady, wallpaperUrl])
@@ -1166,7 +1169,7 @@ function App() {
   // when a lifecycle race prevents either the mounted image or the timeline
   // from reporting completion; it keeps the console reachable on failure.
   useEffect(() => {
-    if (!ready || !booting || bootStage === 'standby') return
+    if (!ready || !booting || standbyActive) return
     const request = wallpaperRequestRef.current
     const timeout = window.setTimeout(() => {
       if (request !== wallpaperRequestRef.current || finishingBootRef.current) return
@@ -1175,7 +1178,7 @@ function App() {
       setRevealComplete(true)
     }, 15000)
     return () => window.clearTimeout(timeout)
-  }, [bootToken, booting, bootStage, ready])
+  }, [bootToken, booting, ready, standbyActive])
 
   const openFilePicker = () => {
     setStatus('SELECT A WALLPAPER FILE')
@@ -1912,6 +1915,7 @@ function App() {
     } else if (domain === 'test' && args.length === 1) {
       setRevealComplete(false)
       setBootStage('sequence')
+      setStandbyActive(false)
       setBooting(true)
       setBootToken((token) => token + 1)
       report(['SYSTEM BOOT TEST', 'REPLAYING CONNECTION / COMPILATION / ASSEMBLY.', wallpaperUrl ? 'WALLPAPER REVEAL WILL FOLLOW READINESS.' : 'NO WALLPAPER ACTIVE · SYSTEM-ONLY REVEAL.'])
@@ -1920,8 +1924,8 @@ function App() {
       finishingBootRef.current = false
       setRevealComplete(false)
       setBootStage('standby')
+      setStandbyActive(true)
       setBooting(true)
-      setBootToken((token) => token + 1)
       report(['REVEAL STANDBY', 'WALLPAPER LAYER ........... READY', 'PRESS ANY KEY OR MOVE MOUSE TO CONTINUE.'])
       setStatus('REVEAL STANDBY · AWAITING INPUT')
     } else if (domain === 'scale') {
@@ -2534,11 +2538,11 @@ function App() {
   const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${bootStage === 'standby' ? ' reveal-standby-active' : ''}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${standbyActive ? ' reveal-standby-active' : ''}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
       {wallpaperUrl && (
         <img
           key={bootToken}
-          className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready ? ' is-loading' : booting ? ' is-booting' : ' is-ready'}`}
+          className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready ? ' is-loading' : booting && !standbyActive ? ' is-booting' : ' is-ready'}`}
           src={wallpaperUrl}
           alt={wallpaperName}
           onLoad={() => setWallpaperMediaReady(true)}

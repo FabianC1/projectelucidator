@@ -58,6 +58,13 @@
   filter: none;
 }
 
+.wallpaper-experience.reveal-standby-active .system-widgets,
+.wallpaper-experience.reveal-standby-active .command-console,
+.wallpaper-experience.reveal-standby-active .special-effect {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .boot-sequence {
   position: absolute;
   z-index: 2;
