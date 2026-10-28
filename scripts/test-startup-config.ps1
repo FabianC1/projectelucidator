@@ -52,18 +52,18 @@ try {
 
   $imageBytes = [byte[]](0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0x01,0x02,0x03,0x04)
   $imageData = [Convert]::ToBase64String($imageBytes)
-  $settings = @{ enabledWidgets = @(1,3,5); widgetPositions = @{ '1' = @{ x = 12.5; y = 8 } }; widgetScales = @{ '1' = 1.25 }; widgetLayout = 'free'; layoutPresets = @{}; wallpaperFit = 'cover'; animationMirror = $true; visualTheme = 'off'; consoleFrame = $null }
+  $settings = @{ enabledWidgets = @(1,3,5); widgetPositions = @{ '1' = @{ x = 12.5; y = 8 } }; widgetScales = @{ '1' = 1.25 }; widgetLayout = 'free'; layoutPresets = @{}; wallpaperFit = 'cover'; animationMirror = $true; sequenceMirror = $true; visualTheme = 'off'; consoleFrame = $null }
   $requestBody = @{ wallpaperName = 'test-import.png'; wallpaperType = 'image/png'; wallpaperData = $imageData; theme = 'tokyo-ghoul'; settings = $settings; installIntoLively = $true } | ConvertTo-Json -Depth 10 -Compress
   $save = Invoke-RestMethod -Uri "http://127.0.0.1:$port/api/startup-config" -Method Post -Headers @{ Authorization = "Bearer $token" } -ContentType 'application/json' -Body $requestBody -TimeoutSec 10
   if (-not $save.saved) { throw 'Helper did not confirm durable save.' }
 
   $read = Invoke-RestMethod -Uri "http://127.0.0.1:$port/api/startup-config" -TimeoutSec 10
-  if ($read.configuration.theme -ne 'tokyo-ghoul' -or $read.configuration.wallpaperName -ne 'test-import.png' -or $read.configuration.wallpaperData -ne $imageData -or $read.configuration.settings.widgetPositions.'1'.x -ne 12.5) { throw 'Saved configuration did not round-trip.' }
+  if ($read.configuration.theme -ne 'tokyo-ghoul' -or $read.configuration.wallpaperName -ne 'test-import.png' -or $read.configuration.wallpaperData -ne $imageData -or $read.configuration.settings.widgetPositions.'1'.x -ne 12.5 -or -not $read.configuration.settings.sequenceMirror) { throw 'Saved configuration did not round-trip.' }
   if (($read | ConvertTo-Json -Depth 5 -Compress).Contains($token)) { throw 'Public configuration response exposed the helper credential.' }
   $manifest = Get-Content -LiteralPath (Join-Path $projectRoot 'elucidator-startup.json') -Raw | ConvertFrom-Json
   $installedImage = [IO.File]::ReadAllBytes((Join-Path $projectRoot $manifest.wallpaperFile))
   $bootstrap = Get-Content -LiteralPath (Join-Path $projectRoot 'elucidator-private-bootstrap.json') -Raw | ConvertFrom-Json
-  if ($manifest.theme -ne 'tokyo-ghoul' -or $manifest.settings.enabledWidgets.Count -ne 3 -or [Convert]::ToBase64String($installedImage) -ne $imageData -or $bootstrap.token -ne $token) { throw 'Installed startup files did not round-trip.' }
+  if ($manifest.theme -ne 'tokyo-ghoul' -or $manifest.settings.enabledWidgets.Count -ne 3 -or -not $manifest.settings.sequenceMirror -or [Convert]::ToBase64String($installedImage) -ne $imageData -or $bootstrap.token -ne $token) { throw 'Installed startup files did not round-trip.' }
   $acl = Get-Acl -LiteralPath (Join-Path $projectRoot 'elucidator-private-bootstrap.json')
   if ($acl.Access | Where-Object { $_.IdentityReference -match 'Everyone|Users|Authenticated Users' }) { throw 'Credential bootstrap ACL includes a broad user group.' }
   Write-Output 'PASS: authenticated config save updates the active project manifest, image and private bootstrap.'
@@ -72,7 +72,7 @@ try {
   Stop-TestHelper
   Start-TestHelper
   $afterRestart = Invoke-RestMethod -Uri "http://127.0.0.1:$port/api/startup-config" -TimeoutSec 10
-  if ($afterRestart.configuration.theme -ne 'tokyo-ghoul' -or $afterRestart.configuration.wallpaperData -ne $imageData -or $afterRestart.configuration.settings.widgetLayout -ne 'free') { throw 'Configuration did not survive helper restart.' }
+  if ($afterRestart.configuration.theme -ne 'tokyo-ghoul' -or $afterRestart.configuration.wallpaperData -ne $imageData -or $afterRestart.configuration.settings.widgetLayout -ne 'free' -or -not $afterRestart.configuration.settings.sequenceMirror) { throw 'Configuration did not survive helper restart.' }
   $bootstrapAfterRestart = Get-Content -LiteralPath (Join-Path $projectRoot 'elucidator-private-bootstrap.json') -Raw | ConvertFrom-Json
   if ($bootstrapAfterRestart.token -ne $token) { throw 'Private credential bootstrap did not survive helper restart.' }
   Write-Output 'PASS: configuration survived a helper process restart.'
