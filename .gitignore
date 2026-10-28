@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+artifacts/boot-captures
 *.local
 ProjectElucidator.Lively.zip
 elucidator-private-bootstrap.json
