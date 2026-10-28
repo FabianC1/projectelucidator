@@ -34,28 +34,28 @@ export function BootSequence({ active, short, wallpaperReady, onReveal, viewport
     if (!host || !active || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (active) revealRef.current(); return }
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.setClearAlpha(0); host.appendChild(renderer.domElement)
-    const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(48, 1, .1, 90); camera.position.set(0, 0, 14)
+    const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(44, 1, .1, 90); camera.position.set(0, 0, 14)
     const corridor = new THREE.Group(); scene.add(corridor)
     const depths = Array.from({ length: 8 }, (_, index) => -index * 4.2)
     const frameMaterials: THREE.LineBasicMaterial[] = []; const frames: THREE.LineSegments[] = []; const panelMaterials: THREE.MeshBasicMaterial[] = []; const panels: THREE.Mesh[] = []
     const makeLineMaterial = (color = 0x62dfff) => new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 })
     depths.forEach((z, index) => {
       const material = makeLineMaterial(index < 2 ? 0x9eefff : 0x3baecb); frameMaterials.push(material)
-      const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(7.2, 4.4, .01)), material); frame.position.z = z; frames.push(frame); corridor.add(frame)
+      const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(9.4, 5.8, .01)), material); frame.position.z = z; frames.push(frame); corridor.add(frame)
       ;[-1, 1].forEach(side => {
         const surface = new THREE.MeshBasicMaterial({ color: 0x167ea2, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })
-        const panel = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 2.7), surface); panel.position.set(side * 4.3, 0, z); panel.rotation.y = side * Math.PI / 2; panelMaterials.push(surface); panels.push(panel); corridor.add(panel)
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(3.1, 3.5), surface); panel.position.set(side * 5.65, 0, z); panel.rotation.y = side * Math.PI / 2; panelMaterials.push(surface); panels.push(panel); corridor.add(panel)
       })
     })
     const rails: number[] = []; const braces: number[] = []
     for (let i = 0; i < depths.length - 1; i++) {
-      for (const [x, y] of [[-3.6, -2.2], [-3.6, 2.2], [3.6, -2.2], [3.6, 2.2]]) rails.push(x, y, depths[i], x, y, depths[i + 1])
-      braces.push(-2.65, -1.92, depths[i], -1.1, -1.92, depths[i], 1.1, -1.92, depths[i], 2.65, -1.92, depths[i], -2.65, 1.92, depths[i], -1.1, 1.92, depths[i], 1.1, 1.92, depths[i], 2.65, 1.92, depths[i])
+      for (const [x, y] of [[-4.7, -2.9], [-4.7, 2.9], [4.7, -2.9], [4.7, 2.9]]) rails.push(x, y, depths[i], x, y, depths[i + 1])
+      braces.push(-3.55, -2.5, depths[i], -1.45, -2.5, depths[i], 1.45, -2.5, depths[i], 3.55, -2.5, depths[i], -3.55, 2.5, depths[i], -1.45, 2.5, depths[i], 1.45, 2.5, depths[i], 3.55, 2.5, depths[i])
     }
     const railMaterial = makeLineMaterial(0x49cfff); const railGeometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(rails, 3)); const railMesh = new THREE.LineSegments(railGeometry, railMaterial); corridor.add(railMesh)
     const braceMaterial = makeLineMaterial(0x2584a2); const braceMesh = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(braces, 3)), braceMaterial); corridor.add(braceMesh)
     const pulseMaterials: THREE.LineBasicMaterial[] = []; const pulses: THREE.Line[] = []
-    for (let i = 0; i < 8; i++) { const y = i % 2 ? -2.2 : 2.2; const material = makeLineMaterial(0xd1faff); const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(i % 3 === 0 ? 3.6 : -3.6, y, 0), new THREE.Vector3(i % 3 === 0 ? 3.6 : -3.6, y, -1.2)]), material); pulse.position.z = -30; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
+    for (let i = 0; i < 8; i++) { const y = i % 2 ? -2.9 : 2.9; const material = makeLineMaterial(0xd1faff); const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(i % 3 === 0 ? 4.7 : -4.7, y, 0), new THREE.Vector3(i % 3 === 0 ? 4.7 : -4.7, y, -1.2)]), material); pulse.position.z = -30; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize)
     let running = true; let raf = 0; const render = () => { renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render) }; render()
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!
