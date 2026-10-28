@@ -61,6 +61,7 @@ export function BootSequence({ active, short, wallpaperReady, onReveal, viewport
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!
     const connect = get<HTMLElement>('.boot-connect'), diagnostics = get<HTMLElement>('.boot-status-columns'), assemble = get<HTMLElement>('.boot-assemble'), titleRail = get<HTMLElement>('.boot-title-rail'), core = get<HTMLElement>('.boot-focal-core'), hud = get<HTMLElement>('.boot-hud')
     const shutterParts = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const diagnosticLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]
+    const diagnosticPanels = [...host.querySelectorAll<HTMLElement>('.boot-diagnostic-panel')]
     const moveDuration = short ? 1.5 : 3; const revealAt = short ? 2.12 : 5.25; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl
     tl.to(hud, { autoAlpha: 1, duration: .32 }).to(core, { autoAlpha: 1, scale: 1, duration: .38, ease: 'power2.out' }).to(connect, { autoAlpha: 1, duration: .34 }, .16)
       .to(frames.slice().reverse().map(frame => frame.material), { opacity: (index: number) => .22 + index * .07, duration: short ? .72 : 1.5, stagger: .12, ease: 'none' }, .42)
@@ -70,10 +71,15 @@ export function BootSequence({ active, short, wallpaperReady, onReveal, viewport
       .to(camera.position, { z: 10.4, duration: moveDuration, ease: 'power2.inOut' }, short ? .86 : 2.05)
       .to(panels.map(panel => panel.position), { x: (index: number) => panels[index].position.x * 1.32, duration: moveDuration * .78, ease: 'power2.inOut' }, short ? .94 : 2.18)
       .to(diagnosticLines, { className: '+=is-complete', duration: .01, stagger: .06 }, short ? 1.22 : 2.85)
-      .to(connect, { autoAlpha: 0, duration: .22 }, short ? 1.35 : 3.45).to(assemble, { autoAlpha: 1, duration: .42, className: '+=is-dominant' }, short ? 1.42 : 3.56).to(titleRail, { scaleX: 1, duration: .55, ease: 'power2.out' }, short ? 1.45 : 3.63)
+      .to(connect, { autoAlpha: 0, duration: .22 }, short ? 1.35 : 3.45)
+      .set(assemble, { yPercent: 18, scale: .72 }, short ? 1.4 : 3.53)
+      .to(assemble, { autoAlpha: 1, yPercent: 0, scale: 1, duration: .62, ease: 'power3.out' }, short ? 1.42 : 3.56)
+      .to(titleRail, { scaleX: 1, duration: .55, ease: 'power2.out' }, short ? 1.45 : 3.63)
     pulses.forEach((pulse, index) => { const at = (short ? 1.0 : 2.25) + index * (short ? .12 : .22); tl.set(pulse.material, { opacity: .95 }, at).to(pulse.position, { z: 8, duration: short ? .68 : 1.16, ease: 'none' }, at).set(pulse.material, { opacity: 0 }) })
     tl.addPause(revealAt, () => { if (!wallpaperReadyRef.current) waitingForWallpaperRef.current = true; else requestAnimationFrame(() => tl.play()) })
-      .to(diagnostics, { autoAlpha: 0, xPercent: 0, scale: .96, duration: .38, ease: 'power2.in' }, revealAt)
+      .to(diagnosticPanels[0], { autoAlpha: 0, xPercent: -22, duration: .38, ease: 'power2.in' }, revealAt)
+      .to(diagnosticPanels[1], { autoAlpha: 0, xPercent: 22, duration: .38, ease: 'power2.in' }, revealAt)
+      .to(diagnostics, { autoAlpha: 0, scale: .96, duration: .18, ease: 'power2.in' }, revealAt + .22)
       .to([assemble, titleRail, core, hud], { autoAlpha: 0, duration: .35 }, revealAt + .12).to(camera.position, { z: 7.8, duration: .68, ease: 'power3.in' }, revealAt)
       .to(shutterParts, { '--open': '1', duration: .9, ease: 'power3.inOut' }, revealAt + .14).call(() => revealRef.current(), [], revealAt + 1.04)
       .to([frameMaterials, railMaterial, braceMaterial, panelMaterials, pulseMaterials].flat(), { opacity: 0, duration: .42 }, revealAt + .64).to(host, { autoAlpha: 0, duration: .2, onComplete: () => { running = false; cancelAnimationFrame(raf); renderer.render(scene, camera) } }, revealAt + 1.1)
