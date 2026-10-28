@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSPro
 import { siGooglechrome, siNetflix, siRoblox, type SimpleIcon } from 'simple-icons'
 import { BootSequence } from './BootSequence'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
-import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
+import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readDisplayGeometry, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
 import './App.css'
 
@@ -55,7 +55,6 @@ type HardwareFeed = { status: HardwareFeedStatus; readings: LivelySystemInfo | n
 type NowPlayingTrack = { title: string; artist: string; album: string; artwork: string | null; playbackType: string }
 type NowPlayingStatus = 'waiting' | 'browser' | 'none' | 'track' | 'sample' | 'invalid'
 type SequenceViewport = { left: number; top: number; width: number; height: number }
-type ScreenDetailsLike = { screens: Array<{ left: number; top: number; width: number; height: number }> }
 type QuickShortcut = { id: string; label: string; icon: string | SimpleIcon; target: string }
 
 const SAMPLE_HARDWARE_READINGS: LivelySystemInfo = {
@@ -432,20 +431,19 @@ async function detectConnectedMonitorCount(token: string): Promise<number | null
   }
 }
 
-async function detectSequenceViewports(): Promise<SequenceViewport[] | null> {
-  const getScreenDetails = (window as Window & { getScreenDetails?: () => Promise<ScreenDetailsLike> }).getScreenDetails
-  if (!getScreenDetails) return null
+async function detectSequenceViewports(token: string): Promise<SequenceViewport[] | null> {
+  if (!token) return null
   try {
-    const details = await getScreenDetails()
-    if (details.screens.length !== 2) return null
-    const left = Math.min(...details.screens.map((screen) => screen.left))
-    const top = Math.min(...details.screens.map((screen) => screen.top))
-    const right = Math.max(...details.screens.map((screen) => screen.left + screen.width))
-    const bottom = Math.max(...details.screens.map((screen) => screen.top + screen.height))
+    const { displays } = await readDisplayGeometry(token)
+    if (displays.length !== 2) return null
+    const left = Math.min(...displays.map((screen) => screen.left))
+    const top = Math.min(...displays.map((screen) => screen.top))
+    const right = Math.max(...displays.map((screen) => screen.left + screen.width))
+    const bottom = Math.max(...displays.map((screen) => screen.top + screen.height))
     if (!(right > left && bottom > top)) return null
     const scaleX = window.innerWidth / (right - left)
     const scaleY = window.innerHeight / (bottom - top)
-    return details.screens.map((screen) => ({
+    return displays.map((screen) => ({
       left: (screen.left - left) * scaleX,
       top: (screen.top - top) * scaleY,
       width: screen.width * scaleX,
@@ -1043,9 +1041,9 @@ function App() {
   useEffect(() => {
     if (!sequenceMirror) { setSequenceViewports(null); return }
     let active = true
-    void detectSequenceViewports().then((viewports) => { if (active) setSequenceViewports(viewports) })
+    void detectSequenceViewports(brightnessToken).then((viewports) => { if (active) setSequenceViewports(viewports) })
     return () => { active = false }
-  }, [sequenceMirror])
+  }, [brightnessToken, sequenceMirror])
 
   useEffect(() => {
     let active = true
@@ -1613,7 +1611,7 @@ function App() {
         report(['SEQUENCE MIRROR DISABLED', 'CINEMATIC BOOT WILL USE THE FULL LIVELY SPAN.'])
         setStatus('SEQUENCE MIRROR DISABLED')
       } else {
-        const viewports = await detectSequenceViewports()
+        const viewports = await detectSequenceViewports(brightnessToken)
         if (viewports) setSequenceViewports(viewports)
         if (args[2] === 'status') {
           const state = !sequenceMirror ? 'DISABLED' : viewports ? 'READY · TWO DISPLAY RECTANGLES' : 'SAFE FALLBACK · DISPLAY GEOMETRY UNAVAILABLE'
@@ -2491,7 +2489,9 @@ function App() {
   )
 
   const shouldMirrorActivation = animationMirror && connectedMonitorCount === 2
-  const sequenceBootViewports = sequenceMirror && sequenceViewports?.length === 2 ? sequenceViewports : null
+  // Physical display geometry is meaningful only in Lively Span mode. A normal
+  // browser preview remains a single viewport even if Windows has two screens.
+  const sequenceBootViewports = sequenceMirror && wallpaperFit === 'span' && sequenceViewports?.length === 2 ? sequenceViewports : null
   const animationMirrorClass = shouldMirrorActivation ? ' activation-mirror-enabled' : ''
   const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
 

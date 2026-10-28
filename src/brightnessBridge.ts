@@ -5,6 +5,7 @@ export type BrightnessMonitor = {
   brightness: number | null
   error?: string
 }
+export type DisplayGeometry = { id: number; left: number; top: number; width: number; height: number; primary: boolean }
 
 type MonitorResponse = { monitors: BrightnessMonitor[] }
 type ChangeResponse = MonitorResponse & { ok: boolean; message: string }
@@ -159,6 +160,10 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
 
 export async function readBrightnessMonitors(token: string) {
   return request<MonitorResponse>('/api/monitors', token)
+}
+
+export async function readDisplayGeometry(token: string) {
+  return request<{ displays: DisplayGeometry[] }>('/api/displays', token)
 }
 
 export async function changeBrightness(token: string, brightness: number, monitorId: number | null) {
