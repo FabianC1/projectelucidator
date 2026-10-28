@@ -9,8 +9,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $script:SkipLivelyReload = [bool]$SkipLivelyReload
 $script:LivelyRoot = $LivelyRoot
-$script:HelperVersion = '2.1.0'
-$script:HelperCapabilities = @('brightness','lock','startup-config','credential-bootstrap','installation-update')
+$script:HelperVersion = '2.2.0'
+$script:HelperCapabilities = @('brightness','lock','startup-config','credential-bootstrap','installation-update','display-geometry')
 
 $nativeSource = @'
 using System;
@@ -31,9 +31,27 @@ namespace ElucidatorBrightness {
     public string Message { get; set; }
   }
 
+  public sealed class DisplayRect {
+    public int Id { get; set; }
+    public int Left { get; set; }
+    public int Top { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public bool Primary { get; set; }
+  }
+
   public static class MonitorControl {
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MONITORINFOEX {
+      public int cbSize;
+      public RECT rcMonitor;
+      public RECT rcWork;
+      public uint dwFlags;
+      [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string szDevice;
+    }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct PHYSICAL_MONITOR {
@@ -51,6 +69,8 @@ namespace ElucidatorBrightness {
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc callback, IntPtr data);
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFOEX info);
     [DllImport("dxva2.dll", SetLastError = true)]
     private static extern bool GetNumberOfPhysicalMonitorsFromHMONITOR(IntPtr monitor, out uint count);
     [DllImport("dxva2.dll", SetLastError = true, CharSet = CharSet.Unicode)]
@@ -65,6 +85,27 @@ namespace ElucidatorBrightness {
     private static extern bool LockWorkStation();
 
     public static bool LockWindowsSession() { return LockWorkStation(); }
+
+    public static DisplayRect[] GetDisplays() {
+      List<DisplayRect> result = new List<DisplayRect>();
+      MonitorEnumProc callback = delegate(IntPtr monitor, IntPtr hdc, ref RECT rect, IntPtr data) {
+        MONITORINFOEX info = new MONITORINFOEX();
+        info.cbSize = Marshal.SizeOf(typeof(MONITORINFOEX));
+        if (!GetMonitorInfo(monitor, ref info)) return true;
+        result.Add(new DisplayRect {
+          Id = result.Count + 1,
+          Left = info.rcMonitor.Left,
+          Top = info.rcMonitor.Top,
+          Width = info.rcMonitor.Right - info.rcMonitor.Left,
+          Height = info.rcMonitor.Bottom - info.rcMonitor.Top,
+          Primary = (info.dwFlags & 1) != 0
+        });
+        return true;
+      };
+      EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, callback, IntPtr.Zero);
+      GC.KeepAlive(callback);
+      return result.ToArray();
+    }
 
     private static List<Entry> OpenMonitors() {
       List<Entry> entries = new List<Entry>();
@@ -691,6 +732,11 @@ function Handle-Client {
     if ($request.Method -eq 'GET' -and $request.Path -eq '/api/monitors') {
       $payload = ConvertTo-Json -InputObject @(Get-MonitorPayload) -Depth 4 -Compress
       Write-HttpResponse $stream 200 "{`"monitors`":$payload}" $origin
+      return
+    }
+    if ($request.Method -eq 'GET' -and $request.Path -eq '/api/displays') {
+      $payload = ConvertTo-Json -InputObject @([ElucidatorBrightness.MonitorControl]::GetDisplays()) -Depth 4 -Compress
+      Write-HttpResponse $stream 200 "{`"displays`":$payload}" $origin
       return
     }
     if ($request.Method -eq 'POST' -and $request.Path -eq '/api/brightness') {

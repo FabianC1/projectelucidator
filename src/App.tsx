@@ -10,6 +10,10 @@ declare global {
   interface Window {
     livelySystemInformation?: (data: unknown) => void
     livelyCurrentTrack?: (data: unknown) => void
+    // Set only by the Lively host integration when this instance owns the
+    // complete virtual desktop. A browser tab must never infer this from the
+    // number of connected Windows displays.
+    elucidatorLivelySpanViewport?: { width: number; height: number }
   }
 }
 
@@ -441,8 +445,23 @@ async function detectSequenceViewports(token: string): Promise<SequenceViewport[
     const right = Math.max(...displays.map((screen) => screen.left + screen.width))
     const bottom = Math.max(...displays.map((screen) => screen.top + screen.height))
     if (!(right > left && bottom > top)) return null
-    const scaleX = window.innerWidth / (right - left)
-    const scaleY = window.innerHeight / (bottom - top)
+
+    // Windows monitor coordinates are physical desktop coordinates. They are
+    // not CSS coordinates for a regular browser tab. Only map them once the
+    // Lively host has explicitly supplied a full-span viewport, and only when
+    // its dimensions agree with the physical desktop at one uniform scale.
+    // This deliberately leaves ordinary preview and uncertain host placement
+    // as one full-screen boot.
+    if (import.meta.env.DEV || /^https?:$/.test(location.protocol)) return null
+    // Packaged Lively web wallpapers run from a local file host. In that case
+    // its viewport is the only host measurement available. An integration may
+    // provide the same measurement explicitly when Lively changes its host.
+    const hostViewport = window.elucidatorLivelySpanViewport
+      ?? (location.protocol === 'file:' ? { width: window.innerWidth, height: window.innerHeight } : null)
+    if (!hostViewport || hostViewport.width !== window.innerWidth || hostViewport.height !== window.innerHeight) return null
+    const scaleX = hostViewport.width / (right - left)
+    const scaleY = hostViewport.height / (bottom - top)
+    if (!Number.isFinite(scaleX) || !Number.isFinite(scaleY) || Math.abs(scaleX - scaleY) > .015) return null
     return displays.map((screen) => ({
       left: (screen.left - left) * scaleX,
       top: (screen.top - top) * scaleY,
@@ -2491,7 +2510,10 @@ function App() {
   const shouldMirrorActivation = animationMirror && connectedMonitorCount === 2
   // Physical display geometry is meaningful only in Lively Span mode. A normal
   // browser preview remains a single viewport even if Windows has two screens.
-  const sequenceBootViewports = sequenceMirror && wallpaperFit === 'span' && sequenceViewports?.length === 2 ? sequenceViewports : null
+  // `wallpaperFit` controls image fitting only; it cannot establish where
+  // Lively placed this DOM viewport. `sequenceViewports` is populated solely
+  // after the host-placement verification in detectSequenceViewports.
+  const sequenceBootViewports = sequenceMirror && sequenceViewports?.length === 2 ? sequenceViewports : null
   const animationMirrorClass = shouldMirrorActivation ? ' activation-mirror-enabled' : ''
   const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
 

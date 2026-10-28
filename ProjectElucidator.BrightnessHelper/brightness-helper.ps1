@@ -9,8 +9,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $script:SkipLivelyReload = [bool]$SkipLivelyReload
 $script:LivelyRoot = $LivelyRoot
-$script:HelperVersion = '2.1.0'
-$script:HelperCapabilities = @('brightness','lock','startup-config','credential-bootstrap','installation-update')
+$script:HelperVersion = '2.2.0'
+$script:HelperCapabilities = @('brightness','lock','startup-config','credential-bootstrap','installation-update','display-geometry')
 
 $nativeSource = @'
 using System;
@@ -732,6 +732,11 @@ function Handle-Client {
     if ($request.Method -eq 'GET' -and $request.Path -eq '/api/monitors') {
       $payload = ConvertTo-Json -InputObject @(Get-MonitorPayload) -Depth 4 -Compress
       Write-HttpResponse $stream 200 "{`"monitors`":$payload}" $origin
+      return
+    }
+    if ($request.Method -eq 'GET' -and $request.Path -eq '/api/displays') {
+      $payload = ConvertTo-Json -InputObject @([ElucidatorBrightness.MonitorControl]::GetDisplays()) -Depth 4 -Compress
+      Write-HttpResponse $stream 200 "{`"displays`":$payload}" $origin
       return
     }
     if ($request.Method -eq 'POST' -and $request.Path -eq '/api/brightness') {
