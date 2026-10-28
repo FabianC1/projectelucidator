@@ -14,3 +14,12 @@
 .boot-debug { position:fixed; z-index:99; right:1rem; bottom:1rem; display:flex; gap:.35rem; pointer-events:auto; }.boot-debug button { border:1px solid #4bcde8; background:#04111c; color:#dffaff; padding:.35rem .5rem; font:600 .65rem ui-monospace,monospace; }
 @media (max-width:700px) { .boot-hud { inset:.75rem; }.boot-status-columns { right:1rem; left:1rem; }.boot-diagnostic-panel { flex-basis:11.5rem; }.boot-diagnostic-panel .boot-module { font-size:.42rem; }.boot-diagnostic-panel:last-child { display:none; }.boot-assemble { font-size:clamp(1.55rem,9vw,3rem); }.boot-standby-copy { right:1.35rem; bottom:1.35rem; } }
 @media (prefers-reduced-motion:reduce) { .boot-scene { background:linear-gradient(90deg,rgb(1 8 14 / 12%),transparent 27%,transparent 73%,rgb(1 8 14 / 12%)); } }
+
+/* The reveal is a distinct environmental pose: the wallpaper stays open while the
+   architecture frames it from the perimeter instead of rebuilding the compile tunnel. */
+.boot-scene.is-revealing { background:radial-gradient(ellipse at center,rgb(2 22 34 / 5%) 16%,rgb(1 10 18 / 18%) 76%,rgb(1 5 10 / 36%) 100%); }
+.boot-scene.is-revealing::before,.boot-scene.is-revealing::after { position:absolute; z-index:3; top:16%; bottom:16%; width:min(19vw,23rem); content:''; opacity:.78; pointer-events:none; background:linear-gradient(90deg,rgb(31 197 243 / 12%),transparent 66%); border-top:1px solid rgb(122 237 255 / 64%); border-bottom:1px solid rgb(77 204 241 / 46%); box-shadow:0 0 18px rgb(45 206 255 / 24%),inset 0 0 2.5rem rgb(40 192 242 / 8%); animation:boot-reveal-scan 7.6s ease-in-out infinite; }.boot-scene.is-revealing::before { left:0; }.boot-scene.is-revealing::after { right:0; transform:scaleX(-1); }
+.boot-scene.is-revealing .boot-hud-state { font-size:0; }.boot-scene.is-revealing .boot-hud-state::before { color:#dbfaff; content:'DISPLAY INITIALISED'; font-size:clamp(.38rem,.52vw,.58rem); }.boot-scene.is-revealing .boot-hud-state small { margin-top:.2rem; font-size:0; }.boot-scene.is-revealing .boot-hud-state small::before { color:#66cfe9; content:'REVEALING'; font-size:clamp(.34rem,.44vw,.5rem); }
+.boot-scene.is-revealing .boot-hud-coordinates { color:#77b8ca; }.boot-scene.is-revealing .boot-hud-sync { color:#80cada; }
+.boot-scene.is-revealing .boot-hud::before,.boot-scene.is-revealing .boot-hud::after { filter:drop-shadow(0 0 5px rgb(84 220 255 / 72%)); }
+@keyframes boot-reveal-scan { 0%,100% { filter:brightness(.86); opacity:.58; } 50% { filter:brightness(1.26); opacity:.9; } }
