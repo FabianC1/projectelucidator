@@ -553,6 +553,7 @@ function App() {
   const [ready, setReady] = useState(false)
   const storageErrorsRef = useRef<Record<string, string>>({})
   const [booting, setBooting] = useState(true)
+  const [bootStage, setBootStage] = useState<'sequence' | 'standby'>('sequence')
   const [revealComplete, setRevealComplete] = useState(false)
   const [wallpaperMediaReady, setWallpaperMediaReady] = useState(false)
   const [bootToken, setBootToken] = useState(0)
@@ -650,7 +651,15 @@ function App() {
     else storageErrorsRef.current[area] = describeStorageError(error)
   }, [])
   const [consoleLines, setConsoleLines] = useState<string[]>(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
-  const handleBootReveal = useCallback(() => setRevealComplete(true), [])
+  const handleBootStandby = useCallback(() => {
+    setRevealComplete(true)
+    setBootStage('standby')
+  }, [])
+  const handleBootActivate = useCallback(() => {
+    finishingBootRef.current = true
+    setBootStage('sequence')
+    setBooting(false)
+  }, [])
   // Retained solely for the unreachable legacy markup until that markup is removed in
   // a dedicated cleanup; the cinematic component owns the actual boot timeline.
   const timeline: LegacyBootTimeline = { phases: [], duration: 0 }
@@ -1136,6 +1145,7 @@ function App() {
     if (!ready) return
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     finishingBootRef.current = false
+    setBootStage('sequence')
     setRevealComplete(!wallpaperUrl || reducedMotion)
 
     if (reducedMotion) {
@@ -1147,7 +1157,7 @@ function App() {
   }, [ready, bootToken, wallpaperUrl])
 
   useEffect(() => {
-    if (!ready || !booting || finishingBootRef.current || !revealComplete || (wallpaperUrl && !wallpaperMediaReady)) return
+    if (!ready || !booting || bootStage === 'standby' || finishingBootRef.current || !revealComplete || (wallpaperUrl && !wallpaperMediaReady)) return
     finishingBootRef.current = true
     setBooting(false)
   }, [ready, booting, revealComplete, wallpaperMediaReady, wallpaperUrl])
@@ -1156,7 +1166,7 @@ function App() {
   // when a lifecycle race prevents either the mounted image or the timeline
   // from reporting completion; it keeps the console reachable on failure.
   useEffect(() => {
-    if (!ready || !booting) return
+    if (!ready || !booting || bootStage === 'standby') return
     const request = wallpaperRequestRef.current
     const timeout = window.setTimeout(() => {
       if (request !== wallpaperRequestRef.current || finishingBootRef.current) return
@@ -1165,7 +1175,7 @@ function App() {
       setRevealComplete(true)
     }, 15000)
     return () => window.clearTimeout(timeout)
-  }, [bootToken, booting, ready])
+  }, [bootToken, booting, bootStage, ready])
 
   const openFilePicker = () => {
     setStatus('SELECT A WALLPAPER FILE')
@@ -1901,13 +1911,19 @@ function App() {
       setStatus(`AUDIO LINK · ${audioStatus}`)
     } else if (domain === 'test' && args.length === 1) {
       setRevealComplete(false)
+      setBootStage('sequence')
       setBooting(true)
       setBootToken((token) => token + 1)
       report(['SYSTEM BOOT TEST', 'REPLAYING CONNECTION / COMPILATION / ASSEMBLY.', wallpaperUrl ? 'WALLPAPER REVEAL WILL FOLLOW READINESS.' : 'NO WALLPAPER ACTIVE · SYSTEM-ONLY REVEAL.'])
       setStatus('SYSTEM BOOT TEST STARTED')
     } else if (domain === 'standby' && args.length === 1) {
-      report(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
-      setStatus('MAINFRAME STANDBY · READY')
+      finishingBootRef.current = false
+      setRevealComplete(false)
+      setBootStage('standby')
+      setBooting(true)
+      setBootToken((token) => token + 1)
+      report(['REVEAL STANDBY', 'WALLPAPER LAYER ........... READY', 'PRESS ANY KEY OR MOVE MOUSE TO CONTINUE.'])
+      setStatus('REVEAL STANDBY · AWAITING INPUT')
     } else if (domain === 'scale') {
       if (!action && args.length === 1) {
         report(['INTERFACE SCALE', `CURRENT ................. ${interfaceScale}X`, 'APPLIES TO .............. COMMAND CONSOLE + WIDGETS', 'LOAD ANIMATIONS .......... UNCHANGED', 'USAGE ................... SYS SCALE <0.5|0.75|1|1.25|1.5|1.75|2>'])
@@ -2518,7 +2534,7 @@ function App() {
   const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${bootStage === 'standby' ? ' reveal-standby-active' : ''}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
       {wallpaperUrl && (
         <img
           key={bootToken}
@@ -2544,8 +2560,8 @@ function App() {
       )}
 
       {ready && booting && (sequenceBootViewports
-        ? sequenceBootViewports.map((viewport, index) => <BootSequence key={`${bootToken}-${index}`} active={booting} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onReveal={index === 0 ? handleBootReveal : () => undefined} debug={index === 0} viewport={{ left: viewport.left, top: viewport.top, width: viewport.width, height: viewport.height, right: 'auto', bottom: 'auto' }} />)
-        : <BootSequence key={bootToken} active={booting} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onReveal={handleBootReveal} />)}
+        ? sequenceBootViewports.map((viewport, index) => <BootSequence key={`${bootToken}-${index}`} active={booting} standby={bootStage === 'standby'} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onStandby={index === 0 ? handleBootStandby : () => undefined} onActivate={index === 0 ? handleBootActivate : () => undefined} debug={index === 0} viewport={{ left: viewport.left, top: viewport.top, width: viewport.width, height: viewport.height, right: 'auto', bottom: 'auto' }} />)
+        : <BootSequence key={bootToken} active={booting} standby={bootStage === 'standby'} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onStandby={handleBootStandby} onActivate={handleBootActivate} />)}
       {false && ready && (
         <section className={`boot-sequence${booting ? ' boot-legacy-hidden' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
           <div className="boot-scan" aria-hidden="true" />
