@@ -77,7 +77,7 @@ try {
   if (includes('standby')) {
     console.log('Visual check: observing direct standby persistence…')
     const standbyContext = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 })
-    const standby = await standbyContext.newPage(); attachDiagnostics(standby, 'direct-standby'); await standby.goto(baseURL, { waitUntil: 'networkidle' }); await command(standby, 'sys standby')
+    const standby = await standbyContext.newPage(); attachDiagnostics(standby, 'direct-standby'); await standby.goto(baseURL, { waitUntil: 'networkidle' }); await command(standby, 'sys standby'); await standby.locator('.boot-scene.is-standby').waitFor({ state: 'visible', timeout: 10_000 })
     for (const seconds of [0, 10, 30]) { if (seconds) await standby.waitForTimeout(seconds === 10 ? 10_000 : 20_000); await standby.screenshot({ path: `${output}/standby-direct-${String(seconds).padStart(2, '0')}s.png` }) }
     report.webgl.push({ label: 'direct-standby', state: await webglHealth(standby) }); await standbyContext.close()
   }
