@@ -37,12 +37,12 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       const panels = [
         // Bounds are tuned in screen space against AnnotatedHUD: the narrow D1 layer
         // hugs the display edge, while D2 sits visibly behind and toward the aperture.
-        { width: .8, height: 6.75, x: 9.6, z: -.72, opacity: .09, edge: .7, colour: 0x4bb8d6 }, // D1 outer/front
-        { width: 1.1, height: 6.6, x: 8.28, z: -1.48, opacity: .055, edge: .46, colour: 0x2d7189 }, // D2 inner/rear
+        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .09, edge: .7, colour: 0x4bb8d6 }, // D1 outer/front
+        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .055, edge: .46, colour: 0x2d7189 }, // D2 inner/rear
       ]
       panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
-        const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material); panel.position.set(side * x, 0, z); panel.rotation.y = side * -.48; standbyGlassMaterials.push(material); standbyGroup.add(panel)
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material); panel.position.set(side * x, 0, z); panel.rotation.y = side * -.62; standbyGlassMaterials.push(material); standbyGroup.add(panel)
         const edgeMaterial = makeLineMaterial(0x9cecff); edgeMaterial.userData.targetOpacity = edgeOpacity; standbyLineMaterials.push(edgeMaterial); const panelEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)), edgeMaterial); panelEdge.position.copy(panel.position); panelEdge.rotation.copy(panel.rotation); standbyGroup.add(panelEdge)
       })
       // Technical markings sit on the glass layers; they are not additional panels.
@@ -65,8 +65,8 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const standbyRailPaths: Array<{ start: THREE.Vector3; end: THREE.Vector3 }> = []
     const addPerspectiveRail = (side: -1 | 1, upper: boolean) => {
       const direction = upper ? 1 : -1
-      const start = new THREE.Vector3(side * 10.85, upper ? 3.55 : -2.65, -1.18)
-      const end = new THREE.Vector3(side * frameX, upper ? 2.0 : -1.78, -.04)
+      const start = new THREE.Vector3(side * 10.85, upper ? 3.0 : -1.65, -1.18)
+      const end = new THREE.Vector3(side * frameX, upper ? 1.72 : -1.08, -.04)
       standbyRailPaths.push({ start, end })
       addStandbyLines([start.x, start.y, start.z, end.x, end.y, end.z], 0x78e8ff, .8)
       addStandbyLines([start.x, start.y + direction * .22, start.z - .12, end.x, end.y + direction * .14, end.z - .04], 0x276c86, .32)
@@ -79,15 +79,25 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x4f9ab2, .34)
     addStandbyLines([-4.8, upperRailY, -.48, -2.2, upperRailY, -.48, 2.2, upperRailY, -.48, 4.8, upperRailY, -.48, -4.8, lowerRailY, -.48, -2.2, lowerRailY, -.48, 2.2, lowerRailY, -.48, 4.8, lowerRailY, -.48], 0xa4efff, .68)
     addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xe0fbff, .92)
-    const standbyPackets: Array<{ object: THREE.Line; material: THREE.LineBasicMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }> = []
+    type StandbyTraveller = { object: THREE.Group; core: THREE.MeshBasicMaterial; glow: THREE.MeshBasicMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }
+    const standbyPackets: StandbyTraveller[] = []
+    const standbyMarkers: StandbyTraveller[] = []
+    const packetCoreGeometry = new THREE.PlaneGeometry(.8, .045)
+    const packetGlowGeometry = new THREE.PlaneGeometry(1.28, .15)
+    const markerCoreGeometry = new THREE.CircleGeometry(.045, 10)
+    const markerGlowGeometry = new THREE.CircleGeometry(.12, 10)
+    const addTraveller = (path: { start: THREE.Vector3; end: THREE.Vector3 }, delay: number, packet: boolean) => {
+      const object = new THREE.Group(); const direction = path.end.clone().sub(path.start).normalize()
+      const glow = new THREE.MeshBasicMaterial({ color: 0x33cfff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
+      const core = new THREE.MeshBasicMaterial({ color: 0xe8fcff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
+      const glowMesh = new THREE.Mesh(packet ? packetGlowGeometry : markerGlowGeometry, glow); const coreMesh = new THREE.Mesh(packet ? packetCoreGeometry : markerCoreGeometry, core)
+      object.add(glowMesh, coreMesh); object.position.copy(path.start); object.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), direction); standbyGroup.add(object)
+      const traveller = { object, core, glow, path, delay }; (packet ? standbyPackets : standbyMarkers).push(traveller)
+    }
     standbyRailPaths.forEach((path, pathIndex) => {
-      const direction = path.end.clone().sub(path.start).normalize()
-      for (let index = 0; index < 2; index++) {
-        const material = makeLineMaterial(0xe1fbff)
-        const packet = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-.16, 0, 0), new THREE.Vector3(.16, 0, 0)]), material)
-        packet.position.copy(path.start); packet.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), direction); standbyGroup.add(packet)
-        standbyPackets.push({ object: packet, material, path, delay: pathIndex * .34 + index * 1.1 })
-      }
+      for (let index = 0; index < 2; index++) addTraveller(path, pathIndex * .34 + index * 1.1, true)
+      const midpoint = path.start.clone().lerp(path.end, .42); const markerPath = { start: midpoint, end: path.end.clone() }
+      addTraveller(markerPath, pathIndex * .52 + .42, false)
     })
     const pulseMaterials: THREE.LineBasicMaterial[] = []; const pulses: THREE.Line[] = []; for (let i = 0; i < 10; i++) { const y = i % 2 ? -2.9 : 2.9; const material = makeLineMaterial(0xd8fbff); const x = i % 3 === 0 ? 4.7 : -4.7; const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, 0), new THREE.Vector3(x, y, -1.5)]), material); pulse.position.z = -31; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const render = () => { renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render) }; render()
@@ -99,12 +109,16 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const idleTimelines: gsap.core.Timeline[] = []
     const startStandbyRailFlow = () => {
       if (idleTimelines.length) return
-      standbyPackets.forEach(({ object, material, path, delay }) => {
+      const animateTraveller = ({ object, core, glow, path, delay }: StandbyTraveller, duration: number, scale: number, isPacket: boolean) => {
         const flow = gsap.timeline({ repeat: -1, repeatDelay: .45, delay })
-        flow.set(object.position, { x: path.start.x, y: path.start.y, z: path.start.z }).set(material, { opacity: 0 })
-          .to(material, { opacity: .94, duration: .16 }).to(object.position, { x: path.end.x, y: path.end.y, z: path.end.z, duration: 2.35, ease: 'none' }, '<').to(material, { opacity: 0, duration: .18 }, '>-0.14')
+        flow.set(object.position, { x: path.start.x, y: path.start.y, z: path.start.z }).set(object.scale, { x: .55, y: .55, z: .55 }).set([core, glow], { opacity: 0 })
+          .to(glow, { opacity: isPacket ? .44 : .28, duration: .14 }).to(core, { opacity: isPacket ? 1 : .78, duration: .11 }, '<')
+          .to(object.position, { x: path.end.x, y: path.end.y, z: path.end.z, duration, ease: 'none' }, '<').to(object.scale, { x: scale, y: scale, z: scale, duration, ease: 'none' }, '<')
+          .to([core, glow], { opacity: 0, duration: .15 }, '>-0.12')
         idleTimelines.push(flow)
-      })
+      }
+      standbyPackets.forEach(packet => animateTraveller(packet, 1.55, 1.18, true))
+      standbyMarkers.forEach(marker => animateTraveller(marker, 1.82, 1.32, false))
     }
     const applyRevealPose = (timeline?: gsap.core.Timeline, at = 0) => {
       const set = (target: gsap.TweenTarget, vars: gsap.TweenVars) => timeline ? timeline.to(target, { ...vars, overwrite: 'auto' }, at) : gsap.set(target, vars)
