@@ -130,9 +130,9 @@ const STORE = 'selection'
 const KEY = 'active'
 const DEFAULT_WALLPAPER_KEY = 'default'
 const DEFAULT_WALLPAPER_VERSION_KEY = 'default-version'
-const DEFAULT_WALLPAPER_VERSION = '3d-render-bloom-3840x1080-27150'
-const DEFAULT_WALLPAPER_URL = '3d-render-bloom-3840x1080-27150.jpg'
-const DEFAULT_WALLPAPER_NAME = '3d-render-bloom-3840x1080-27150.jpg'
+const DEFAULT_WALLPAPER_VERSION = 'moonlit-alpine-mirror-lake-v1'
+const DEFAULT_WALLPAPER_URL = 'Moonlit%20Alpine%20Mirror%20Lake.png'
+const DEFAULT_WALLPAPER_NAME = 'Moonlit Alpine Mirror Lake.png'
 const WIDGET_PREF_KEY = 'project-elucidator-widgets'
 const WIDGET_POSITION_KEY = 'project-elucidator-widget-positions'
 const WIDGET_SCALE_KEY = 'project-elucidator-widget-scales'
@@ -850,7 +850,7 @@ function App() {
           setWallpaperMediaReady(false)
           setWallpaperUrl(DEFAULT_WALLPAPER_URL)
           setWallpaperName(DEFAULT_WALLPAPER_NAME)
-          setStatus('DEFAULT WALLPAPER LOADED · 3D RENDER')
+          setStatus('DEFAULT WALLPAPER LOADED · MOONLIT ALPINE MIRROR LAKE')
         }
       } catch (error) {
         if (!cancelled) {
@@ -860,7 +860,7 @@ function App() {
           setWallpaperUrl(DEFAULT_WALLPAPER_URL)
           setWallpaperName(DEFAULT_WALLPAPER_NAME)
         }
-        if (!cancelled) setStatus('WALLPAPER RESTORE ERROR · BUNDLED 3D RENDER ACTIVE')
+        if (!cancelled) setStatus('WALLPAPER RESTORE ERROR · BUNDLED MOONLIT ALPINE ACTIVE')
       } finally {
         if (!cancelled) { setStartupConfigHydrated(true); setReady(true) }
       }

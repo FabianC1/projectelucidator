@@ -28,44 +28,30 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const rails: number[] = []; const architecture: number[] = []
     for (let i = 0; i < depths.length - 1; i++) { for (const [x, y] of [[-4.7, -2.9], [-4.7, 2.9], [4.7, -2.9], [4.7, 2.9]]) rails.push(x, y, depths[i], x, y, depths[i + 1]); for (const y of [-2.48, 2.48]) for (const [x0, x1] of [[-3.8, -1.65], [-.9, .9], [1.65, 3.8]]) architecture.push(x0, y, depths[i], x1, y, depths[i]); for (const x of [-4.05, 4.05]) architecture.push(x, -2.65, depths[i], x, 2.65, depths[i]) }
     const railMaterial = makeLineMaterial(0x4fdcff); corridor.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(rails, 3)), railMaterial)); const architectureMaterial = makeLineMaterial(0x2284a4); corridor.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(architecture, 3)), architectureMaterial)); const hazeMaterial = new THREE.MeshBasicMaterial({ color: 0x1677a0, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }); const haze = new THREE.Mesh(new THREE.PlaneGeometry(11, 6.5), hazeMaterial); haze.position.z = -16; corridor.add(haze)
-    // Standby is deliberately not a re-used corridor. Its fixed aperture, wings, and rails
-    // are a separate scene group so the final desktop pose can be applied deterministically.
+    // Static standby is its own display architecture. It is deliberately independent of
+    // the boot corridor, with one wide central viewport and one glass panel per side.
     const standbyGroup = new THREE.Group(); standbyGroup.visible = false; scene.add(standbyGroup)
     const standbyLineMaterials: THREE.LineBasicMaterial[] = []; const standbyGlassMaterials: THREE.MeshBasicMaterial[] = []
-    const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); const object = new THREE.LineSegments(geometry, material); standbyGroup.add(object) }
-    const addStandbyContour = (halfWidth: number, z: number, color: number, opacity: number) => addStandbyLines([-halfWidth, halfWidth, z, halfWidth, halfWidth, z, halfWidth, halfWidth, z, halfWidth, -halfWidth, z, halfWidth, -halfWidth, z, -halfWidth, -halfWidth, z, -halfWidth, -halfWidth, z, -halfWidth, halfWidth, z], color, opacity)
-    const addStandbyWing = (side: -1 | 1) => {
-      const layers = [{ width: 3.05, height: 6.5, x: 7.55, z: -1.08, opacity: .055 }, { width: 2.5, height: 5.85, x: 6.7, z: -.42, opacity: .14 }, { width: 1.05, height: 4.7, x: 5.42, z: .04, opacity: .075 }]
-      layers.forEach(({ width, height, x, z, opacity }, index) => { const material = new THREE.MeshBasicMaterial({ color: index === 1 ? 0x35cff4 : 0x1c89ad, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }); material.userData.targetOpacity = opacity; const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material); panel.position.set(side * x, 0, z); panel.rotation.y = side * -.58; standbyGlassMaterials.push(material); standbyGroup.add(panel); const edgeMaterial = makeLineMaterial(index === 1 ? 0xb2f7ff : 0x4aaac6); edgeMaterial.userData.targetOpacity = index === 1 ? .88 : .48; standbyLineMaterials.push(edgeMaterial); const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)), edgeMaterial); edge.position.copy(panel.position); edge.rotation.copy(panel.rotation); standbyGroup.add(edge) })
-      // A pair of shallow ribs makes each wing read as constructed glass, not a flat window.
-      addStandbyLines([side * 5.62, 2.18, .1, side * 8.72, 2.78, -.82, side * 5.62, -2.18, .1, side * 8.72, -2.78, -.82], 0x7ce9ff, .7)
-      addStandbyLines([side * 6.12, .58, -.1, side * 8.18, .82, -.65, side * 6.12, -.58, -.1, side * 8.18, -.82, -.65], 0x266d86, .5)
+    const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); standbyGroup.add(new THREE.LineSegments(geometry, material)) }
+    const addPrimaryWing = (side: -1 | 1) => {
+      const material = new THREE.MeshBasicMaterial({ color: 0x4bb8d6, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = .075
+      const panel = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 5.75), material); panel.position.set(side * 8.15, 0, -.72); panel.rotation.y = side * -.48; standbyGlassMaterials.push(material); standbyGroup.add(panel)
+      const edgeMaterial = makeLineMaterial(0x9cecff); edgeMaterial.userData.targetOpacity = .54; standbyLineMaterials.push(edgeMaterial); const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(1.9, 5.75)), edgeMaterial); edge.position.copy(panel.position); edge.rotation.copy(panel.rotation); standbyGroup.add(edge)
+      // Fine dividers live within this one panel rather than introducing more panels.
+      addStandbyLines([side * 7.42, 1.72, -.2, side * 8.86, 1.98, -1.02, side * 7.42, 0, -.2, side * 8.86, .22, -1.02, side * 7.42, -1.72, -.2, side * 8.86, -1.54, -1.02], 0x3f8da6, .24)
     }
     // 7.2 × 7.2 inner aperture / 8.4 × 8.4 outer architecture. At 1920×1080 this
     // reads as a roughly 650 px transparent portal with a visible structural surround.
-    const aperture = 3.6; const outerAperture = 4.2; const bracket = .92
-    addStandbyContour(outerAperture, -.18, 0x78e9ff, .82)
-    addStandbyContour(aperture, .08, 0xbef8ff, .74)
+    const frameX = 6.25; const frameY = 3.3; const corner = .56
     addStandbyLines([
-      -outerAperture, outerAperture - bracket, .12, -outerAperture, outerAperture, .12, -outerAperture + bracket, outerAperture, .12,
-      outerAperture - bracket, outerAperture, .12, outerAperture, outerAperture, .12, outerAperture, outerAperture - bracket, .12,
-      -outerAperture, -outerAperture + bracket, .12, -outerAperture, -outerAperture, .12, -outerAperture + bracket, -outerAperture, .12,
-      outerAperture - bracket, -outerAperture, .12, outerAperture, -outerAperture, .12, outerAperture, -outerAperture + bracket, .12
-    ], 0xe2fdff, 1)
-    // Break the support rails at the aperture. Every visible rail terminates at a frame or
-    // wing member rather than floating across the wallpaper viewing area.
-    addStandbyLines([-10.15, 2.72, -.18, -outerAperture, 2.72, -.18, outerAperture, 2.72, -.18, 10.15, 2.72, -.18, -10.15, -2.72, -.18, -outerAperture, -2.72, -.18, outerAperture, -2.72, -.18, 10.15, -2.72, -.18], 0x8eefff, .86)
-    addStandbyLines([-9.7, 2.55, -.28, -outerAperture, 2.55, -.28, outerAperture, 2.55, -.28, 9.7, 2.55, -.28, -9.7, -2.55, -.28, -outerAperture, -2.55, -.28, outerAperture, -2.55, -.28, 9.7, -2.55, -.28], 0x276d87, .58)
-    // Diagonal load-bearing members form one continuous architecture from outer frame to wings.
-    addStandbyLines([
-      -outerAperture, outerAperture, -.18, -5.62, 2.18, .1, -outerAperture, -outerAperture, -.18, -5.62, -2.18, .1,
-      outerAperture, outerAperture, -.18, 5.62, 2.18, .1, outerAperture, -outerAperture, -.18, 5.62, -2.18, .1,
-      -5.62, 2.18, .1, -8.72, 2.78, -.82, -5.62, -2.18, .1, -8.72, -2.78, -.82,
-      5.62, 2.18, .1, 8.72, 2.78, -.82, 5.62, -2.18, .1, 8.72, -2.78, -.82
-    ], 0x5fddf9, .82)
-    // Small technical markings on the inner frame give the portal depth without blocking it.
-    addStandbyLines([-2.55, 3.18, .18, -1.1, 3.18, .18, 1.1, 3.18, .18, 2.55, 3.18, .18, -2.55, -3.18, .18, -1.1, -3.18, .18, 1.1, -3.18, .18, 2.55, -3.18, .18], 0x48bad7, .65)
-    addStandbyWing(-1); addStandbyWing(1)
+      -frameX, frameY - corner, 0, -frameX, frameY, 0, -frameX + corner, frameY, 0,
+      frameX - corner, frameY, 0, frameX, frameY, 0, frameX, frameY - corner, 0,
+      -frameX, -frameY + corner, 0, -frameX, -frameY, 0, -frameX + corner, -frameY, 0,
+      frameX - corner, -frameY, 0, frameX, -frameY, 0, frameX, -frameY + corner, 0
+    ], 0xe1fbff, .92)
+    // One wide central frame: only a faint joining contour behind the bright corners.
+    addStandbyLines([-frameX, frameY, -.08, frameX, frameY, -.08, frameX, -frameY, -.08, -frameX, -frameY, -.08, -frameX, frameY, -.08], 0x5592a7, .22)
+    addPrimaryWing(-1); addPrimaryWing(1)
     const pulseMaterials: THREE.LineBasicMaterial[] = []; const pulses: THREE.Line[] = []; for (let i = 0; i < 10; i++) { const y = i % 2 ? -2.9 : 2.9; const material = makeLineMaterial(0xd8fbff); const x = i % 3 === 0 ? 4.7 : -4.7; const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, 0), new THREE.Vector3(x, y, -1.5)]), material); pulse.position.z = -31; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const render = () => { renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render) }; render()
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!; const connect = get<HTMLElement>('.boot-connect'), diagnostics = get<HTMLElement>('.boot-status-columns'), assembleStack = get<HTMLElement>('.boot-assemble-stack'), titleRail = get<HTMLElement>('.boot-title-rail'), readyNodes = [...host.querySelectorAll<HTMLElement>('.boot-ready-node')], core = get<HTMLElement>('.boot-focal-core'), hud = get<HTMLElement>('.boot-hud'), standbyCopy = get<HTMLElement>('.boot-standby-copy'); const shutterParts = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const diagnosticLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]; const diagnosticPanels = [...host.querySelectorAll<HTMLElement>('.boot-diagnostic-panel')]; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl

@@ -21,6 +21,7 @@
 .boot-scene.is-revealing .boot-hud-state { font-size:0; }.boot-scene.is-revealing .boot-hud-state::before { color:#dbfaff; content:'DISPLAY INITIALISED'; font-size:clamp(.38rem,.52vw,.58rem); }.boot-scene.is-revealing .boot-hud-state small { margin-top:.2rem; font-size:0; }.boot-scene.is-revealing .boot-hud-state small::before { color:#66cfe9; content:'REVEALING'; font-size:clamp(.34rem,.44vw,.5rem); }
 .boot-scene.is-revealing .boot-hud-coordinates { color:#77b8ca; }.boot-scene.is-revealing .boot-hud-sync { color:#80cada; }
 .boot-scene.is-revealing .boot-hud::before,.boot-scene.is-revealing .boot-hud::after { filter:drop-shadow(0 0 5px rgb(84 220 255 / 72%)); }
+.boot-scene.is-standby .boot-hud-coordinates,.boot-scene.is-standby .boot-hud-sync { display:none; }
 
 .boot-diagnostic-panel .boot-module { position:relative; }
 .boot-diagnostic-panel .boot-module.is-active { margin-right:-.18rem; margin-left:-.34rem; padding:.18rem .18rem .18rem .34rem; color:#e3fcff; background:linear-gradient(90deg,rgb(31 196 240 / 28%),transparent); box-shadow:inset 2px 0 #55e4ff,0 0 12px rgb(36 204 255 / 18%); }
