@@ -33,11 +33,17 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const standbyGroup = new THREE.Group(); standbyGroup.visible = false; scene.add(standbyGroup)
     const standbyLineMaterials: THREE.LineBasicMaterial[] = []; const standbyGlassMaterials: THREE.MeshBasicMaterial[] = []
     const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); standbyGroup.add(new THREE.LineSegments(geometry, material)) }
-    const addPrimaryWing = (side: -1 | 1) => {
-      const material = new THREE.MeshBasicMaterial({ color: 0x4bb8d6, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = .075
-      const panel = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 5.75), material); panel.position.set(side * 8.15, 0, -.72); panel.rotation.y = side * -.48; standbyGlassMaterials.push(material); standbyGroup.add(panel)
-      const edgeMaterial = makeLineMaterial(0x9cecff); edgeMaterial.userData.targetOpacity = .54; standbyLineMaterials.push(edgeMaterial); const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(1.9, 5.75)), edgeMaterial); edge.position.copy(panel.position); edge.rotation.copy(panel.rotation); standbyGroup.add(edge)
-      // Fine dividers live within this one panel rather than introducing more panels.
+    const addDepthWing = (side: -1 | 1) => {
+      const panels = [
+        { width: 1.9, height: 5.75, x: 8.15, z: -.72, opacity: .09, edge: .68, colour: 0x4bb8d6 }, // D1 outer/front
+        { width: 1.35, height: 5.05, x: 6.95, z: -1.48, opacity: .055, edge: .42, colour: 0x2d7189 }, // D2 inner/rear
+      ]
+      panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour }) => {
+        const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material); panel.position.set(side * x, 0, z); panel.rotation.y = side * -.48; standbyGlassMaterials.push(material); standbyGroup.add(panel)
+        const edgeMaterial = makeLineMaterial(0x9cecff); edgeMaterial.userData.targetOpacity = edgeOpacity; standbyLineMaterials.push(edgeMaterial); const panelEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)), edgeMaterial); panelEdge.position.copy(panel.position); panelEdge.rotation.copy(panel.rotation); standbyGroup.add(panelEdge)
+      })
+      // Technical markings sit on the glass layers; they are not additional panels.
       addStandbyLines([side * 7.42, 1.72, -.2, side * 8.86, 1.98, -1.02, side * 7.42, 0, -.2, side * 8.86, .22, -1.02, side * 7.42, -1.72, -.2, side * 8.86, -1.54, -1.02], 0x3f8da6, .24)
     }
     // 7.2 × 7.2 inner aperture / 8.4 × 8.4 outer architecture. At 1920×1080 this
@@ -51,13 +57,52 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     ], 0xe1fbff, .92)
     // One wide central frame: only a faint joining contour behind the bright corners.
     addStandbyLines([-frameX, frameY, -.08, frameX, frameY, -.08, frameX, -frameY, -.08, -frameX, -frameY, -.08, -frameX, frameY, -.08], 0x5592a7, .22)
-    addPrimaryWing(-1); addPrimaryWing(1)
+    addDepthWing(-1); addDepthWing(1)
+    // F1/F2: four dedicated perspective rails, two per side. They terminate at the
+    // central frame rather than extending through it, so they imply depth without a tunnel.
+    const standbyRailPaths: Array<{ start: THREE.Vector3; end: THREE.Vector3 }> = []
+    const addPerspectiveRail = (side: -1 | 1, upper: boolean) => {
+      const direction = upper ? 1 : -1
+      const start = new THREE.Vector3(side * 10.55, direction * 2.65, -1.18)
+      const end = new THREE.Vector3(side * frameX, direction * 1.78, -.04)
+      standbyRailPaths.push({ start, end })
+      addStandbyLines([start.x, start.y, start.z, end.x, end.y, end.z], 0x78e8ff, .8)
+      addStandbyLines([start.x, start.y + direction * .22, start.z - .12, end.x, end.y + direction * .14, end.z - .04], 0x276c86, .32)
+    }
+    addPerspectiveRail(-1, true); addPerspectiveRail(-1, false); addPerspectiveRail(1, true); addPerspectiveRail(1, false)
+    // E: exactly two horizontal structural rails, above and below the viewport. They are
+    // segmented guides, not another enclosing frame or a line through the wallpaper.
+    const railX = 5.4
+    addStandbyLines([-railX, 4.4, -.52, railX, 4.4, -.52, -railX, -4.1, -.52, railX, -4.1, -.52], 0x4f9ab2, .34)
+    addStandbyLines([-4.8, 4.4, -.48, -2.2, 4.4, -.48, 2.2, 4.4, -.48, 4.8, 4.4, -.48, -4.8, -4.1, -.48, -2.2, -4.1, -.48, 2.2, -4.1, -.48, 4.8, -4.1, -.48], 0xa4efff, .68)
+    addStandbyLines([-.42, 4.4, -.44, .42, 4.4, -.44, -.42, -4.1, -.44, .42, -4.1, -.44], 0xe0fbff, .92)
+    const standbyPacketMaterials: THREE.LineBasicMaterial[] = []; const standbyPackets: Array<{ object: THREE.Line; material: THREE.LineBasicMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }> = []
+    standbyRailPaths.forEach((path, pathIndex) => {
+      const direction = path.end.clone().sub(path.start).normalize()
+      for (let index = 0; index < 2; index++) {
+        const material = makeLineMaterial(0xe1fbff); standbyPacketMaterials.push(material)
+        const packet = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-.16, 0, 0), new THREE.Vector3(.16, 0, 0)]), material)
+        packet.position.copy(path.start); packet.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), direction); standbyGroup.add(packet)
+        standbyPackets.push({ object: packet, material, path, delay: pathIndex * .34 + index * 1.1 })
+      }
+    })
     const pulseMaterials: THREE.LineBasicMaterial[] = []; const pulses: THREE.Line[] = []; for (let i = 0; i < 10; i++) { const y = i % 2 ? -2.9 : 2.9; const material = makeLineMaterial(0xd8fbff); const x = i % 3 === 0 ? 4.7 : -4.7; const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, 0), new THREE.Vector3(x, y, -1.5)]), material); pulse.position.z = -31; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const render = () => { renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render) }; render()
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!; const connect = get<HTMLElement>('.boot-connect'), diagnostics = get<HTMLElement>('.boot-status-columns'), assembleStack = get<HTMLElement>('.boot-assemble-stack'), titleRail = get<HTMLElement>('.boot-title-rail'), readyNodes = [...host.querySelectorAll<HTMLElement>('.boot-ready-node')], core = get<HTMLElement>('.boot-focal-core'), hud = get<HTMLElement>('.boot-hud'), standbyCopy = get<HTMLElement>('.boot-standby-copy'); const shutterParts = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const diagnosticLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]; const diagnosticPanels = [...host.querySelectorAll<HTMLElement>('.boot-diagnostic-panel')]; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl
     if (import.meta.env.DEV) requestAnimationFrame(() => { const ancestors: BootDiagnostics['ancestors'] = []; for (let node: HTMLElement | null = host.parentElement; node && ancestors.length < 4; node = node.parentElement) { const style = getComputedStyle(node); ancestors.push({ tag: node.tagName, className: node.className, position: style.position, transform: style.transform, width: style.width, height: style.height }) }; const canvas = renderer.domElement; const report: BootDiagnostics = { viewport: { width: window.innerWidth, height: window.innerHeight }, scene: host.getBoundingClientRect(), hud: hud.getBoundingClientRect(), canvas: { width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight, pixelRatio: renderer.getPixelRatio() }, assignedViewport: viewport, ancestors }; const browser = window as TimelineWindow; browser.__elucidatorBootDiagnostics = [report]; console.info('[Elucidator boot diagnostics]', report) })
-    const standbyContinue = document.createElement('button'); standbyContinue.className = 'boot-standby-continue'; standbyContinue.type = 'button'; standbyContinue.textContent = 'CONTINUE'; standbyCopy.querySelector('span')?.remove(); standbyCopy.appendChild(standbyContinue)
+    const standbyInstruction = standbyCopy.querySelector('span'); if (standbyInstruction) standbyInstruction.textContent = 'CLICK ANY BUTTON TO CONTINUE'
+    const standbyDiagnostics = document.createElement('div'); standbyDiagnostics.className = 'boot-standby-diagnostics'; ;['WALLPAPER LOADED  //  OK', 'INTERFACE READY   //  OK', 'DISPLAY SYNC      //  OK'].forEach((line) => { const row = document.createElement('span'); row.textContent = `› ${line}`; standbyDiagnostics.appendChild(row) }); host.appendChild(standbyDiagnostics)
+    const standbyAxis = document.createElement('div'); standbyAxis.className = 'boot-standby-axis'; host.appendChild(standbyAxis)
     const idleTimelines: gsap.core.Timeline[] = []
+    const startStandbyRailFlow = () => {
+      if (idleTimelines.length) return
+      standbyPackets.forEach(({ object, material, path, delay }) => {
+        const flow = gsap.timeline({ repeat: -1, repeatDelay: .45, delay })
+        flow.set(object.position, { x: path.start.x, y: path.start.y, z: path.start.z }).set(material, { opacity: 0 })
+          .to(material, { opacity: .94, duration: .16 }).to(object.position, { x: path.end.x, y: path.end.y, z: path.end.z, duration: 2.35, ease: 'none' }, '<').to(material, { opacity: 0, duration: .18 }, '>-0.14')
+        idleTimelines.push(flow)
+      })
+    }
     const applyRevealPose = (timeline?: gsap.core.Timeline, at = 0) => {
       const set = (target: gsap.TweenTarget, vars: gsap.TweenVars) => timeline ? timeline.to(target, { ...vars, overwrite: 'auto' }, at) : gsap.set(target, vars)
       set(camera.position, { z: 14, duration: .72, ease: 'power2.out' }); set(frameMaterials, { opacity: 0, duration: .55 }); set(railMaterial, { opacity: 0, duration: .5 }); set(architectureMaterial, { opacity: 0, duration: .5 }); set(panelMaterials, { opacity: 0, duration: .55 }); set(panelEdgeMaterials, { opacity: 0, duration: .55 }); set(hazeMaterial, { opacity: 0, duration: .5 }); set(standbyGroup, { visible: true }); set(standbyLineMaterials, { opacity: (index: number) => Number(standbyLineMaterials[index].userData.targetOpacity ?? .6), duration: .55 }); set(standbyGlassMaterials, { opacity: (index: number) => Number(standbyGlassMaterials[index].userData.targetOpacity ?? .12), duration: .55 }); set(shutterParts, { '--open': '1', duration: .9, ease: 'power3.inOut' })
@@ -66,12 +111,13 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const installStandbyInput = () => {
       let dismissed = false
       const activate = () => { if (!dismissed) { dismissed = true; activateRef.current() } }
-      standbyContinue.addEventListener('click', activate)
-      removeStandbyInput = () => standbyContinue.removeEventListener('click', activate)
+      window.addEventListener('keydown', activate, { once: true }); window.addEventListener('pointerdown', activate, { once: true })
+      removeStandbyInput = () => { window.removeEventListener('keydown', activate); window.removeEventListener('pointerdown', activate) }
     }
-    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); renderer.dispose(); renderer.domElement.remove(); standbyContinue.remove() }
+    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); standbyAxis.remove() }
     if (standby) {
       host.classList.add('is-revealing', 'is-standby'); gsap.set([hud, standbyCopy], { autoAlpha: 1 }); gsap.set([connect, core, diagnostics, assembleStack], { autoAlpha: 0 }); gsap.set(titleRail, { scaleX: 0 }); applyRevealPose()
+      startStandbyRailFlow()
       installStandbyInput(); return cleanup
     }
     const moveDuration = short ? 1.5 : 3; const assembleAt = short ? 1.98 : 3.53; const revealAt = short ? 2.92 : 5.25; const diagnosticRows = Math.min(coreModules.length, sceneModules.length)

@@ -58,7 +58,7 @@ async function compareToStoryboard(page, screenshotPath, stage) {
   }, { actualBytes: actual.toString('base64'), referenceBytes: reference.toString('base64'), stageIndex: stage })
 }
 
-const report = { baseURL, viewport: '1920x1080', reference: resolve(referencePath), comparisons: [], webgl: [], mirror: null, issues }
+const report = { baseURL, viewport: '1920x1080', reference: resolve(referencePath), comparisons: [], webgl: [], mirror: null, standbyInput: null, issues }
 
 try {
   if (includes('playback')) {
@@ -80,7 +80,8 @@ try {
     const standbyContext = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 })
     const standby = await standbyContext.newPage(); attachDiagnostics(standby, 'direct-standby'); await standby.goto(baseURL, { waitUntil: 'networkidle' }); await command(standby, 'sys standby'); await standby.locator('.boot-scene.is-standby').waitFor({ state: 'visible', timeout: 10_000 })
     for (const seconds of [0, 10, 30]) { if (seconds) await standby.waitForTimeout(seconds === 10 ? 10_000 : 20_000); await standby.screenshot({ path: `${output}/${standbyCaptureLabel}-${String(seconds).padStart(2, '0')}s.png` }) }
-    report.webgl.push({ label: 'direct-standby', state: await webglHealth(standby) }); await standbyContext.close()
+    report.webgl.push({ label: 'direct-standby', state: await webglHealth(standby) }); await standby.mouse.move(960, 540); await standby.waitForTimeout(180); const survivesMouseMove = await standby.locator('.boot-scene.is-standby').count() === 1; await standby.keyboard.press('Space'); await standby.waitForFunction(() => !document.querySelector('.boot-scene.is-standby'), undefined, { timeout: 5_000 }); await standbyContext.close()
+    const clickContext = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 }); const clickPage = await clickContext.newPage(); attachDiagnostics(clickPage, 'standby-click'); await clickPage.goto(baseURL, { waitUntil: 'networkidle' }); await command(clickPage, 'sys standby'); await clickPage.locator('.boot-scene.is-standby').waitFor({ state: 'visible', timeout: 10_000 }); await clickPage.mouse.click(960, 540); await clickPage.waitForFunction(() => !document.querySelector('.boot-scene.is-standby'), undefined, { timeout: 5_000 }); report.standbyInput = { survivesMouseMove, dismissedByKeyboard: true, dismissedByClick: true }; await clickContext.close()
   }
 
   if (includes('mirror')) {
