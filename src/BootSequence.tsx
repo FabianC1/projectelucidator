@@ -42,7 +42,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     }
     // 7.2 × 7.2 inner aperture / 8.4 × 8.4 outer architecture. At 1920×1080 this
     // reads as a roughly 650 px transparent portal with a visible structural surround.
-    const frameX = 6.25; const frameY = 3.3; const corner = .56
+    const frameX = 6.25; const frameY = 3.06; const corner = .56
     addStandbyLines([
       -frameX, frameY - corner, 0, -frameX, frameY, 0, -frameX + corner, frameY, 0,
       frameX - corner, frameY, 0, frameX, frameY, 0, frameX, frameY - corner, 0,

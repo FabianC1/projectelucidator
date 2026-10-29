@@ -5,6 +5,7 @@ import { chromium } from 'playwright'
 const baseURL = process.env.ELUCIDATOR_CAPTURE_URL ?? 'http://127.0.0.1:5173'
 const output = 'artifacts/boot-captures'
 const referencePath = 'design-references/Boot_Sequence/Boot_Storyboard_4_Stages.png'
+const standbyCaptureLabel = (process.env.ELUCIDATOR_CAPTURE_LABEL ?? 'standby-direct').replace(/[^a-z0-9_-]/gi, '-')
 const stages = [['01-connect', .35, 0], ['02-compile', 2.15, 1], ['03-assemble', 4.85, 2], ['04-reveal', 6.4, 3]]
 const issues = []
 const mode = process.argv.find(argument => argument.startsWith('--mode='))?.slice(7) ?? 'all'
@@ -78,7 +79,7 @@ try {
     console.log('Visual check: observing direct standby persistence…')
     const standbyContext = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 })
     const standby = await standbyContext.newPage(); attachDiagnostics(standby, 'direct-standby'); await standby.goto(baseURL, { waitUntil: 'networkidle' }); await command(standby, 'sys standby'); await standby.locator('.boot-scene.is-standby').waitFor({ state: 'visible', timeout: 10_000 })
-    for (const seconds of [0, 10, 30]) { if (seconds) await standby.waitForTimeout(seconds === 10 ? 10_000 : 20_000); await standby.screenshot({ path: `${output}/standby-direct-${String(seconds).padStart(2, '0')}s.png` }) }
+    for (const seconds of [0, 10, 30]) { if (seconds) await standby.waitForTimeout(seconds === 10 ? 10_000 : 20_000); await standby.screenshot({ path: `${output}/${standbyCaptureLabel}-${String(seconds).padStart(2, '0')}s.png` }) }
     report.webgl.push({ label: 'direct-standby', state: await webglHealth(standby) }); await standbyContext.close()
   }
 
