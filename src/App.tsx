@@ -2541,7 +2541,7 @@ function App() {
     <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${standbyActive ? ' reveal-standby-active' : ''}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
       {wallpaperUrl && (
         <img
-          key={bootToken}
+          key={`wallpaper-${bootToken}`}
           className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready ? ' is-loading' : booting && !standbyActive ? ' is-booting' : ' is-ready'}`}
           src={wallpaperUrl}
           alt={wallpaperName}
@@ -2565,7 +2565,7 @@ function App() {
 
       {ready && booting && (sequenceBootViewports
         ? sequenceBootViewports.map((viewport, index) => <BootSequence key={`${bootToken}-${index}`} active={booting} standby={bootStage === 'standby'} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onStandby={index === 0 ? handleBootStandby : () => undefined} onActivate={index === 0 ? handleBootActivate : () => undefined} debug={index === 0} viewport={{ left: viewport.left, top: viewport.top, width: viewport.width, height: viewport.height, right: 'auto', bottom: 'auto' }} />)
-        : <BootSequence key={bootToken} active={booting} standby={bootStage === 'standby'} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onStandby={handleBootStandby} onActivate={handleBootActivate} />)}
+        : <BootSequence key={`boot-${bootToken}`} active={booting} standby={bootStage === 'standby'} short={bootToken > 1} wallpaperReady={!wallpaperUrl || wallpaperMediaReady} onStandby={handleBootStandby} onActivate={handleBootActivate} />)}
       {false && ready && (
         <section className={`boot-sequence${booting ? ' boot-legacy-hidden' : ' is-complete'}`} aria-label="Wallpaper system boot sequence">
           <div className="boot-scan" aria-hidden="true" />

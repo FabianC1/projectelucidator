@@ -9,6 +9,7 @@
     "package:lively": "npm run build && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-lively.ps1",
     "lint": "eslint .",
     "capture:boot": "node scripts/capture-boot.mjs",
+    "test:visual": "node scripts/capture-boot.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

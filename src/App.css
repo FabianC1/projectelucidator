@@ -62,6 +62,7 @@
 .wallpaper-experience.reveal-standby-active .command-console,
 .wallpaper-experience.reveal-standby-active .special-effect {
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 

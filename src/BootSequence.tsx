@@ -35,7 +35,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const idleTimelines: gsap.core.Timeline[] = []
     const startIdle = () => {
       if (idleTimelines.length) return
-      const glassIdle = gsap.timeline({ repeat: -1, yoyo: true }); glassIdle.to(panelMaterials, { opacity: .18, duration: 3.4, stagger: .08, ease: 'sine.inOut' }); idleTimelines.push(glassIdle)
+      const glassIdle = gsap.timeline({ repeat: -1, yoyo: true }); glassIdle.to(panelMaterials.slice(0, 2), { opacity: .3, duration: 3.4, stagger: .08, ease: 'sine.inOut' }); idleTimelines.push(glassIdle)
       pulses.forEach((pulse, index) => { gsap.set(pulse.position, { z: -29 - index * 1.4 }); const idle = gsap.timeline({ repeat: -1, delay: index * .24 }); idle.to(pulse.material, { opacity: .9, duration: .22 }).to(pulse.position, { z: 7.5, duration: 2.2, ease: 'none' }).set(pulse.material, { opacity: 0 }).set(pulse.position, { z: -29 - index * 1.4 }); idleTimelines.push(idle) })
     }
     const revealPanelTargets = panels.map((panel, index) => ({ x: Math.sign(panel.position.x) * 8.2, y: panel.position.y, z: index < 2 ? -.8 : panel.position.z, rotationY: Math.sign(panel.position.x) * -.62 }))
