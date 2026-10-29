@@ -35,8 +35,10 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); standbyGroup.add(new THREE.LineSegments(geometry, material)) }
     const addDepthWing = (side: -1 | 1) => {
       const panels = [
-        { width: 1.9, height: 5.75, x: 8.15, z: -.72, opacity: .09, edge: .68, colour: 0x4bb8d6 }, // D1 outer/front
-        { width: 1.35, height: 5.05, x: 6.95, z: -1.48, opacity: .055, edge: .42, colour: 0x2d7189 }, // D2 inner/rear
+        // Bounds are tuned in screen space against AnnotatedHUD: the narrow D1 layer
+        // hugs the display edge, while D2 sits visibly behind and toward the aperture.
+        { width: .8, height: 6.75, x: 9.6, z: -.72, opacity: .09, edge: .7, colour: 0x4bb8d6 }, // D1 outer/front
+        { width: 1.1, height: 6.6, x: 8.28, z: -1.48, opacity: .055, edge: .46, colour: 0x2d7189 }, // D2 inner/rear
       ]
       panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
@@ -56,15 +58,15 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       frameX - corner, -frameY, 0, frameX, -frameY, 0, frameX, -frameY + corner, 0
     ], 0xe1fbff, .92)
     // One wide central frame: only a faint joining contour behind the bright corners.
-    addStandbyLines([-frameX, frameY, -.08, frameX, frameY, -.08, frameX, -frameY, -.08, -frameX, -frameY, -.08, -frameX, frameY, -.08], 0x5592a7, .22)
+    addStandbyLines([-frameX, frameY, -.08, frameX, frameY, -.08, frameX, -frameY, -.08, -frameX, -frameY, -.08, -frameX, frameY, -.08], 0x5592a7, .42)
     addDepthWing(-1); addDepthWing(1)
     // F1/F2: four dedicated perspective rails, two per side. They terminate at the
     // central frame rather than extending through it, so they imply depth without a tunnel.
     const standbyRailPaths: Array<{ start: THREE.Vector3; end: THREE.Vector3 }> = []
     const addPerspectiveRail = (side: -1 | 1, upper: boolean) => {
       const direction = upper ? 1 : -1
-      const start = new THREE.Vector3(side * 10.55, direction * 2.65, -1.18)
-      const end = new THREE.Vector3(side * frameX, direction * 1.78, -.04)
+      const start = new THREE.Vector3(side * 10.85, upper ? 3.55 : -2.65, -1.18)
+      const end = new THREE.Vector3(side * frameX, upper ? 2.0 : -1.78, -.04)
       standbyRailPaths.push({ start, end })
       addStandbyLines([start.x, start.y, start.z, end.x, end.y, end.z], 0x78e8ff, .8)
       addStandbyLines([start.x, start.y + direction * .22, start.z - .12, end.x, end.y + direction * .14, end.z - .04], 0x276c86, .32)
@@ -73,14 +75,15 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     // E: exactly two horizontal structural rails, above and below the viewport. They are
     // segmented guides, not another enclosing frame or a line through the wallpaper.
     const railX = 5.4
-    addStandbyLines([-railX, 4.4, -.52, railX, 4.4, -.52, -railX, -4.1, -.52, railX, -4.1, -.52], 0x4f9ab2, .34)
-    addStandbyLines([-4.8, 4.4, -.48, -2.2, 4.4, -.48, 2.2, 4.4, -.48, 4.8, 4.4, -.48, -4.8, -4.1, -.48, -2.2, -4.1, -.48, 2.2, -4.1, -.48, 4.8, -4.1, -.48], 0xa4efff, .68)
-    addStandbyLines([-.42, 4.4, -.44, .42, 4.4, -.44, -.42, -4.1, -.44, .42, -4.1, -.44], 0xe0fbff, .92)
-    const standbyPacketMaterials: THREE.LineBasicMaterial[] = []; const standbyPackets: Array<{ object: THREE.Line; material: THREE.LineBasicMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }> = []
+    const upperRailY = 4.6; const lowerRailY = -3.4
+    addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x4f9ab2, .34)
+    addStandbyLines([-4.8, upperRailY, -.48, -2.2, upperRailY, -.48, 2.2, upperRailY, -.48, 4.8, upperRailY, -.48, -4.8, lowerRailY, -.48, -2.2, lowerRailY, -.48, 2.2, lowerRailY, -.48, 4.8, lowerRailY, -.48], 0xa4efff, .68)
+    addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xe0fbff, .92)
+    const standbyPackets: Array<{ object: THREE.Line; material: THREE.LineBasicMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }> = []
     standbyRailPaths.forEach((path, pathIndex) => {
       const direction = path.end.clone().sub(path.start).normalize()
       for (let index = 0; index < 2; index++) {
-        const material = makeLineMaterial(0xe1fbff); standbyPacketMaterials.push(material)
+        const material = makeLineMaterial(0xe1fbff)
         const packet = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-.16, 0, 0), new THREE.Vector3(.16, 0, 0)]), material)
         packet.position.copy(path.start); packet.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), direction); standbyGroup.add(packet)
         standbyPackets.push({ object: packet, material, path, delay: pathIndex * .34 + index * 1.1 })
@@ -128,7 +131,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       .to(diagnosticPanels[0], { autoAlpha: 0, xPercent: -80, duration: .52, ease: 'power2.in' }, revealAt).to(diagnosticPanels[1], { autoAlpha: 0, xPercent: 80, duration: .52, ease: 'power2.in' }, revealAt)
       .to(diagnostics, { autoAlpha: 0, duration: .2 }, revealAt + .12).to([assembleStack, core, connect], { autoAlpha: 0, duration: .34 }, revealAt + .12)
       .call(() => host.classList.add('is-revealing'), [], revealAt).to(standbyCopy, { autoAlpha: 1, duration: .36 }, revealAt + .68)
-      .call(() => { host.classList.add('is-standby'); installStandbyInput(); standbyRef.current() }, [], revealAt + 1.08)
+      .call(() => { host.classList.add('is-standby'); startStandbyRailFlow(); installStandbyInput(); standbyRef.current() }, [], revealAt + 1.08)
     applyRevealPose(tl, revealAt + .1)
     return cleanup
   }, [active, short, standby])
