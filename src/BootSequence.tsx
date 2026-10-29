@@ -79,25 +79,42 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x4f9ab2, .34)
     addStandbyLines([-4.8, upperRailY, -.48, -2.2, upperRailY, -.48, 2.2, upperRailY, -.48, 4.8, upperRailY, -.48, -4.8, lowerRailY, -.48, -2.2, lowerRailY, -.48, 2.2, lowerRailY, -.48, 4.8, lowerRailY, -.48], 0xa4efff, .68)
     addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xe0fbff, .92)
-    type StandbyTraveller = { object: THREE.Group; core: THREE.MeshBasicMaterial; glow: THREE.MeshBasicMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }
+    type TrailMaterial = THREE.MeshBasicMaterial
+    type StandbyTraveller = { object: THREE.Group; core: TrailMaterial; glow: TrailMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }
     const standbyPackets: StandbyTraveller[] = []
     const standbyMarkers: StandbyTraveller[] = []
-    const packetCoreGeometry = new THREE.PlaneGeometry(.8, .045)
-    const packetGlowGeometry = new THREE.PlaneGeometry(1.28, .15)
-    const markerCoreGeometry = new THREE.CircleGeometry(.045, 10)
-    const markerGlowGeometry = new THREE.CircleGeometry(.12, 10)
+    const trailTextures: THREE.CanvasTexture[] = []
+    const makeTrailTexture = (core: boolean) => {
+      const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 16
+      const context = canvas.getContext('2d')!; const along = context.createLinearGradient(0, 0, canvas.width, 0)
+      along.addColorStop(0, 'rgba(255,255,255,0)'); along.addColorStop(core ? .18 : .08, 'rgba(255,255,255,.04)'); along.addColorStop(core ? .58 : .4, 'rgba(255,255,255,1)'); along.addColorStop(core ? .78 : .88, 'rgba(255,255,255,.25)'); along.addColorStop(1, 'rgba(255,255,255,0)')
+      context.fillStyle = along; context.fillRect(0, 0, canvas.width, canvas.height)
+      context.globalCompositeOperation = 'destination-in'; const across = context.createLinearGradient(0, 0, 0, canvas.height); across.addColorStop(0, 'rgba(255,255,255,0)'); across.addColorStop(core ? .3 : .14, 'rgba(255,255,255,.78)'); across.addColorStop(.5, 'rgba(255,255,255,1)'); across.addColorStop(core ? .7 : .86, 'rgba(255,255,255,.78)'); across.addColorStop(1, 'rgba(255,255,255,0)'); context.fillStyle = across; context.fillRect(0, 0, canvas.width, canvas.height)
+      const texture = new THREE.CanvasTexture(canvas); texture.minFilter = THREE.LinearFilter; texture.magFilter = THREE.LinearFilter; trailTextures.push(texture); return texture
+    }
+    const coreTexture = makeTrailTexture(true); const haloTexture = makeTrailTexture(false)
+    const makeTrailMaterial = (colour: THREE.ColorRepresentation, halo: boolean): TrailMaterial => new THREE.MeshBasicMaterial({ color: colour, map: halo ? haloTexture : coreTexture, transparent: true, opacity: 0, depthWrite: false, depthTest: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
+    const packetCoreGeometry = new THREE.PlaneGeometry(.9, .045)
+    const packetGlowGeometry = new THREE.PlaneGeometry(1.46, .17)
+    const markerCoreGeometry = new THREE.PlaneGeometry(.28, .018)
+    const markerGlowGeometry = new THREE.PlaneGeometry(.5, .065)
     const addTraveller = (path: { start: THREE.Vector3; end: THREE.Vector3 }, delay: number, packet: boolean) => {
       const object = new THREE.Group(); const direction = path.end.clone().sub(path.start).normalize()
-      const glow = new THREE.MeshBasicMaterial({ color: 0x33cfff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
-      const core = new THREE.MeshBasicMaterial({ color: 0xe8fcff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
+      const glow = makeTrailMaterial(0x36d6ff, true)
+      const core = makeTrailMaterial(0xe9fcff, false)
       const glowMesh = new THREE.Mesh(packet ? packetGlowGeometry : markerGlowGeometry, glow); const coreMesh = new THREE.Mesh(packet ? packetCoreGeometry : markerCoreGeometry, core)
       object.add(glowMesh, coreMesh); object.position.copy(path.start); object.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), direction); standbyGroup.add(object)
       const traveller = { object, core, glow, path, delay }; (packet ? standbyPackets : standbyMarkers).push(traveller)
     }
     standbyRailPaths.forEach((path, pathIndex) => {
-      for (let index = 0; index < 2; index++) addTraveller(path, pathIndex * .34 + index * 1.1, true)
-      const midpoint = path.start.clone().lerp(path.end, .42); const markerPath = { start: midpoint, end: path.end.clone() }
-      addTraveller(markerPath, pathIndex * .52 + .42, false)
+      // Extend the visible line back through depth; every traveller remains collinear with
+      // the rail and naturally grows under the perspective camera as it approaches.
+      const direction = path.end.clone().sub(path.start).normalize()
+      const far = path.start.clone().addScaledVector(direction, -7.4)
+      const depthPath = { start: far, end: path.end.clone().addScaledVector(direction, .12) }
+      for (let index = 0; index < 3; index++) addTraveller(depthPath, pathIndex * .37 + index * .76, true)
+      const markerStart = path.start.clone().addScaledVector(direction, -2.3)
+      addTraveller({ start: markerStart, end: path.end.clone().addScaledVector(direction, -.14) }, pathIndex * .48 + .31, false)
     })
     const pulseMaterials: THREE.LineBasicMaterial[] = []; const pulses: THREE.Line[] = []; for (let i = 0; i < 10; i++) { const y = i % 2 ? -2.9 : 2.9; const material = makeLineMaterial(0xd8fbff); const x = i % 3 === 0 ? 4.7 : -4.7; const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, 0), new THREE.Vector3(x, y, -1.5)]), material); pulse.position.z = -31; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const render = () => { renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render) }; render()
@@ -109,16 +126,16 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const idleTimelines: gsap.core.Timeline[] = []
     const startStandbyRailFlow = () => {
       if (idleTimelines.length) return
-      const animateTraveller = ({ object, core, glow, path, delay }: StandbyTraveller, duration: number, scale: number, isPacket: boolean) => {
+      const animateTraveller = ({ object, core, glow, path, delay }: StandbyTraveller, duration: number, isPacket: boolean) => {
         const flow = gsap.timeline({ repeat: -1, repeatDelay: .45, delay })
-        flow.set(object.position, { x: path.start.x, y: path.start.y, z: path.start.z }).set(object.scale, { x: .55, y: .55, z: .55 }).set([core, glow], { opacity: 0 })
-          .to(glow, { opacity: isPacket ? .44 : .28, duration: .14 }).to(core, { opacity: isPacket ? 1 : .78, duration: .11 }, '<')
-          .to(object.position, { x: path.end.x, y: path.end.y, z: path.end.z, duration, ease: 'none' }, '<').to(object.scale, { x: scale, y: scale, z: scale, duration, ease: 'none' }, '<')
-          .to([core, glow], { opacity: 0, duration: .15 }, '>-0.12')
+        flow.set(object.position, { x: path.start.x, y: path.start.y, z: path.start.z }).set(core, { opacity: 0 }).set(glow, { opacity: 0 })
+          .to(glow, { opacity: isPacket ? .6 : .3, duration: .13 }).to(core, { opacity: isPacket ? 1 : .7, duration: .1 }, '<')
+          .to(object.position, { x: path.end.x, y: path.end.y, z: path.end.z, duration, ease: 'power1.in' }, '<')
+          .to([core, glow], { opacity: 0, duration: .14 }, '>-0.13')
         idleTimelines.push(flow)
       }
-      standbyPackets.forEach(packet => animateTraveller(packet, 1.55, 1.18, true))
-      standbyMarkers.forEach(marker => animateTraveller(marker, 1.82, 1.32, false))
+      standbyPackets.forEach((packet, index) => animateTraveller(packet, 1.2 + (index % 3) * .13, true))
+      standbyMarkers.forEach((marker, index) => animateTraveller(marker, 1.45 + (index % 2) * .16, false))
     }
     const applyRevealPose = (timeline?: gsap.core.Timeline, at = 0) => {
       const set = (target: gsap.TweenTarget, vars: gsap.TweenVars) => timeline ? timeline.to(target, { ...vars, overwrite: 'auto' }, at) : gsap.set(target, vars)
@@ -131,7 +148,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       window.addEventListener('keydown', activate, { once: true }); window.addEventListener('pointerdown', activate, { once: true })
       removeStandbyInput = () => { window.removeEventListener('keydown', activate); window.removeEventListener('pointerdown', activate) }
     }
-    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); standbyAxis.remove() }
+    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); standbyAxis.remove() }
     if (standby) {
       host.classList.add('is-revealing', 'is-standby'); gsap.set([hud, standbyCopy], { autoAlpha: 1 }); gsap.set([connect, core, diagnostics, assembleStack], { autoAlpha: 0 }); gsap.set(titleRail, { scaleX: 0 }); applyRevealPose()
       startStandbyRailFlow()
