@@ -251,7 +251,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     // E: exactly two horizontal structural rails, above and below the viewport. They are
     // segmented guides, not another enclosing frame or a line through the wallpaper.
     const railX = standbyViewWidth * .269
-    const upperRailY = 4.6; const lowerRailY = -3.4
+    const upperRailY = 3.9; const lowerRailY = -3.4
     addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x4f9ab2, .34)
     addStandbyLines([-standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .239, lowerRailY, -.48, -standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .239, lowerRailY, -.48], 0xa4efff, .68)
     addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xe0fbff, .92)
@@ -651,7 +651,62 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
         }
       })
 
-      renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render)
+      
+      // Clip the standby WebGL scene to the inside of the HUD outline.
+      // The travelling packets keep their full paths but cannot draw
+      // across or beyond the outer frame.
+      const hudFrame = host.querySelector<HTMLElement>('.boot-hud')
+
+      if (standbyGroup.visible && hudFrame) {
+        const frameRect = hudFrame.getBoundingClientRect()
+        const canvasRect = renderer.domElement.getBoundingClientRect()
+        const frameStyle = getComputedStyle(hudFrame)
+
+        const leftInset = parseFloat(frameStyle.borderLeftWidth) + 1
+        const rightInset = parseFloat(frameStyle.borderRightWidth) + 1
+        const topInset = parseFloat(frameStyle.borderTopWidth) + 1
+        const bottomInset = parseFloat(frameStyle.borderBottomWidth) + 1
+
+        const left = Math.ceil(
+          frameRect.left - canvasRect.left + leftInset
+        )
+        const right = Math.floor(
+          frameRect.right - canvasRect.left - rightInset
+        )
+        const top = Math.ceil(
+          frameRect.top - canvasRect.top + topInset
+        )
+        const bottom = Math.floor(
+          frameRect.bottom - canvasRect.top - bottomInset
+        )
+
+        const clipX = Math.max(0, left)
+        const clipY = Math.max(0, canvasRect.height - bottom)
+        const clipWidth = Math.max(
+          0,
+          Math.min(canvasRect.width, right) - clipX
+        )
+        const clipHeight = Math.max(
+          0,
+          Math.min(canvasRect.height - clipY, bottom - top)
+        )
+
+        renderer.setScissor(
+          clipX,
+          clipY,
+          clipWidth,
+          clipHeight
+        )
+        renderer.setScissorTest(true)
+      } else {
+        renderer.setScissorTest(false)
+      }
+
+      renderer.render(scene, camera)
+      renderer.setScissorTest(false)
+
+      if (running) raf = requestAnimationFrame(render)
+
     }; render()
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!; const connect = get<HTMLElement>('.boot-connect'), diagnostics = get<HTMLElement>('.boot-status-columns'), assembleStack = get<HTMLElement>('.boot-assemble-stack'), titleRail = get<HTMLElement>('.boot-title-rail'), readyNodes = [...host.querySelectorAll<HTMLElement>('.boot-ready-node')], core = get<HTMLElement>('.boot-focal-core'), hud = get<HTMLElement>('.boot-hud'), standbyCopy = get<HTMLElement>('.boot-standby-copy'); const shutterParts = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const diagnosticLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]; const diagnosticPanels = [...host.querySelectorAll<HTMLElement>('.boot-diagnostic-panel')]; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl
     if (import.meta.env.DEV) requestAnimationFrame(() => { const ancestors: BootDiagnostics['ancestors'] = []; for (let node: HTMLElement | null = host.parentElement; node && ancestors.length < 4; node = node.parentElement) { const style = getComputedStyle(node); ancestors.push({ tag: node.tagName, className: node.className, position: style.position, transform: style.transform, width: style.width, height: style.height }) }; const canvas = renderer.domElement; const report: BootDiagnostics = { viewport: { width: window.innerWidth, height: window.innerHeight }, scene: host.getBoundingClientRect(), hud: hud.getBoundingClientRect(), canvas: { width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight, pixelRatio: renderer.getPixelRatio() }, assignedViewport: viewport, ancestors }; const browser = window as TimelineWindow; browser.__elucidatorBootDiagnostics = [report]; console.info('[Elucidator boot diagnostics]', report) })
