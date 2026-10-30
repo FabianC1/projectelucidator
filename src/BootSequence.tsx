@@ -41,18 +41,15 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); standbyGroup.add(new THREE.LineSegments(geometry, material)) }
     const addDepthWing = (side: -1 | 1) => {
       const panels = [
-        // D1/D2 are tapered glass wings, not upright rectangular doors. Their
-        // wide slanted silhouettes overlap along the same corridor direction.
-        { width: 2.36, height: 6.05, x: 9.35, z: -.72, opacity: .13, edge: .76, colour: 0x4bb8d6, angle: -.48 }, // D1 outer/front
-        { width: 1.78, height: 5.35, x: 7.7, z: -1.48, opacity: .082, edge: .56, colour: 0x2d7189, angle: -.42 }, // D2 inner/rear
+        // Bounds are tuned in screen space against AnnotatedHUD: the narrow D1 layer
+        // hugs the display edge, while D2 sits visibly behind and toward the aperture.
+        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .14, edge: .82, colour: 0x4bb8d6 }, // D1 outer/front
+        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .085, edge: .61, colour: 0x2d7189 }, // D2 inner/rear
       ]
-      panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour, angle }) => {
+      panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
-        const wingGeometry = new THREE.BufferGeometry(); wingGeometry.setAttribute('position', new THREE.Float32BufferAttribute([
-          -width * .5, -height * .5, 0, width * .48, -height * .33, 0, width * .31, height * .5, 0, -width * .38, height * .38, 0,
-        ], 3)); wingGeometry.setIndex([0, 1, 2, 0, 2, 3]); wingGeometry.computeVertexNormals()
-        const panel = new THREE.Mesh(wingGeometry, material); panel.position.set(side * widen(x), 0, z); panel.rotation.y = side * angle; standbyGlassMaterials.push(material); standbyGroup.add(panel)
-        const edgeMaterial = makeLineMaterial(0x9cecff); edgeMaterial.userData.targetOpacity = edgeOpacity; standbyLineMaterials.push(edgeMaterial); const panelEdge = new THREE.LineSegments(new THREE.EdgesGeometry(wingGeometry), edgeMaterial); panelEdge.position.copy(panel.position); panelEdge.rotation.copy(panel.rotation); standbyGroup.add(panelEdge)
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material); panel.position.set(side * widen(x), 0, z); panel.rotation.y = side * -.62; standbyGlassMaterials.push(material); standbyGroup.add(panel)
+        const edgeMaterial = makeLineMaterial(0x9cecff); edgeMaterial.userData.targetOpacity = edgeOpacity; standbyLineMaterials.push(edgeMaterial); const panelEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)), edgeMaterial); panelEdge.position.copy(panel.position); panelEdge.rotation.copy(panel.rotation); standbyGroup.add(panelEdge)
         const detailMaterial = makeLineMaterial(0x75dff5); detailMaterial.userData.targetOpacity = edgeOpacity * .68; standbyLineMaterials.push(detailMaterial)
         const detail = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([
           -width * .39, height * .26, .02, width * .39, height * .26, .02, -width * .39, 0, .02, width * .28, 0, .02, -width * .39, -height * .26, .02, width * .39, -height * .26, .02,
@@ -61,7 +58,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
         ], 3)), detailMaterial)
         detail.position.copy(panel.position); detail.rotation.copy(panel.rotation); standbyGroup.add(detail)
         const scanMaterial = new THREE.MeshBasicMaterial({ color: 0xa8f4ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
-        const scan = new THREE.Mesh(new THREE.PlaneGeometry(width * .68, .028), scanMaterial); scan.position.set(panel.position.x, -height * .27, panel.position.z + .025); scan.rotation.copy(panel.rotation); standbyGroup.add(scan); standbyPanelScans.push({ mesh: scan, material: scanMaterial, minY: -height * .27, maxY: height * .29 })
+        const scan = new THREE.Mesh(new THREE.PlaneGeometry(width * .78, .028), scanMaterial); scan.position.set(panel.position.x, -height * .31, panel.position.z + .025); scan.rotation.copy(panel.rotation); standbyGroup.add(scan); standbyPanelScans.push({ mesh: scan, material: scanMaterial, minY: -height * .31, maxY: height * .31 })
       })
       // Technical markings sit on the glass layers; they are not additional panels.
       addStandbyLines([side * widen(7.42), 1.72, -.2, side * widen(8.86), 1.98, -1.02, side * widen(7.42), 0, -.2, side * widen(8.86), .22, -1.02, side * widen(7.42), -1.72, -.2, side * widen(8.86), -1.54, -1.02], 0x3f8da6, .24)
