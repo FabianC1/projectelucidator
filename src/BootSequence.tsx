@@ -161,7 +161,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const directionalGeometry = new THREE.BufferGeometry(); const directionalAttribute = new THREE.BufferAttribute(directionalPositions, 3); directionalGeometry.setAttribute('position', directionalAttribute)
     const directionalMaterial = new THREE.LineBasicMaterial({ color: 0x8eecff, transparent: true, opacity: .68, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending })
     standbyGroup.add(new THREE.LineSegments(directionalGeometry, directionalMaterial))
-    type TrailMaterial = THREE.MeshBasicMaterial
+    type TrailMaterial = THREE.MeshBasicMaterial | THREE.SpriteMaterial
     type StandbyTraveller = { object: THREE.Group; core: TrailMaterial; glow: TrailMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }
     const standbyPackets: StandbyTraveller[] = []
     const standbyMarkers: StandbyTraveller[] = []
@@ -178,14 +178,21 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const makeTrailMaterial = (colour: THREE.ColorRepresentation, halo: boolean): TrailMaterial => new THREE.MeshBasicMaterial({ color: colour, map: halo ? haloTexture : coreTexture, transparent: true, opacity: 0, depthWrite: false, depthTest: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
     const packetCoreGeometry = new THREE.PlaneGeometry(.9, .045)
     const packetGlowGeometry = new THREE.PlaneGeometry(1.46, .17)
-    const markerCoreGeometry = new THREE.PlaneGeometry(.28, .018)
-    const markerGlowGeometry = new THREE.PlaneGeometry(.5, .065)
     const addTraveller = (path: { start: THREE.Vector3; end: THREE.Vector3 }, delay: number, packet: boolean) => {
       const object = new THREE.Group(); const direction = path.end.clone().sub(path.start).normalize()
-      const glow = makeTrailMaterial(0x36d6ff, true)
-      const core = makeTrailMaterial(0xe9fcff, false)
-      const glowMesh = new THREE.Mesh(packet ? packetGlowGeometry : markerGlowGeometry, glow); const coreMesh = new THREE.Mesh(packet ? packetCoreGeometry : markerCoreGeometry, core)
-      object.add(glowMesh, coreMesh); object.position.copy(path.start); object.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), direction); standbyGroup.add(object)
+      const glow = packet ? makeTrailMaterial(0x36d6ff, true) : new THREE.SpriteMaterial({ color: 0x36d6ff, map: haloTexture, transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending })
+      const core = packet ? makeTrailMaterial(0xe9fcff, false) : new THREE.SpriteMaterial({ color: 0xe9fcff, map: coreTexture, transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending })
+      if (packet) {
+        object.add(new THREE.Mesh(packetGlowGeometry, glow), new THREE.Mesh(packetCoreGeometry, core))
+      } else {
+        // Three short segments preserve the existing dotted telemetry language while
+        // remaining a single travelling packet along the interpolated mid-corridor path.
+        for (const offset of [-.12, 0, .12]) {
+          const glowDot = new THREE.Sprite(glow as THREE.SpriteMaterial); const coreDot = new THREE.Sprite(core as THREE.SpriteMaterial)
+          glowDot.position.x = offset; coreDot.position.x = offset; glowDot.scale.set(.22, .07, 1); coreDot.scale.set(.095, .025, 1); object.add(glowDot, coreDot)
+        }
+      }
+      object.position.copy(path.start); object.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), direction); standbyGroup.add(object)
       const traveller = { object, core, glow, path, delay }; (packet ? standbyPackets : standbyMarkers).push(traveller)
     }
     standbyRailPaths.forEach((path, pathIndex) => {
@@ -195,9 +202,18 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       const far = path.start.clone().addScaledVector(direction, -7.4)
       const depthPath = { start: far, end: path.end.clone().addScaledVector(direction, .12) }
       for (let index = 0; index < 3; index++) addTraveller(depthPath, pathIndex * .37 + index * .76, true)
-      const markerStart = path.start.clone().addScaledVector(direction, -2.3)
-      addTraveller({ start: markerStart, end: path.end.clone().addScaledVector(direction, -.14) }, pathIndex * .48 + .31, false)
     })
+    // Stage 1A: dotted data packets are suspended midway between F1 and F2 rather
+    // than riding either structural rail. Interpolating both endpoints (including Z)
+    // preserves the same converging corridor perspective on each side.
+    for (const [upperIndex, lowerIndex] of [[0, 1], [2, 3]]) {
+      const upper = standbyRailPaths[upperIndex]; const lower = standbyRailPaths[lowerIndex]
+      const midStart = upper.start.clone().lerp(lower.start, .5)
+      const midEnd = upper.end.clone().lerp(lower.end, .5)
+      const direction = midEnd.clone().sub(midStart).normalize()
+      const dottedStart = midStart.clone().addScaledVector(direction, -2.3)
+      for (let dot = 0; dot < 2; dot++) addTraveller({ start: dottedStart, end: midEnd.clone().addScaledVector(direction, -.14) }, upperIndex * .31 + dot * .68, false)
+    }
     const pulseMaterials: THREE.LineBasicMaterial[] = []; const pulses: THREE.Line[] = []; for (let i = 0; i < 10; i++) { const y = i % 2 ? -2.9 : 2.9; const material = makeLineMaterial(0xd8fbff); const x = i % 3 === 0 ? 4.7 : -4.7; const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, 0), new THREE.Vector3(x, y, -1.5)]), material); pulse.position.z = -31; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const particleClock = new THREE.Clock(); const render = () => {
       const elapsed = particleClock.getElapsedTime()
