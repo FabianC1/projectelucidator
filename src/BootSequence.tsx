@@ -59,14 +59,50 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           panelGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)), lineMaterial))
         }
         const halfW = width * .5; const halfH = height * .5; const zOffset = .018
-        // A complete, deliberately fine perimeter establishes the glass structure.
-        // The brighter fragmented runs below are accents, not a replacement outline.
+
+        // DIRECTIONAL HOLOGRAPHIC EDGE LIGHTING
+        // Bright top/bottom edges and camera-facing side.
+        // Dimmer edge facing into the wallpaper.
+
+        const cameraEdgeX = side * halfW
+        const wallpaperEdgeX = -side * halfW
+
+        // Top and bottom: crisp white-blue illumination.
         addPanelLine([
-          -halfW, halfH, zOffset, halfW, halfH, zOffset,
-          halfW, halfH, zOffset, halfW, -halfH, zOffset,
-          halfW, -halfH, zOffset, -halfW, -halfH, zOffset,
-          -halfW, -halfH, zOffset, -halfW, halfH, zOffset,
-        ], 0x3D91E8, edgeOpacity * 1.0)
+          -halfW, halfH, zOffset,
+          halfW, halfH, zOffset,
+
+          -halfW, -halfH, zOffset,
+          halfW, -halfH, zOffset,
+        ], 0xC5EFFF, edgeOpacity * 1.0)
+
+        // Camera-facing vertical edge: strongest blue-white.
+        addPanelLine([
+          cameraEdgeX, halfH, zOffset,
+          cameraEdgeX, -halfH, zOffset,
+        ], 0xA9E5FF, edgeOpacity * 1.0)
+
+        // Wallpaper-facing vertical edge: deeper, quieter blue.
+        addPanelLine([
+          wallpaperEdgeX, halfH, zOffset,
+          wallpaperEdgeX, -halfH, zOffset,
+        ], 0x245AAB, edgeOpacity * .38)
+
+        // Short luminous accents along the visible edges.
+        addPanelLine([
+          cameraEdgeX, halfH, zOffset,
+          cameraEdgeX, halfH - height * .16, zOffset,
+
+          cameraEdgeX, -halfH, zOffset,
+          cameraEdgeX, -halfH + height * .14, zOffset,
+
+          -halfW, halfH, zOffset,
+          -halfW + width * .22, halfH, zOffset,
+
+          halfW - width * .22, -halfH, zOffset,
+          halfW, -halfH, zOffset,
+        ], 0xE0F7FF, edgeOpacity * .95)
+
         // Brighter illuminated corners and separated edge runs retain the layered,
         // technical hologram language without making the perimeter heavy.
         addPanelLine([
@@ -255,7 +291,9 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           .43 - randomA * .40
         )
 
-        const y = (randomB * 2 - 1) * standbyViewHeight * .39
+        // Restrict inward-flowing particles to the lower HUD region.
+        // Occupies approximately 27% of the scene height.
+        const y = standbyViewHeight * (-.34 + randomB * .27)
         const z = -.6 - randomC * 1.4
 
         const offset = index * 3
