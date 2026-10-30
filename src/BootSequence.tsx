@@ -45,12 +45,14 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       const panels = [
         // D1 foreground and D2 rear retain the accepted responsive anchors but
         // differ materially in detail density, scanning, and illumination.
-        { width: 1.35, height: 7.15, x: 9.6, z: -.72, opacity: .065, edge: .78, colour: 0x4bb8d6, density: 1 },
-        { width: 1.55, height: 6.9, x: 8.28, z: -1.48, opacity: .042, edge: .48, colour: 0x2d7189, density: .68 },
+
+        { width: 1.35, height: 7.15, x: 9.6, z: -.72, opacity: .035, edge: .78, colour: 0x123E78, density: 1 },
+        { width: 1.55, height: 6.9, x: 8.28, z: -1.48, opacity: .025, edge: .48, colour: 0x0B2858, density: .68 },
+
       ]
       panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour, density }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
-        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -.22; standbyGroup.add(panelGroup)
+        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -1.5; standbyGroup.add(panelGroup)
         panelGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(width, height), material)); standbyGlassMaterials.push(material)
         const addPanelLine = (points: number[], color: number, targetOpacity: number) => {
           const lineMaterial = makeLineMaterial(color); lineMaterial.userData.targetOpacity = targetOpacity; standbyLineMaterials.push(lineMaterial)
