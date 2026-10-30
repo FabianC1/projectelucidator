@@ -150,6 +150,28 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     standbyGlassTexture.needsUpdate = true
 
 
+    // Soft illumination for selected panel telemetry lines.
+    const telemetryGlowCanvas = document.createElement('canvas')
+    telemetryGlowCanvas.width = 16
+    telemetryGlowCanvas.height = 64
+
+    const telemetryGlowCtx = telemetryGlowCanvas.getContext('2d')!
+    const telemetryGradient =
+      telemetryGlowCtx.createLinearGradient(0, 0, 0, 64)
+
+    telemetryGradient.addColorStop(0, 'rgba(65,155,255,0)')
+    telemetryGradient.addColorStop(.25, 'rgba(65,155,255,0.12)')
+    telemetryGradient.addColorStop(.5, 'rgba(165,225,255,0.75)')
+    telemetryGradient.addColorStop(.75, 'rgba(65,155,255,0.12)')
+    telemetryGradient.addColorStop(1, 'rgba(65,155,255,0)')
+
+    telemetryGlowCtx.fillStyle = telemetryGradient
+    telemetryGlowCtx.fillRect(0, 0, 16, 64)
+
+    const telemetryGlowTexture =
+      new THREE.CanvasTexture(telemetryGlowCanvas)
+
+
     const addDepthWing = (side: -1 | 1) => {
       const panels = [
         // D1 foreground and D2 rear retain the accepted responsive anchors but
@@ -354,26 +376,169 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           edgeOpacity * (density === 1 ? .50 : .46)
         )
 
-        // Selected bright telemetry accents.
+        // Crisp white-blue telemetry highlights.
+        // Keep the rear glass slightly softer.
         addPanelLine(
           accentPoints,
-          0xA8D5FF,
-          edgeOpacity * (density === 1 ? 1.0 : .95)
+          0xE3F8FF,
+          density === 1 ? .98 : .84
         )
+
+
+        // Soft glow behind each selected telemetry stroke.
+        // Reuse the existing standby fade-in lifecycle.
+        const telemetryGlowMaterial = new THREE.MeshBasicMaterial({
+          map: telemetryGlowTexture,
+          color: 0x8ACFFF,
+          transparent: true,
+          opacity: 0,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          depthTest: false,
+          blending: THREE.AdditiveBlending
+        })
+
+        telemetryGlowMaterial.userData.targetOpacity =
+          density === 1 ? .72 : .54
+
+        standbyGlassMaterials.push(telemetryGlowMaterial)
+
+        for (let i = 0; i < accentPoints.length; i += 6) {
+          const x1 = accentPoints[i]
+          const y1 = accentPoints[i + 1]
+          const x2 = accentPoints[i + 3]
+          const y2 = accentPoints[i + 4]
+
+          const dx = x2 - x1
+          const dy = y2 - y1
+          const length = Math.hypot(dx, dy)
+
+          if (length < .001) continue
+
+          const glow = new THREE.Mesh(
+            new THREE.PlaneGeometry(length + .12, .22),
+            telemetryGlowMaterial
+          )
+
+          glow.position.set(
+            (x1 + x2) / 2,
+            (y1 + y2) / 2,
+            zOffset + .008
+          )
+
+          glow.rotation.z = Math.atan2(dy, dx)
+          panelGroup.add(glow)
+        }
+
 
       })
     }
     // 7.2 × 7.2 inner aperture / 8.4 × 8.4 outer architecture. At 1920×1080 this
     // reads as a roughly 650 px transparent portal with a visible structural surround.
-    const frameX = standbyViewWidth * .311; const frameY = standbyViewHeight * .29; const corner = .56
+
+    // CENTRAL HUD FRAME
+    // Bright vertical edges, subdued horizontal edges,
+    // and short illuminated accents at all four corners.
+    const frameX = standbyViewWidth * .311
+    const frameY = standbyViewHeight * .29
+    const corner = .34
+
+    // Continuous left and right edges.
     addStandbyLines([
-      -frameX, frameY - corner, 0, -frameX, frameY, 0, -frameX + corner, frameY, 0,
-      frameX - corner, frameY, 0, frameX, frameY, 0, frameX, frameY - corner, 0,
-      -frameX, -frameY + corner, 0, -frameX, -frameY, 0, -frameX + corner, -frameY, 0,
-      frameX - corner, -frameY, 0, frameX, -frameY, 0, frameX, -frameY + corner, 0
-    ], 0xe1fbff, .92)
+      -frameX, frameY, 0,
+      -frameX, -frameY, 0,
+
+      frameX, frameY, 0,
+      frameX, -frameY, 0
+    ], 0x79C7F5, .82)
+
+    // Continuous top and bottom edges.
+    // Deliberately darker than the vertical sides.
+    addStandbyLines([
+      -frameX, frameY, -.02,
+      frameX, frameY, -.02,
+
+      -frameX, -frameY, -.02,
+      frameX, -frameY, -.02
+    ], 0x245A9B, .46)
+
+    // Bright vertical accents near each corner.
+    addStandbyLines([
+      -frameX, frameY, .025,
+      -frameX, frameY - corner, .025,
+
+      frameX, frameY, .025,
+      frameX, frameY - corner, .025,
+
+      -frameX, -frameY, .025,
+      -frameX, -frameY + corner, .025,
+
+      frameX, -frameY, .025,
+      frameX, -frameY + corner, .025
+    ], 0xE3F8FF, 1.0)
+
+    // Short horizontal corner accents.
+    // Slightly softer so the sides remain dominant.
+    addStandbyLines([
+      -frameX, frameY, .025,
+      -frameX + corner, frameY, .025,
+
+      frameX, frameY, .025,
+      frameX - corner, frameY, .025,
+
+      -frameX, -frameY, .025,
+      -frameX + corner, -frameY, .025,
+
+      frameX, -frameY, .025,
+      frameX - corner, -frameY, .025
+    ], 0xA8D9FF, .82)
+
     // One wide central frame: only a faint joining contour behind the bright corners.
     addStandbyLines([-frameX, frameY, -.08, frameX, frameY, -.08, frameX, -frameY, -.08, -frameX, -frameY, -.08, -frameX, frameY, -.08], 0x72bed4, .56)
+
+    // Soft blue illumination behind the four frame corners.
+    const cornerGlowCanvas = document.createElement('canvas')
+    cornerGlowCanvas.width = 128
+    cornerGlowCanvas.height = 128
+
+    const cornerGlowCtx = cornerGlowCanvas.getContext('2d')!
+    const cornerGlowGradient =
+      cornerGlowCtx.createRadialGradient(64, 64, 0, 64, 64, 64)
+
+    cornerGlowGradient.addColorStop(0, 'rgba(180,235,255,0.55)')
+    cornerGlowGradient.addColorStop(0.18, 'rgba(95,180,255,0.32)')
+    cornerGlowGradient.addColorStop(0.5, 'rgba(40,110,220,0.10)')
+    cornerGlowGradient.addColorStop(1, 'rgba(20,60,150,0)')
+
+    cornerGlowCtx.fillStyle = cornerGlowGradient
+    cornerGlowCtx.fillRect(0, 0, 128, 128)
+
+    const cornerGlowTexture =
+      new THREE.CanvasTexture(cornerGlowCanvas)
+
+    const standbyCornerGlowMaterials: THREE.SpriteMaterial[] = []
+
+    for (const x of [-frameX, frameX]) {
+      for (const y of [-frameY, frameY]) {
+        const glowMaterial = new THREE.SpriteMaterial({
+          map: cornerGlowTexture,
+          color: 0x8ACFFF,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          depthTest: false,
+          blending: THREE.AdditiveBlending
+        })
+
+        const glow = new THREE.Sprite(glowMaterial)
+        glow.position.set(x, y, -0.03)
+        glow.scale.set(.95, .95, 1)
+
+        standbyGroup.add(glow)
+        standbyCornerGlowMaterials.push(glowMaterial)
+      }
+    }
+
     addDepthWing(-1); addDepthWing(1)
     // F1/F2: four dedicated perspective rails, two per side. They terminate at the
     // central frame rather than extending through it, so they imply depth without a tunnel.
@@ -877,7 +1042,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     if (import.meta.env.DEV) requestAnimationFrame(() => { const ancestors: BootDiagnostics['ancestors'] = []; for (let node: HTMLElement | null = host.parentElement; node && ancestors.length < 4; node = node.parentElement) { const style = getComputedStyle(node); ancestors.push({ tag: node.tagName, className: node.className, position: style.position, transform: style.transform, width: style.width, height: style.height }) }; const canvas = renderer.domElement; const report: BootDiagnostics = { viewport: { width: window.innerWidth, height: window.innerHeight }, scene: host.getBoundingClientRect(), hud: hud.getBoundingClientRect(), canvas: { width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight, pixelRatio: renderer.getPixelRatio() }, assignedViewport: viewport, ancestors }; const browser = window as TimelineWindow; browser.__elucidatorBootDiagnostics = [report]; console.info('[Elucidator boot diagnostics]', report) })
     const standbyInstruction = standbyCopy.querySelector('span'); if (standbyInstruction) standbyInstruction.textContent = 'CLICK ANY BUTTON TO CONTINUE'
     const standbyDiagnostics = document.createElement('div'); standbyDiagnostics.className = 'boot-standby-diagnostics';;['WALLPAPER LOADED  //  OK', 'INTERFACE READY   //  OK', 'DISPLAY SYNC      //  OK'].forEach((line) => { const row = document.createElement('span'); row.textContent = `› ${line}`; standbyDiagnostics.appendChild(row) }); host.appendChild(standbyDiagnostics)
-    const standbyAxis = document.createElement('div'); standbyAxis.className = 'boot-standby-axis'; host.appendChild(standbyAxis)
+    
     const idleTimelines: gsap.core.Timeline[] = []
     const startStandbyRailFlow = () => {
       if (idleTimelines.length) return
@@ -901,7 +1066,11 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     }
     const applyRevealPose = (timeline?: gsap.core.Timeline, at = 0) => {
       const set = (target: gsap.TweenTarget, vars: gsap.TweenVars) => timeline ? timeline.to(target, { ...vars, overwrite: 'auto' }, at) : gsap.set(target, vars)
-      set(camera.position, { z: 14, duration: .72, ease: 'power2.out' }); set(frameMaterials, { opacity: 0, duration: .55 }); set(railMaterial, { opacity: 0, duration: .5 }); set(architectureMaterial, { opacity: 0, duration: .5 }); set(panelMaterials, { opacity: 0, duration: .55 }); set(panelEdgeMaterials, { opacity: 0, duration: .55 }); set(hazeMaterial, { opacity: 0, duration: .5 }); set(standbyGroup, { visible: true }); set(standbyLineMaterials, { opacity: (index: number) => Number(standbyLineMaterials[index].userData.targetOpacity ?? .6), duration: .55 }); set(standbyGlassMaterials, { opacity: (index: number) => Number(standbyGlassMaterials[index].userData.targetOpacity ?? .12), duration: .55 }); set(shutterParts, { '--open': '1', duration: .9, ease: 'power3.inOut' })
+      set(camera.position, { z: 14, duration: .72, ease: 'power2.out' }); set(frameMaterials, { opacity: 0, duration: .55 }); set(railMaterial, { opacity: 0, duration: .5 }); set(architectureMaterial, { opacity: 0, duration: .5 }); set(panelMaterials, { opacity: 0, duration: .55 }); set(panelEdgeMaterials, { opacity: 0, duration: .55 }); set(hazeMaterial, { opacity: 0, duration: .5 }); set(standbyGroup, { visible: true }); set(standbyLineMaterials, { opacity: (index: number) => Number(standbyLineMaterials[index].userData.targetOpacity ?? .6), duration: .55 }); set(standbyGlassMaterials, { opacity: (index: number) => Number(standbyGlassMaterials[index].userData.targetOpacity ?? .12), duration: .55 }); set(standbyCornerGlowMaterials, {
+        opacity: .55,
+        duration: .7,
+        ease: 'power2.out'
+      }); set(shutterParts, { '--open': '1', duration: .9, ease: 'power3.inOut' })
     }
     let removeStandbyInput: () => void = () => { }
     const installStandbyInput = () => {
@@ -918,7 +1087,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       window.addEventListener('keydown', activate); window.addEventListener('pointerdown', activate)
       removeStandbyInput = () => { window.removeEventListener('keydown', activate); window.removeEventListener('pointerdown', activate) }
     }
-    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); standbyGlassTexture.dispose(); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); standbyAxis.remove() }
+    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); standbyGlassTexture.dispose(); telemetryGlowTexture.dispose(); cornerGlowTexture.dispose(); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove();  }
     if (standby) {
       host.classList.add('is-revealing', 'is-standby'); gsap.set([hud, standbyCopy], { autoAlpha: 1 }); gsap.set([connect, core, diagnostics, assembleStack], { autoAlpha: 0 }); gsap.set(titleRail, { scaleX: 0 }); applyRevealPose()
       startStandbyRailFlow()

@@ -205,3 +205,9 @@
     transition: none;
   }
 }
+
+
+/* TEST: Hide the vertical dotted centre alignment guide. */
+.boot-scene.is-standby .boot-standby-axis {
+  display: none;
+}
