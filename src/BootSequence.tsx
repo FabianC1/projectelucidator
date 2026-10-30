@@ -141,26 +141,6 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const starGeometry = new THREE.BufferGeometry(); starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
     const starMaterial = new THREE.PointsMaterial({ color: 0x9aefff, size: .035, transparent: true, opacity: .48, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })
     standbyGroup.add(new THREE.Points(starGeometry, starMaterial))
-    // Annotations 1, 10, 12 and 13: one preallocated LineSegments draw call. Each
-    // pair travels on a straight, fixed rail-aligned path; no wandering positions
-    // or per-frame allocations are used.
-    type DirectionalStreak = { sx: number; sy: number; sz: number; ex: number; ey: number; ez: number; speed: number; phase: number; tail: number }
-    const directionalStreaks: DirectionalStreak[] = []
-    const addStreakRoute = (start: THREE.Vector3, end: THREE.Vector3, count: number, phaseOffset: number, tail: number) => {
-      for (let index = 0; index < count; index++) directionalStreaks.push({ sx: start.x, sy: start.y, sz: start.z, ex: end.x, ey: end.y, ez: end.z, speed: .11 + (index % 5) * .026, phase: phaseOffset + index * .173, tail: tail * (.72 + (index % 4) * .1) })
-    }
-    // Upper and lower perspective rails form the principal directional flows.
-    standbyRailPaths.forEach((path, index) => addStreakRoute(path.start, path.end, index % 2 === 0 ? 11 : 15, index * .37, index % 2 === 0 ? .13 : .17))
-    // Floor fragments converge toward the aperture along the same lower perspective.
-    for (const side of [-1, 1] as const) {
-      const start = new THREE.Vector3(side * standbyViewWidth * .52, -3.06, -1.72)
-      const end = new THREE.Vector3(side * frameX * .62, -1.58, -.16)
-      addStreakRoute(start, end, 10, side === -1 ? .18 : .63, .14)
-    }
-    const directionalPositions = new Float32Array(directionalStreaks.length * 6)
-    const directionalGeometry = new THREE.BufferGeometry(); const directionalAttribute = new THREE.BufferAttribute(directionalPositions, 3); directionalGeometry.setAttribute('position', directionalAttribute)
-    const directionalMaterial = new THREE.LineBasicMaterial({ color: 0x8eecff, transparent: true, opacity: .68, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending })
-    standbyGroup.add(new THREE.LineSegments(directionalGeometry, directionalMaterial))
     type TrailMaterial = THREE.MeshBasicMaterial | THREE.SpriteMaterial
     type StandbyTraveller = { object: THREE.Group; core: TrailMaterial; glow: TrailMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }
     const standbyPackets: StandbyTraveller[] = []
@@ -176,6 +156,19 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     }
     const coreTexture = makeTrailTexture(true); const haloTexture = makeTrailTexture(false)
     const makeTrailMaterial = (colour: THREE.ColorRepresentation, halo: boolean): TrailMaterial => new THREE.MeshBasicMaterial({ color: colour, map: halo ? haloTexture : coreTexture, transparent: true, opacity: 0, depthWrite: false, depthTest: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
+    type AmbientLinearStreak = { core: THREE.MeshBasicMaterial; glow: THREE.MeshBasicMaterial; coreBrightness: number; glowStrength: number; breathingSpeed: number; phase: number }
+    const ambientLinearStreaks: AmbientLinearStreak[] = []
+    const addAmbientLinearStreak = ({ position, length, direction, coreBrightness, glowStrength, breathingSpeed, phase }: { position: THREE.Vector3; length: number; direction: THREE.Vector3; coreBrightness: number; glowStrength: number; breathingSpeed: number; phase: number }) => {
+      const object = new THREE.Group(); const planarDirection = direction.clone().setZ(0).normalize()
+      const core = new THREE.MeshBasicMaterial({ color: 0xeafcff, map: coreTexture, transparent: true, opacity: .18, depthWrite: false, depthTest: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
+      const glow = new THREE.MeshBasicMaterial({ color: 0x55dcff, map: haloTexture, transparent: true, opacity: .05, depthWrite: false, depthTest: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
+      const coreMesh = new THREE.Mesh(new THREE.PlaneGeometry(length, .012), core); const glowMesh = new THREE.Mesh(new THREE.PlaneGeometry(length * 1.45, .052), glow)
+      object.position.copy(position); object.rotation.z = Math.atan2(planarDirection.y, planarDirection.x); object.add(glowMesh, coreMesh); standbyGroup.add(object)
+      ambientLinearStreaks.push({ core, glow, coreBrightness, glowStrength, breathingSpeed, phase })
+    }
+    // Stage 1B test: deliberately fixed in the upper-left sky band. Only opacity
+    // breathes; the group itself is never translated, rotated, or regenerated.
+    addAmbientLinearStreak({ position: new THREE.Vector3(-standbyViewWidth * .235, 3.82, .08), length: .44, direction: new THREE.Vector3(.94, -.34, 0), coreBrightness: .78, glowStrength: .26, breathingSpeed: .42, phase: .7 })
     const packetCoreGeometry = new THREE.PlaneGeometry(.9, .045)
     const packetGlowGeometry = new THREE.PlaneGeometry(1.46, .17)
     const addTraveller = (path: { start: THREE.Vector3; end: THREE.Vector3 }, delay: number, packet: boolean) => {
@@ -217,16 +210,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const pulseMaterials: THREE.LineBasicMaterial[] = []; const pulses: THREE.Line[] = []; for (let i = 0; i < 10; i++) { const y = i % 2 ? -2.9 : 2.9; const material = makeLineMaterial(0xd8fbff); const x = i % 3 === 0 ? 4.7 : -4.7; const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, 0), new THREE.Vector3(x, y, -1.5)]), material); pulse.position.z = -31; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const particleClock = new THREE.Clock(); const render = () => {
       const elapsed = particleClock.getElapsedTime()
-      for (let index = 0; index < directionalStreaks.length; index++) {
-        const streak = directionalStreaks[index]; const progress = (elapsed * streak.speed + streak.phase) % 1; const tail = Math.max(0, progress - streak.tail); const offset = index * 6
-        directionalPositions[offset] = streak.sx + (streak.ex - streak.sx) * tail
-        directionalPositions[offset + 1] = streak.sy + (streak.ey - streak.sy) * tail
-        directionalPositions[offset + 2] = streak.sz + (streak.ez - streak.sz) * tail
-        directionalPositions[offset + 3] = streak.sx + (streak.ex - streak.sx) * progress
-        directionalPositions[offset + 4] = streak.sy + (streak.ey - streak.sy) * progress
-        directionalPositions[offset + 5] = streak.sz + (streak.ez - streak.sz) * progress
-      }
-      directionalAttribute.needsUpdate = true
+      ambientLinearStreaks.forEach((streak) => { const breath = .5 + .5 * Math.sin(elapsed * streak.breathingSpeed + streak.phase); streak.core.opacity = .16 + streak.coreBrightness * (.26 + breath * .34); streak.glow.opacity = .035 + streak.glowStrength * (.2 + breath * .4) })
       renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render)
     }; render()
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!; const connect = get<HTMLElement>('.boot-connect'), diagnostics = get<HTMLElement>('.boot-status-columns'), assembleStack = get<HTMLElement>('.boot-assemble-stack'), titleRail = get<HTMLElement>('.boot-title-rail'), readyNodes = [...host.querySelectorAll<HTMLElement>('.boot-ready-node')], core = get<HTMLElement>('.boot-focal-core'), hud = get<HTMLElement>('.boot-hud'), standbyCopy = get<HTMLElement>('.boot-standby-copy'); const shutterParts = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const diagnosticLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]; const diagnosticPanels = [...host.querySelectorAll<HTMLElement>('.boot-diagnostic-panel')]; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl
