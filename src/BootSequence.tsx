@@ -144,8 +144,16 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     let removeStandbyInput: () => void = () => {}
     const installStandbyInput = () => {
       let dismissed = false
-      const activate = () => { if (!dismissed) { dismissed = true; activateRef.current() } }
-      window.addEventListener('keydown', activate, { once: true }); window.addEventListener('pointerdown', activate, { once: true })
+      const activate = (event: KeyboardEvent | PointerEvent) => {
+        // Windows/browser shortcuts (notably Win+Shift+S) are not an intentional
+        // request to leave standby. Keep the full HUD visible for capture.
+        if (event instanceof KeyboardEvent) {
+          const ignoredKey = ['Alt', 'AltGraph', 'CapsLock', 'Control', 'Fn', 'Meta', 'NumLock', 'PrintScreen', 'ScrollLock', 'Shift'].includes(event.key)
+          if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || ignoredKey) return
+        } else if (event.button !== 0) return
+        if (!dismissed) { dismissed = true; removeStandbyInput(); activateRef.current() }
+      }
+      window.addEventListener('keydown', activate); window.addEventListener('pointerdown', activate)
       removeStandbyInput = () => { window.removeEventListener('keydown', activate); window.removeEventListener('pointerdown', activate) }
     }
     const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); standbyAxis.remove() }
