@@ -23,7 +23,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const frameMaterials: THREE.LineBasicMaterial[] = []; const panelMaterials: THREE.MeshBasicMaterial[] = []; const panelEdgeMaterials: THREE.LineBasicMaterial[] = []; const panels: THREE.Mesh[] = []; const makeLineMaterial = (color = 0x62dfff) => new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 })
     depths.forEach((z, index) => {
       const material = makeLineMaterial(index < 2 ? 0xc2f7ff : 0x38b7d9); frameMaterials.push(material); const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(9.4, 5.8, .01)), material); frame.position.z = z; corridor.add(frame)
-      ;[-1, 1].forEach(side => { const glass = new THREE.MeshBasicMaterial({ color: 0x2bbde8, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }); const panel = new THREE.Mesh(new THREE.PlaneGeometry(3.35, 3.8), glass); panel.position.set(side * 5.65, 0, z); panel.rotation.y = side * Math.PI / 2; panelMaterials.push(glass); panels.push(panel); corridor.add(panel); const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(3.35, 3.8)), makeLineMaterial(0x86efff)); edge.position.copy(panel.position); edge.rotation.copy(panel.rotation); panelEdgeMaterials.push(edge.material as THREE.LineBasicMaterial); corridor.add(edge) })
+        ;[-1, 1].forEach(side => { const glass = new THREE.MeshBasicMaterial({ color: 0x2bbde8, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }); const panel = new THREE.Mesh(new THREE.PlaneGeometry(3.35, 3.8), glass); panel.position.set(side * 5.65, 0, z); panel.rotation.y = side * Math.PI / 2; panelMaterials.push(glass); panels.push(panel); corridor.add(panel); const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(3.35, 3.8)), makeLineMaterial(0x86efff)); edge.position.copy(panel.position); edge.rotation.copy(panel.rotation); panelEdgeMaterials.push(edge.material as THREE.LineBasicMaterial); corridor.add(edge) })
     })
     const rails: number[] = []; const architecture: number[] = []
     for (let i = 0; i < depths.length - 1; i++) { for (const [x, y] of [[-4.7, -2.9], [-4.7, 2.9], [4.7, -2.9], [4.7, 2.9]]) rails.push(x, y, depths[i], x, y, depths[i + 1]); for (const y of [-2.48, 2.48]) for (const [x0, x1] of [[-3.8, -1.65], [-.9, .9], [1.65, 3.8]]) architecture.push(x0, y, depths[i], x1, y, depths[i]); for (const x of [-4.05, 4.05]) architecture.push(x, -2.65, depths[i], x, 2.65, depths[i]) }
@@ -38,16 +38,15 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const standbyViewHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z
     const standbyViewWidth = standbyViewHeight * standbyAspect
     const standbyLineMaterials: THREE.LineBasicMaterial[] = []; const standbyGlassMaterials: THREE.MeshBasicMaterial[] = []
-    const standbyPanelScans: Array<{ mesh: THREE.Mesh; material: THREE.MeshBasicMaterial; minY: number; maxY: number }> = []
     const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); standbyGroup.add(new THREE.LineSegments(geometry, material)) }
     const addDepthWing = (side: -1 | 1) => {
       const panels = [
         // D1 foreground and D2 rear retain the accepted responsive anchors but
         // differ materially in detail density, scanning, and illumination.
-        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .085, edge: .82, colour: 0x4bb8d6, density: 1, scans: 2 },
-        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .042, edge: .42, colour: 0x2d7189, density: .68, scans: 1 },
+        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .085, edge: .82, colour: 0x4bb8d6, density: 1},
+        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .042, edge: .42, colour: 0x2d7189, density: .68},
       ]
-      panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour, density, scans }) => {
+      panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour, density }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
         const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -.62; standbyGroup.add(panelGroup)
         panelGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(width, height), material)); standbyGlassMaterials.push(material)
@@ -136,30 +135,100 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const starGeometry = new THREE.BufferGeometry(); starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
     const starMaterial = new THREE.PointsMaterial({ color: 0x9aefff, size: .035, transparent: true, opacity: .48, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })
     standbyGroup.add(new THREE.Points(starGeometry, starMaterial))
-    // Six static perspective rows per side give the corridor atmospheric depth without
-    // becoming new rails. Every dot derives from a matching interpolation of F1/F2,
-    // including Z, so its row converges naturally toward the aperture.
-    type CorridorDot = { base: number; phase: number; speed: number; sparklePhase: number }
-    const corridorDotPositions: number[] = []; const corridorDotColours: number[] = []; const corridorDots: CorridorDot[] = []
-    const rowBands = [.12, .27, .41, .61, .76, .89]
+
+    // Holographic corridor particles.
+    // Fixed positions, perspective-aligned rows, varied sizes and brightness.
+    type CorridorDot = {
+      base: number
+      phase: number
+      speed: number
+      sparklePhase: number
+    }
+
+    type ParticleLayer = {
+      positions: number[]
+      colours: number[]
+      dots: CorridorDot[]
+      colourAttribute?: THREE.Float32BufferAttribute
+    }
+
+    const particleLayers: ParticleLayer[] = [
+      { positions: [], colours: [], dots: [] }, // Tiny
+      { positions: [], colours: [], dots: [] }, // Medium
+      { positions: [], colours: [], dots: [] }, // Bright accents
+    ]
+
+    const rowBands = [.08, .17, .28, .39, .50, .61, .72, .83, .93]
+
     for (const [upperIndex, lowerIndex] of [[0, 1], [2, 3]]) {
-      const upper = standbyRailPaths[upperIndex]; const lower = standbyRailPaths[lowerIndex]
+      const upper = standbyRailPaths[upperIndex]
+      const lower = standbyRailPaths[lowerIndex]
+
       rowBands.forEach((band, rowIndex) => {
-        const start = upper.start.clone().lerp(lower.start, band); const end = upper.end.clone().lerp(lower.end, band)
-        const count = 10 + ((rowIndex * 3 + upperIndex) % 5)
+        const start = upper.start.clone().lerp(lower.start, band)
+        const end = upper.end.clone().lerp(lower.end, band)
+
+        const count = 17 + ((rowIndex * 7 + upperIndex) % 8)
+
         for (let dotIndex = 0; dotIndex < count; dotIndex++) {
-          const stagger = (((dotIndex * 7 + rowIndex * 11 + upperIndex) % 9) - 4) * .006
-          const progress = THREE.MathUtils.clamp(.07 + dotIndex / Math.max(1, count - 1) * .86 + stagger, 0, 1)
-          corridorDotPositions.push(start.x + (end.x - start.x) * progress, start.y + (end.y - start.y) * progress, start.z + (end.z - start.z) * progress)
-          corridorDotColours.push(.13, .42, .51)
-          corridorDots.push({ base: .28 + ((dotIndex * 5 + rowIndex * 3) % 7) * .035, phase: dotIndex * 1.19 + rowIndex * .83 + upperIndex, speed: .25 + ((dotIndex + rowIndex) % 4) * .045, sparklePhase: dotIndex * .71 + rowIndex * 1.7 })
+          const seed = dotIndex * 17 + rowIndex * 31 + upperIndex * 13
+          const variation = Math.abs(Math.sin(seed * 1.618))
+
+          // Irregular spacing, but always along the perspective path.
+          const stagger = Math.sin(seed * 2.37) * .009
+          const progress = THREE.MathUtils.clamp(
+            .035 + dotIndex / Math.max(1, count - 1) * .93 + stagger,
+            0,
+            1
+          )
+
+          // Most particles are tiny. A few are larger highlights.
+          const sizeGroup = variation > .91 ? 2 : variation > .57 ? 1 : 0
+          const layer = particleLayers[sizeGroup]
+
+          const position = start.clone().lerp(end, progress)
+
+          layer.positions.push(position.x, position.y, position.z)
+          layer.colours.push(.1, .25, .35)
+
+          layer.dots.push({
+            base: .12 + Math.pow(variation, 2.2) * .72,
+            phase: seed * .73,
+            speed: .16 + variation * .43,
+            sparklePhase: seed * 1.31,
+          })
         }
       })
     }
-    const corridorDotGeometry = new THREE.BufferGeometry(); const corridorDotPositionAttribute = new THREE.Float32BufferAttribute(corridorDotPositions, 3); const corridorDotColourAttribute = new THREE.Float32BufferAttribute(corridorDotColours, 3)
-    corridorDotGeometry.setAttribute('position', corridorDotPositionAttribute); corridorDotGeometry.setAttribute('color', corridorDotColourAttribute)
-    const corridorDotMaterial = new THREE.PointsMaterial({ size: .05, vertexColors: true, transparent: true, opacity: .9, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })
-    standbyGroup.add(new THREE.Points(corridorDotGeometry, corridorDotMaterial))
+
+    const particleSizes = [.023, .046, .078]
+
+    particleLayers.forEach((layer, index) => {
+      const geometry = new THREE.BufferGeometry()
+
+      geometry.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(layer.positions, 3)
+      )
+
+      const colours = new THREE.Float32BufferAttribute(layer.colours, 3)
+      geometry.setAttribute('color', colours)
+      layer.colourAttribute = colours
+
+      const material = new THREE.PointsMaterial({
+        size: particleSizes[index],
+        vertexColors: true,
+        transparent: true,
+        opacity: .9,
+        depthWrite: false,
+        depthTest: false,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true,
+      })
+
+      standbyGroup.add(new THREE.Points(geometry, material))
+    })
+
     type TrailMaterial = THREE.MeshBasicMaterial | THREE.SpriteMaterial
     type StandbyTraveller = { object: THREE.Group; core: TrailMaterial; glow: TrailMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }
     const standbyPackets: StandbyTraveller[] = []
@@ -230,14 +299,48 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const particleClock = new THREE.Clock(); const render = () => {
       const elapsed = particleClock.getElapsedTime()
       ambientLinearStreaks.forEach((streak) => { const breath = .5 + .5 * Math.sin(elapsed * streak.breathingSpeed + streak.phase); streak.core.opacity = .16 + streak.coreBrightness * (.26 + breath * .34); streak.glow.opacity = .035 + streak.glowStrength * (.2 + breath * .4) })
-      corridorDots.forEach((dot, index) => { const breath = .72 + .28 * (.5 + .5 * Math.sin(elapsed * dot.speed + dot.phase)); const sparkle = Math.pow(Math.max(0, Math.sin(elapsed * .36 + dot.sparklePhase)), 14) * .24; const intensity = .55 + dot.base * breath + sparkle; const offset = index * 3; corridorDotColours[offset] = .42 * intensity; corridorDotColours[offset + 1] = .94 * intensity; corridorDotColours[offset + 2] = intensity })
-      corridorDotColourAttribute.needsUpdate = true
+      
+particleLayers.forEach((layer) => {
+  const colours = layer.colours
+
+  layer.dots.forEach((dot, index) => {
+    // Independent slow breathing, not synchronised blinking.
+    const breath = .5 + .5 * Math.sin(
+      elapsed * dot.speed + dot.phase
+    )
+
+    // Occasional soft highlights, not flashing stars.
+    const sparkle = Math.pow(
+      Math.max(0, Math.sin(elapsed * .31 + dot.sparklePhase)),
+      12
+    ) * .16
+
+    const intensity = Math.min(
+      .98,
+      dot.base * (.48 + breath * .52) + sparkle
+    )
+
+    const offset = index * 3
+
+    colours[offset] = .38 * intensity
+    colours[offset + 1] = .88 * intensity
+    colours[offset + 2] = intensity
+  })
+
+  const attribute = layer.colourAttribute
+
+  if (attribute) {
+    attribute.array.set(colours)
+    attribute.needsUpdate = true
+  }
+})
+
       renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render)
     }; render()
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!; const connect = get<HTMLElement>('.boot-connect'), diagnostics = get<HTMLElement>('.boot-status-columns'), assembleStack = get<HTMLElement>('.boot-assemble-stack'), titleRail = get<HTMLElement>('.boot-title-rail'), readyNodes = [...host.querySelectorAll<HTMLElement>('.boot-ready-node')], core = get<HTMLElement>('.boot-focal-core'), hud = get<HTMLElement>('.boot-hud'), standbyCopy = get<HTMLElement>('.boot-standby-copy'); const shutterParts = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const diagnosticLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]; const diagnosticPanels = [...host.querySelectorAll<HTMLElement>('.boot-diagnostic-panel')]; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl
     if (import.meta.env.DEV) requestAnimationFrame(() => { const ancestors: BootDiagnostics['ancestors'] = []; for (let node: HTMLElement | null = host.parentElement; node && ancestors.length < 4; node = node.parentElement) { const style = getComputedStyle(node); ancestors.push({ tag: node.tagName, className: node.className, position: style.position, transform: style.transform, width: style.width, height: style.height }) }; const canvas = renderer.domElement; const report: BootDiagnostics = { viewport: { width: window.innerWidth, height: window.innerHeight }, scene: host.getBoundingClientRect(), hud: hud.getBoundingClientRect(), canvas: { width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight, pixelRatio: renderer.getPixelRatio() }, assignedViewport: viewport, ancestors }; const browser = window as TimelineWindow; browser.__elucidatorBootDiagnostics = [report]; console.info('[Elucidator boot diagnostics]', report) })
     const standbyInstruction = standbyCopy.querySelector('span'); if (standbyInstruction) standbyInstruction.textContent = 'CLICK ANY BUTTON TO CONTINUE'
-    const standbyDiagnostics = document.createElement('div'); standbyDiagnostics.className = 'boot-standby-diagnostics'; ;['WALLPAPER LOADED  //  OK', 'INTERFACE READY   //  OK', 'DISPLAY SYNC      //  OK'].forEach((line) => { const row = document.createElement('span'); row.textContent = `› ${line}`; standbyDiagnostics.appendChild(row) }); host.appendChild(standbyDiagnostics)
+    const standbyDiagnostics = document.createElement('div'); standbyDiagnostics.className = 'boot-standby-diagnostics';;['WALLPAPER LOADED  //  OK', 'INTERFACE READY   //  OK', 'DISPLAY SYNC      //  OK'].forEach((line) => { const row = document.createElement('span'); row.textContent = `› ${line}`; standbyDiagnostics.appendChild(row) }); host.appendChild(standbyDiagnostics)
     const standbyAxis = document.createElement('div'); standbyAxis.className = 'boot-standby-axis'; host.appendChild(standbyAxis)
     const idleTimelines: gsap.core.Timeline[] = []
     const startStandbyRailFlow = () => {
@@ -257,7 +360,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       const set = (target: gsap.TweenTarget, vars: gsap.TweenVars) => timeline ? timeline.to(target, { ...vars, overwrite: 'auto' }, at) : gsap.set(target, vars)
       set(camera.position, { z: 14, duration: .72, ease: 'power2.out' }); set(frameMaterials, { opacity: 0, duration: .55 }); set(railMaterial, { opacity: 0, duration: .5 }); set(architectureMaterial, { opacity: 0, duration: .5 }); set(panelMaterials, { opacity: 0, duration: .55 }); set(panelEdgeMaterials, { opacity: 0, duration: .55 }); set(hazeMaterial, { opacity: 0, duration: .5 }); set(standbyGroup, { visible: true }); set(standbyLineMaterials, { opacity: (index: number) => Number(standbyLineMaterials[index].userData.targetOpacity ?? .6), duration: .55 }); set(standbyGlassMaterials, { opacity: (index: number) => Number(standbyGlassMaterials[index].userData.targetOpacity ?? .12), duration: .55 }); set(shutterParts, { '--open': '1', duration: .9, ease: 'power3.inOut' })
     }
-    let removeStandbyInput: () => void = () => {}
+    let removeStandbyInput: () => void = () => { }
     const installStandbyInput = () => {
       let dismissed = false
       const activate = (event: KeyboardEvent | PointerEvent) => {
