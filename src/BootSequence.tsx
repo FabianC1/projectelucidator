@@ -29,28 +29,43 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     for (let i = 0; i < depths.length - 1; i++) { for (const [x, y] of [[-4.7, -2.9], [-4.7, 2.9], [4.7, -2.9], [4.7, 2.9]]) rails.push(x, y, depths[i], x, y, depths[i + 1]); for (const y of [-2.48, 2.48]) for (const [x0, x1] of [[-3.8, -1.65], [-.9, .9], [1.65, 3.8]]) architecture.push(x0, y, depths[i], x1, y, depths[i]); for (const x of [-4.05, 4.05]) architecture.push(x, -2.65, depths[i], x, 2.65, depths[i]) }
     const railMaterial = makeLineMaterial(0x4fdcff); corridor.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(rails, 3)), railMaterial)); const architectureMaterial = makeLineMaterial(0x2284a4); corridor.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(architecture, 3)), architectureMaterial)); const hazeMaterial = new THREE.MeshBasicMaterial({ color: 0x1677a0, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }); const haze = new THREE.Mesh(new THREE.PlaneGeometry(11, 6.5), hazeMaterial); haze.position.z = -16; corridor.add(haze)
     // Static standby is its own display architecture. It is deliberately independent of
-    // the boot corridor, with one wide central viewport and one glass panel per side.
+    // the boot corridor, with one central viewport and two glass layers per side.
     const standbyGroup = new THREE.Group(); standbyGroup.visible = false; scene.add(standbyGroup)
+    // Build the standby architecture against the actual host aspect ratio. This
+    // changes its physical coordinates, rather than stretching a 16:9 scene.
+    const standbyAspect = Math.max(1, host.clientWidth / Math.max(1, host.clientHeight))
+    const standbyWide = Math.min(1.82, Math.max(1, standbyAspect / (16 / 9)))
+    const widen = (value: number) => value * standbyWide
     const standbyLineMaterials: THREE.LineBasicMaterial[] = []; const standbyGlassMaterials: THREE.MeshBasicMaterial[] = []
+    const standbyPanelScans: Array<{ mesh: THREE.Mesh; material: THREE.MeshBasicMaterial; minY: number; maxY: number }> = []
     const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); standbyGroup.add(new THREE.LineSegments(geometry, material)) }
     const addDepthWing = (side: -1 | 1) => {
       const panels = [
         // Bounds are tuned in screen space against AnnotatedHUD: the narrow D1 layer
         // hugs the display edge, while D2 sits visibly behind and toward the aperture.
-        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .09, edge: .7, colour: 0x4bb8d6 }, // D1 outer/front
-        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .055, edge: .46, colour: 0x2d7189 }, // D2 inner/rear
+        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .14, edge: .82, colour: 0x4bb8d6 }, // D1 outer/front
+        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .085, edge: .61, colour: 0x2d7189 }, // D2 inner/rear
       ]
       panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
-        const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material); panel.position.set(side * x, 0, z); panel.rotation.y = side * -.62; standbyGlassMaterials.push(material); standbyGroup.add(panel)
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material); panel.position.set(side * widen(x), 0, z); panel.rotation.y = side * -.62; standbyGlassMaterials.push(material); standbyGroup.add(panel)
         const edgeMaterial = makeLineMaterial(0x9cecff); edgeMaterial.userData.targetOpacity = edgeOpacity; standbyLineMaterials.push(edgeMaterial); const panelEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)), edgeMaterial); panelEdge.position.copy(panel.position); panelEdge.rotation.copy(panel.rotation); standbyGroup.add(panelEdge)
+        const detailMaterial = makeLineMaterial(0x75dff5); detailMaterial.userData.targetOpacity = edgeOpacity * .68; standbyLineMaterials.push(detailMaterial)
+        const detail = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([
+          -width * .39, height * .26, .02, width * .39, height * .26, .02, -width * .39, 0, .02, width * .28, 0, .02, -width * .39, -height * .26, .02, width * .39, -height * .26, .02,
+          -width * .24, height * .39, .02, -width * .24, -height * .39, .02, width * .24, height * .39, .02, width * .24, -height * .39, .02,
+          -width * .43, height * .12, .02, -width * .32, height * .12, .02, width * .27, -height * .12, .02, width * .43, -height * .12, .02,
+        ], 3)), detailMaterial)
+        detail.position.copy(panel.position); detail.rotation.copy(panel.rotation); standbyGroup.add(detail)
+        const scanMaterial = new THREE.MeshBasicMaterial({ color: 0xa8f4ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
+        const scan = new THREE.Mesh(new THREE.PlaneGeometry(width * .78, .028), scanMaterial); scan.position.set(panel.position.x, -height * .31, panel.position.z + .025); scan.rotation.copy(panel.rotation); standbyGroup.add(scan); standbyPanelScans.push({ mesh: scan, material: scanMaterial, minY: -height * .31, maxY: height * .31 })
       })
       // Technical markings sit on the glass layers; they are not additional panels.
-      addStandbyLines([side * 7.42, 1.72, -.2, side * 8.86, 1.98, -1.02, side * 7.42, 0, -.2, side * 8.86, .22, -1.02, side * 7.42, -1.72, -.2, side * 8.86, -1.54, -1.02], 0x3f8da6, .24)
+      addStandbyLines([side * widen(7.42), 1.72, -.2, side * widen(8.86), 1.98, -1.02, side * widen(7.42), 0, -.2, side * widen(8.86), .22, -1.02, side * widen(7.42), -1.72, -.2, side * widen(8.86), -1.54, -1.02], 0x3f8da6, .24)
     }
     // 7.2 × 7.2 inner aperture / 8.4 × 8.4 outer architecture. At 1920×1080 this
     // reads as a roughly 650 px transparent portal with a visible structural surround.
-    const frameX = 6.25; const frameY = 3.06; const corner = .56
+    const frameX = widen(6.25); const frameY = 3.06; const corner = .56
     addStandbyLines([
       -frameX, frameY - corner, 0, -frameX, frameY, 0, -frameX + corner, frameY, 0,
       frameX - corner, frameY, 0, frameX, frameY, 0, frameX, frameY - corner, 0,
@@ -58,14 +73,14 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       frameX - corner, -frameY, 0, frameX, -frameY, 0, frameX, -frameY + corner, 0
     ], 0xe1fbff, .92)
     // One wide central frame: only a faint joining contour behind the bright corners.
-    addStandbyLines([-frameX, frameY, -.08, frameX, frameY, -.08, frameX, -frameY, -.08, -frameX, -frameY, -.08, -frameX, frameY, -.08], 0x5592a7, .42)
+    addStandbyLines([-frameX, frameY, -.08, frameX, frameY, -.08, frameX, -frameY, -.08, -frameX, -frameY, -.08, -frameX, frameY, -.08], 0x72bed4, .56)
     addDepthWing(-1); addDepthWing(1)
     // F1/F2: four dedicated perspective rails, two per side. They terminate at the
     // central frame rather than extending through it, so they imply depth without a tunnel.
     const standbyRailPaths: Array<{ start: THREE.Vector3; end: THREE.Vector3 }> = []
     const addPerspectiveRail = (side: -1 | 1, upper: boolean) => {
       const direction = upper ? 1 : -1
-      const start = new THREE.Vector3(side * 10.85, upper ? 3.0 : -1.65, -1.18)
+      const start = new THREE.Vector3(side * widen(10.85), upper ? 3.0 : -1.65, -1.18)
       const end = new THREE.Vector3(side * frameX, upper ? 1.72 : -1.08, -.04)
       standbyRailPaths.push({ start, end })
       addStandbyLines([start.x, start.y, start.z, end.x, end.y, end.z], 0x78e8ff, .8)
@@ -74,11 +89,23 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     addPerspectiveRail(-1, true); addPerspectiveRail(-1, false); addPerspectiveRail(1, true); addPerspectiveRail(1, false)
     // E: exactly two horizontal structural rails, above and below the viewport. They are
     // segmented guides, not another enclosing frame or a line through the wallpaper.
-    const railX = 5.4
+    const railX = widen(5.4)
     const upperRailY = 4.6; const lowerRailY = -3.4
     addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x4f9ab2, .34)
-    addStandbyLines([-4.8, upperRailY, -.48, -2.2, upperRailY, -.48, 2.2, upperRailY, -.48, 4.8, upperRailY, -.48, -4.8, lowerRailY, -.48, -2.2, lowerRailY, -.48, 2.2, lowerRailY, -.48, 4.8, lowerRailY, -.48], 0xa4efff, .68)
+    addStandbyLines([-widen(4.8), upperRailY, -.48, -widen(2.2), upperRailY, -.48, widen(2.2), upperRailY, -.48, widen(4.8), upperRailY, -.48, -widen(4.8), lowerRailY, -.48, -widen(2.2), lowerRailY, -.48, widen(2.2), lowerRailY, -.48, widen(4.8), lowerRailY, -.48], 0xa4efff, .68)
     addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xe0fbff, .92)
+    // One shared particle cloud gives the settled HUD low-cost atmospheric depth.
+    // It is updated in-place in the existing render loop: no per-frame objects.
+    const particleCount = 116; const particlePositions = new Float32Array(particleCount * 3); const particleBase = new Float32Array(particleCount * 3); const particlePhase = new Float32Array(particleCount); const particleSpeed = new Float32Array(particleCount)
+    for (let index = 0; index < particleCount; index++) {
+      const side = index % 2 === 0 ? -1 : 1; const band = index % 4
+      const x = side * (widen(5.6) + ((index * 1.71) % 5.1)); const y = band < 2 ? (band === 0 ? 2.45 : -2.18) + ((index % 7) - 3) * .12 : ((index % 15) - 7) * .34; const z = -1.3 - (index % 9) * .44
+      particleBase[index * 3] = particlePositions[index * 3] = x; particleBase[index * 3 + 1] = particlePositions[index * 3 + 1] = y; particleBase[index * 3 + 2] = particlePositions[index * 3 + 2] = z
+      particlePhase[index] = index * 1.618; particleSpeed[index] = .08 + (index % 5) * .023
+    }
+    const particleGeometry = new THREE.BufferGeometry(); const particleAttribute = new THREE.BufferAttribute(particlePositions, 3); particleGeometry.setAttribute('position', particleAttribute)
+    const particleMaterial = new THREE.PointsMaterial({ color: 0x9aefff, size: .055, transparent: true, opacity: .74, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })
+    standbyGroup.add(new THREE.Points(particleGeometry, particleMaterial))
     type TrailMaterial = THREE.MeshBasicMaterial
     type StandbyTraveller = { object: THREE.Group; core: TrailMaterial; glow: TrailMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }
     const standbyPackets: StandbyTraveller[] = []
@@ -117,7 +144,17 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       addTraveller({ start: markerStart, end: path.end.clone().addScaledVector(direction, -.14) }, pathIndex * .48 + .31, false)
     })
     const pulseMaterials: THREE.LineBasicMaterial[] = []; const pulses: THREE.Line[] = []; for (let i = 0; i < 10; i++) { const y = i % 2 ? -2.9 : 2.9; const material = makeLineMaterial(0xd8fbff); const x = i % 3 === 0 ? 4.7 : -4.7; const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, 0), new THREE.Vector3(x, y, -1.5)]), material); pulse.position.z = -31; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
-    const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const render = () => { renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render) }; render()
+    const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const particleClock = new THREE.Clock(); const render = () => {
+      const elapsed = particleClock.getElapsedTime()
+      for (let index = 0; index < particleCount; index++) {
+        const offset = index * 3; const pulse = Math.sin(elapsed * particleSpeed[index] + particlePhase[index])
+        particlePositions[offset] = particleBase[offset] + pulse * .18
+        particlePositions[offset + 1] = particleBase[offset + 1] + Math.cos(elapsed * particleSpeed[index] * .8 + particlePhase[index]) * .07
+        particlePositions[offset + 2] = particleBase[offset + 2] + pulse * .1
+      }
+      particleAttribute.needsUpdate = true
+      renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render)
+    }; render()
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!; const connect = get<HTMLElement>('.boot-connect'), diagnostics = get<HTMLElement>('.boot-status-columns'), assembleStack = get<HTMLElement>('.boot-assemble-stack'), titleRail = get<HTMLElement>('.boot-title-rail'), readyNodes = [...host.querySelectorAll<HTMLElement>('.boot-ready-node')], core = get<HTMLElement>('.boot-focal-core'), hud = get<HTMLElement>('.boot-hud'), standbyCopy = get<HTMLElement>('.boot-standby-copy'); const shutterParts = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const diagnosticLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]; const diagnosticPanels = [...host.querySelectorAll<HTMLElement>('.boot-diagnostic-panel')]; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl
     if (import.meta.env.DEV) requestAnimationFrame(() => { const ancestors: BootDiagnostics['ancestors'] = []; for (let node: HTMLElement | null = host.parentElement; node && ancestors.length < 4; node = node.parentElement) { const style = getComputedStyle(node); ancestors.push({ tag: node.tagName, className: node.className, position: style.position, transform: style.transform, width: style.width, height: style.height }) }; const canvas = renderer.domElement; const report: BootDiagnostics = { viewport: { width: window.innerWidth, height: window.innerHeight }, scene: host.getBoundingClientRect(), hud: hud.getBoundingClientRect(), canvas: { width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight, pixelRatio: renderer.getPixelRatio() }, assignedViewport: viewport, ancestors }; const browser = window as TimelineWindow; browser.__elucidatorBootDiagnostics = [report]; console.info('[Elucidator boot diagnostics]', report) })
     const standbyInstruction = standbyCopy.querySelector('span'); if (standbyInstruction) standbyInstruction.textContent = 'CLICK ANY BUTTON TO CONTINUE'
@@ -136,6 +173,14 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       }
       standbyPackets.forEach((packet, index) => animateTraveller(packet, 1.2 + (index % 3) * .13, true))
       standbyMarkers.forEach((marker, index) => animateTraveller(marker, 1.45 + (index % 2) * .16, false))
+      standbyPanelScans.forEach((scan, index) => {
+        const sweep = gsap.timeline({ repeat: -1, repeatDelay: 2.1 + (index % 2) * .4, delay: index * .43 })
+        sweep.set(scan.mesh.position, { y: scan.minY }).set(scan.material, { opacity: 0 })
+          .to(scan.material, { opacity: .52, duration: .25 })
+          .to(scan.mesh.position, { y: scan.maxY, duration: 2.4, ease: 'none' }, '<')
+          .to(scan.material, { opacity: 0, duration: .3 }, '>-0.3')
+        idleTimelines.push(sweep)
+      })
     }
     const applyRevealPose = (timeline?: gsap.core.Timeline, at = 0) => {
       const set = (target: gsap.TweenTarget, vars: gsap.TweenVars) => timeline ? timeline.to(target, { ...vars, overwrite: 'auto' }, at) : gsap.set(target, vars)
