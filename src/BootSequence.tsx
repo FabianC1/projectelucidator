@@ -41,18 +41,80 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const standbyViewWidth = standbyViewHeight * standbyAspect
     const standbyLineMaterials: THREE.LineBasicMaterial[] = []; const standbyGlassMaterials: THREE.MeshBasicMaterial[] = []
     const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); standbyGroup.add(new THREE.LineSegments(geometry, material)) }
+
+
+    // Subtle translucent holographic glass.
+    // One shared texture for all four standby panels.
+    const glassCanvas = document.createElement('canvas')
+    glassCanvas.width = 256
+    glassCanvas.height = 512
+
+    const glassCtx = glassCanvas.getContext('2d')!
+
+    // Soft horizontal variation, like illuminated glass.
+    const glassGradient = glassCtx.createLinearGradient(
+      0, 0, glassCanvas.width, 0
+    )
+
+    glassGradient.addColorStop(0, 'rgba(255,255,255,0.42)')
+    glassGradient.addColorStop(0.18, 'rgba(255,255,255,0.17)')
+    glassGradient.addColorStop(0.55, 'rgba(255,255,255,0.07)')
+    glassGradient.addColorStop(0.85, 'rgba(255,255,255,0.13)')
+    glassGradient.addColorStop(1, 'rgba(255,255,255,0.32)')
+
+    glassCtx.fillStyle = glassGradient
+    glassCtx.fillRect(0, 0, 256, 512)
+
+    // Very faint horizontal reflection bands.
+    for (let i = 0; i < 5; i++) {
+      const y = 48 + i * 96
+
+      const reflection = glassCtx.createLinearGradient(
+        0, y, 0, y + 30
+      )
+
+      reflection.addColorStop(0, 'rgba(255,255,255,0)')
+      reflection.addColorStop(0.5, 'rgba(255,255,255,0.055)')
+      reflection.addColorStop(1, 'rgba(255,255,255,0)')
+
+      glassCtx.fillStyle = reflection
+      glassCtx.fillRect(0, y, 256, 30)
+    }
+
+    const standbyGlassTexture = new THREE.CanvasTexture(glassCanvas)
+    standbyGlassTexture.colorSpace = THREE.SRGBColorSpace
+    standbyGlassTexture.needsUpdate = true
+
+
     const addDepthWing = (side: -1 | 1) => {
       const panels = [
         // D1 foreground and D2 rear retain the accepted responsive anchors but
         // differ materially in detail density, scanning, and illumination.
 
-        { width: 1.35, height: 7.15, x: 9.6, z: -.72, opacity: .035, edge: .78, colour: 0x123E78, density: 1 },
-        { width: 1.55, height: 6.9, x: 8.28, z: -1.48, opacity: .025, edge: .48, colour: 0x0B2858, density: .68 },
+
+
+        { width: 1.95, height: 7.15, x: 9.6, z: -.72, opacity: .24, edge: .78, colour: 0x123E78, density: 1 },
+        { width: 2.15, height: 6.9, x: 7.65, z: -1.48, opacity: .18, edge: .48, colour: 0x0B2858, density: .68 },
+
+
 
       ]
       panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour, density }) => {
-        const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
-        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -1.5; standbyGroup.add(panelGroup)
+
+        const material = new THREE.MeshBasicMaterial({
+          color: colour,
+          map: standbyGlassTexture,
+          transparent: true,
+          opacity: 0,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          depthTest: true,
+          blending: THREE.NormalBlending
+        })
+
+        material.userData.targetOpacity = opacity
+
+        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -1.43; standbyGroup.add(panelGroup)
         panelGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(width, height), material)); standbyGlassMaterials.push(material)
         const addPanelLine = (points: number[], color: number, targetOpacity: number) => {
           const lineMaterial = makeLineMaterial(color); lineMaterial.userData.targetOpacity = targetOpacity; standbyLineMaterials.push(lineMaterial)
@@ -181,6 +243,19 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
                 left, y,
                 left + length * .24, y
               )
+
+              // Isolated luminous status indicator on each module.
+              // Kept separate from the longer, dimmer data rows.
+              const indicatorY = top - height * .104
+
+              drawLine(
+                accentPoints,
+                left + contentWidth * .88,
+                indicatorY,
+                left + contentWidth * .97,
+                indicatorY
+              )
+
             }
           }
 
@@ -651,7 +726,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
         }
       })
 
-      
+
       // Clip the standby WebGL scene to the inside of the HUD outline.
       // The travelling packets keep their full paths but cannot draw
       // across or beyond the outer frame.
@@ -746,7 +821,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       window.addEventListener('keydown', activate); window.addEventListener('pointerdown', activate)
       removeStandbyInput = () => { window.removeEventListener('keydown', activate); window.removeEventListener('pointerdown', activate) }
     }
-    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); standbyAxis.remove() }
+    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); standbyGlassTexture.dispose(); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); standbyAxis.remove() }
     if (standby) {
       host.classList.add('is-revealing', 'is-standby'); gsap.set([hud, standbyCopy], { autoAlpha: 1 }); gsap.set([connect, core, diagnostics, assembleStack], { autoAlpha: 0 }); gsap.set(titleRail, { scaleX: 0 }); applyRevealPose()
       startStandbyRailFlow()
