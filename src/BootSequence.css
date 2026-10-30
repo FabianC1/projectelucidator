@@ -43,3 +43,70 @@
 
 /* Cardinal registration ticks sit around the targeting square, not beside its corners. */
 .boot-focal-core i::after { box-shadow:0 0 5px #31d7ff; }.boot-focal-core i:nth-child(1)::after { top:1.5rem; right:auto; left:2.8rem; width:.72rem; }.boot-focal-core i:nth-child(2)::after { top:2.8rem; left:.15rem; width:1px; height:.72rem; }.boot-focal-core i:nth-child(3)::after { bottom:2.8rem; right:auto; left:1.15rem; width:1px; height:.72rem; }.boot-focal-core i:nth-child(4)::after { bottom:.15rem; left:-2.12rem; width:.72rem; }
+
+
+/* ============================================
+   BOOT DIAGNOSTICS — FULL HEIGHT / RESPONSIVE
+   ============================================ */
+
+/* Keep both panels fixed in position */
+.boot-status-columns {
+  top: 10%;
+  bottom: 10%;
+  height: 80%;
+  align-items: stretch;
+}
+
+/* Make each panel fill the available height */
+.boot-diagnostic-panel {
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+/* Header stays at the top */
+.boot-diagnostic-panel header,
+.boot-diagnostic-rule {
+  flex-shrink: 0;
+}
+
+/* All 16 module rows share the available space */
+.boot-diagnostic-panel .boot-module {
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0.1rem 0.2rem;
+  box-sizing: border-box;
+  align-content: center;
+}
+
+/* Active rows glow without changing their size */
+.boot-diagnostic-panel .boot-module.is-active {
+  margin: 0;
+  padding: 0.1rem 0.2rem;
+}
+
+/* Active arrow must not push text around */
+.boot-diagnostic-panel .boot-module.is-active b::before {
+  position: absolute;
+  left: -0.45rem;
+  margin: 0;
+}
+
+/* Footer stays at the bottom */
+.boot-diagnostic-panel footer {
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+/* Maintain usable layout on smaller displays */
+@media (max-width: 700px) {
+  .boot-status-columns {
+    top: 10%;
+    bottom: 10%;
+    height: 80%;
+  }
+}
