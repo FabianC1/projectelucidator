@@ -91,11 +91,6 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
         // The near layer carries readable holographic instrumentation; the rear
         // layer keeps the same language at a restrained intensity.
         addPanelLine(detailPoints, 0x8beeff, edgeOpacity * (density === 1 ? .82 : .58))
-        for (let scanIndex = 0; scanIndex < scans; scanIndex++) {
-          const scanMaterial = new THREE.MeshBasicMaterial({ color: 0xb4f8ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
-          const scan = new THREE.Mesh(new THREE.PlaneGeometry(width * (.52 + scanIndex * .12), .026), scanMaterial); scan.position.set((scanIndex ? -.08 : .06) * width, -halfH * (.48 - scanIndex * .31), zOffset * 2); panelGroup.add(scan)
-          standbyPanelScans.push({ mesh: scan, material: scanMaterial, minY: -halfH * (.48 - scanIndex * .31), maxY: halfH * (.5 - scanIndex * .16) })
-        }
       })
     }
     // 7.2 × 7.2 inner aperture / 8.4 × 8.4 outer architecture. At 1920×1080 this
@@ -257,14 +252,6 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       }
       standbyPackets.forEach((packet, index) => animateTraveller(packet, 1.2 + (index % 3) * .13, true))
       standbyMarkers.forEach((marker, index) => animateTraveller(marker, 1.45 + (index % 2) * .16, false))
-      standbyPanelScans.forEach((scan, index) => {
-        const sweep = gsap.timeline({ repeat: -1, repeatDelay: 2.1 + (index % 2) * .4, delay: index * .43 })
-        sweep.set(scan.mesh.position, { y: scan.minY }).set(scan.material, { opacity: 0 })
-          .to(scan.material, { opacity: .52, duration: .25 })
-          .to(scan.mesh.position, { y: scan.maxY, duration: 2.4, ease: 'none' }, '<')
-          .to(scan.material, { opacity: 0, duration: .3 }, '>-0.3')
-        idleTimelines.push(sweep)
-      })
     }
     const applyRevealPose = (timeline?: gsap.core.Timeline, at = 0) => {
       const set = (target: gsap.TweenTarget, vars: gsap.TweenVars) => timeline ? timeline.to(target, { ...vars, overwrite: 'auto' }, at) : gsap.set(target, vars)
