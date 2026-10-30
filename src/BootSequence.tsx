@@ -31,41 +31,68 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     // Static standby is its own display architecture. It is deliberately independent of
     // the boot corridor, with one central viewport and two glass layers per side.
     const standbyGroup = new THREE.Group(); standbyGroup.visible = false; scene.add(standbyGroup)
-    // Build the standby architecture against the actual host aspect ratio. This
-    // changes its physical coordinates, rather than stretching a 16:9 scene.
+    // Derive every horizontal standby coordinate from the real camera frustum.
+    // This preserves intended screen-space proportions at 16:9 and 32:9 without
+    // scaling a 16:9 composition horizontally.
     const standbyAspect = Math.max(1, host.clientWidth / Math.max(1, host.clientHeight))
-    const standbyWide = Math.min(1.82, Math.max(1, standbyAspect / (16 / 9)))
-    const widen = (value: number) => value * standbyWide
+    const standbyViewHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z
+    const standbyViewWidth = standbyViewHeight * standbyAspect
     const standbyLineMaterials: THREE.LineBasicMaterial[] = []; const standbyGlassMaterials: THREE.MeshBasicMaterial[] = []
     const standbyPanelScans: Array<{ mesh: THREE.Mesh; material: THREE.MeshBasicMaterial; minY: number; maxY: number }> = []
     const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); standbyGroup.add(new THREE.LineSegments(geometry, material)) }
     const addDepthWing = (side: -1 | 1) => {
       const panels = [
-        // Bounds are tuned in screen space against AnnotatedHUD: the narrow D1 layer
-        // hugs the display edge, while D2 sits visibly behind and toward the aperture.
-        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .14, edge: .82, colour: 0x4bb8d6 }, // D1 outer/front
-        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .085, edge: .61, colour: 0x2d7189 }, // D2 inner/rear
+        // D1 foreground and D2 rear retain the accepted responsive anchors but
+        // differ materially in detail density, scanning, and illumination.
+        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .085, edge: .82, colour: 0x4bb8d6, density: 1, scans: 2 },
+        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .042, edge: .42, colour: 0x2d7189, density: .68, scans: 1 },
       ]
-      panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour }) => {
+      panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour, density, scans }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
-        const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material); panel.position.set(side * widen(x), 0, z); panel.rotation.y = side * -.62; standbyGlassMaterials.push(material); standbyGroup.add(panel)
-        const edgeMaterial = makeLineMaterial(0x9cecff); edgeMaterial.userData.targetOpacity = edgeOpacity; standbyLineMaterials.push(edgeMaterial); const panelEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)), edgeMaterial); panelEdge.position.copy(panel.position); panelEdge.rotation.copy(panel.rotation); standbyGroup.add(panelEdge)
-        const detailMaterial = makeLineMaterial(0x75dff5); detailMaterial.userData.targetOpacity = edgeOpacity * .68; standbyLineMaterials.push(detailMaterial)
-        const detail = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([
-          -width * .39, height * .26, .02, width * .39, height * .26, .02, -width * .39, 0, .02, width * .28, 0, .02, -width * .39, -height * .26, .02, width * .39, -height * .26, .02,
-          -width * .24, height * .39, .02, -width * .24, -height * .39, .02, width * .24, height * .39, .02, width * .24, -height * .39, .02,
-          -width * .43, height * .12, .02, -width * .32, height * .12, .02, width * .27, -height * .12, .02, width * .43, -height * .12, .02,
-        ], 3)), detailMaterial)
-        detail.position.copy(panel.position); detail.rotation.copy(panel.rotation); standbyGroup.add(detail)
-        const scanMaterial = new THREE.MeshBasicMaterial({ color: 0xa8f4ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
-        const scan = new THREE.Mesh(new THREE.PlaneGeometry(width * .78, .028), scanMaterial); scan.position.set(panel.position.x, -height * .31, panel.position.z + .025); scan.rotation.copy(panel.rotation); standbyGroup.add(scan); standbyPanelScans.push({ mesh: scan, material: scanMaterial, minY: -height * .31, maxY: height * .31 })
+        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -.62; standbyGroup.add(panelGroup)
+        panelGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(width, height), material)); standbyGlassMaterials.push(material)
+        const addPanelLine = (points: number[], color: number, targetOpacity: number) => {
+          const lineMaterial = makeLineMaterial(color); lineMaterial.userData.targetOpacity = targetOpacity; standbyLineMaterials.push(lineMaterial)
+          panelGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)), lineMaterial))
+        }
+        const halfW = width * .5; const halfH = height * .5; const zOffset = .018
+        // Fragmented border: illuminated corners and separated edge runs avoid a
+        // dominant door-shaped outline while retaining the panel silhouette.
+        addPanelLine([
+          -halfW, halfH - height * .14, zOffset, -halfW, halfH, zOffset, -halfW, halfH, zOffset, -halfW + width * .3, halfH, zOffset,
+          halfW - width * .23, halfH, zOffset, halfW, halfH, zOffset, halfW, halfH, zOffset, halfW, halfH - height * .11, zOffset,
+          -halfW, -halfH + height * .12, zOffset, -halfW, -halfH, zOffset, -halfW, -halfH, zOffset, -halfW + width * .22, -halfH, zOffset,
+          halfW - width * .32, -halfH, zOffset, halfW, -halfH, zOffset, halfW, -halfH, zOffset, halfW, -halfH + height * .16, zOffset,
+        ], 0xb9f7ff, edgeOpacity)
+        const detailPoints: number[] = []
+        const rows = density === 1 ? 9 : 6
+        for (let row = 0; row < rows; row++) {
+          const y = halfH * .68 - row * (height * 1.36 / Math.max(1, rows - 1)); const inset = width * (.11 + (row % 3) * .035)
+          const split = row % 2 === 0 ? width * .11 : -width * .06
+          detailPoints.push(-halfW + inset, y, zOffset, split, y, zOffset, split + width * .12, y, zOffset, halfW - inset, y, zOffset)
+        }
+        // Calibration divisions are deliberately fragmented: a continuous vertical
+        // rule would put the discarded "elevator door" silhouette back in charge.
+        for (const xMark of [-.23, .08, .29]) {
+          for (const band of [[.62, .38], [.12, -.08], [-.34, -.57]]) {
+            detailPoints.push(width * xMark, halfH * band[0], zOffset, width * xMark, halfH * band[1], zOffset)
+          }
+        }
+        for (let tick = 0; tick < 7; tick++) { const y = halfH * .7 - tick * height * .23; detailPoints.push(-halfW, y, zOffset, -halfW + width * .09, y, zOffset, halfW - width * .09, y - height * .055, zOffset, halfW, y - height * .055, zOffset) }
+        detailPoints.push(-halfW + width * .12, halfH * .38, zOffset, -halfW + width * .32, halfH * .38, zOffset, -halfW + width * .32, halfH * .38, zOffset, -halfW + width * .32, halfH * .2, zOffset, halfW - width * .34, -halfH * .3, zOffset, halfW - width * .14, -halfH * .3, zOffset, halfW - width * .14, -halfH * .3, zOffset, halfW - width * .14, -halfH * .1, zOffset)
+        // The near layer carries readable holographic instrumentation; the rear
+        // layer keeps the same language at a restrained intensity.
+        addPanelLine(detailPoints, 0x8beeff, edgeOpacity * (density === 1 ? .82 : .58))
+        for (let scanIndex = 0; scanIndex < scans; scanIndex++) {
+          const scanMaterial = new THREE.MeshBasicMaterial({ color: 0xb4f8ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
+          const scan = new THREE.Mesh(new THREE.PlaneGeometry(width * (.52 + scanIndex * .12), .026), scanMaterial); scan.position.set((scanIndex ? -.08 : .06) * width, -halfH * (.48 - scanIndex * .31), zOffset * 2); panelGroup.add(scan)
+          standbyPanelScans.push({ mesh: scan, material: scanMaterial, minY: -halfH * (.48 - scanIndex * .31), maxY: halfH * (.5 - scanIndex * .16) })
+        }
       })
-      // Technical markings sit on the glass layers; they are not additional panels.
-      addStandbyLines([side * widen(7.42), 1.72, -.2, side * widen(8.86), 1.98, -1.02, side * widen(7.42), 0, -.2, side * widen(8.86), .22, -1.02, side * widen(7.42), -1.72, -.2, side * widen(8.86), -1.54, -1.02], 0x3f8da6, .24)
     }
     // 7.2 × 7.2 inner aperture / 8.4 × 8.4 outer architecture. At 1920×1080 this
     // reads as a roughly 650 px transparent portal with a visible structural surround.
-    const frameX = widen(6.25); const frameY = 3.06; const corner = .56
+    const frameX = standbyViewWidth * .311; const frameY = standbyViewHeight * .29; const corner = .56
     addStandbyLines([
       -frameX, frameY - corner, 0, -frameX, frameY, 0, -frameX + corner, frameY, 0,
       frameX - corner, frameY, 0, frameX, frameY, 0, frameX, frameY - corner, 0,
@@ -80,7 +107,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const standbyRailPaths: Array<{ start: THREE.Vector3; end: THREE.Vector3 }> = []
     const addPerspectiveRail = (side: -1 | 1, upper: boolean) => {
       const direction = upper ? 1 : -1
-      const start = new THREE.Vector3(side * widen(10.85), upper ? 3.0 : -1.65, -1.18)
+      const start = new THREE.Vector3(side * standbyViewWidth * .54, upper ? 3.0 : -1.65, -1.18)
       const end = new THREE.Vector3(side * frameX, upper ? 1.72 : -1.08, -.04)
       standbyRailPaths.push({ start, end })
       addStandbyLines([start.x, start.y, start.z, end.x, end.y, end.z], 0x78e8ff, .8)
@@ -89,17 +116,17 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     addPerspectiveRail(-1, true); addPerspectiveRail(-1, false); addPerspectiveRail(1, true); addPerspectiveRail(1, false)
     // E: exactly two horizontal structural rails, above and below the viewport. They are
     // segmented guides, not another enclosing frame or a line through the wallpaper.
-    const railX = widen(5.4)
+    const railX = standbyViewWidth * .269
     const upperRailY = 4.6; const lowerRailY = -3.4
     addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x4f9ab2, .34)
-    addStandbyLines([-widen(4.8), upperRailY, -.48, -widen(2.2), upperRailY, -.48, widen(2.2), upperRailY, -.48, widen(4.8), upperRailY, -.48, -widen(4.8), lowerRailY, -.48, -widen(2.2), lowerRailY, -.48, widen(2.2), lowerRailY, -.48, widen(4.8), lowerRailY, -.48], 0xa4efff, .68)
+    addStandbyLines([-standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .239, lowerRailY, -.48, -standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .239, lowerRailY, -.48], 0xa4efff, .68)
     addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xe0fbff, .92)
     // One shared particle cloud gives the settled HUD low-cost atmospheric depth.
     // It is updated in-place in the existing render loop: no per-frame objects.
     const particleCount = 116; const particlePositions = new Float32Array(particleCount * 3); const particleBase = new Float32Array(particleCount * 3); const particlePhase = new Float32Array(particleCount); const particleSpeed = new Float32Array(particleCount)
     for (let index = 0; index < particleCount; index++) {
       const side = index % 2 === 0 ? -1 : 1; const band = index % 4
-      const x = side * (widen(5.6) + ((index * 1.71) % 5.1)); const y = band < 2 ? (band === 0 ? 2.45 : -2.18) + ((index % 7) - 3) * .12 : ((index % 15) - 7) * .34; const z = -1.3 - (index % 9) * .44
+      const x = side * (standbyViewWidth * .279 + ((index * 1.71) % (standbyViewWidth * .254))); const y = band < 2 ? (band === 0 ? 2.45 : -2.18) + ((index % 7) - 3) * .12 : ((index % 15) - 7) * .34; const z = -1.3 - (index % 9) * .44
       particleBase[index * 3] = particlePositions[index * 3] = x; particleBase[index * 3 + 1] = particlePositions[index * 3 + 1] = y; particleBase[index * 3 + 2] = particlePositions[index * 3 + 2] = z
       particlePhase[index] = index * 1.618; particleSpeed[index] = .08 + (index % 5) * .023
     }
