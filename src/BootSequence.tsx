@@ -140,7 +140,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const floatingOpacities = [.28, .48, .72]
 
     floatingSizes.forEach((size, layerIndex) => {
-      const count = 48
+      const count = 120
       const positions = new Float32Array(count * 3)
       const origins = new Float32Array(count * 3)
       const phases = new Float32Array(count)
@@ -154,12 +154,12 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
         const randomB = Math.abs(Math.sin(seed * 2.41))
         const randomC = Math.abs(Math.sin(seed * 3.19))
 
-        // Stay between the central frame and side panels.
+        // Float across the side panels and into the central HUD.
         const x = side * standbyViewWidth * (
-          .335 + randomA * .055
+          .43 - randomA * .40
         )
 
-        const y = (randomB * 2 - 1) * standbyViewHeight * .27
+        const y = (randomB * 2 - 1) * standbyViewHeight * .39
         const z = -.6 - randomC * 1.4
 
         const offset = index * 3
@@ -226,11 +226,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       { positions: [], colours: [], dots: [] }, // Bright accents
     ]
 
-    const rowBands = [
-      -.38, -.15,
-      .08, .24, .40, .56, .72, .88, .96,
-      1.18, 1.40
-    ]
+    const rowBands = [-.20, .22, .72, 1.22]
 
     for (const [upperIndex, lowerIndex] of [[0, 1], [2, 3]]) {
       const upper = standbyRailPaths[upperIndex]
@@ -443,10 +439,20 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
             origins[offset] +
             Math.sin(time + phase) * .055
 
-          // Slow vertical floating, not a travelling scan.
-          positions[offset + 1] =
-            origins[offset + 1] +
-            Math.sin(time * .73 + phase * 1.31) * .095
+
+          // Continuously drift inward from the side panels,
+          // crossing the central HUD frame.
+          const side = origins[offset] < 0 ? -1 : 1
+          const initialProgress =
+            (.43 - Math.abs(origins[offset]) / standbyViewWidth) / .40
+
+          const flowProgress =
+            (initialProgress + elapsed * (.009 + speeds[index] * .015)) % 1
+
+          positions[offset] =
+            side * standbyViewWidth * (.43 - flowProgress * .40) +
+            Math.sin(time * .7 + phase) * .065
+
 
           // Subtle depth movement.
           positions[offset + 2] =
