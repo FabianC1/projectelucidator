@@ -32,7 +32,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     // the boot corridor, with one central viewport and two glass layers per side.
     const standbyGroup = new THREE.Group(); standbyGroup.visible = false; scene.add(standbyGroup)
     // Increase standby hologram height without changing horizontal positions.
-standbyGroup.scale.y = 1.20
+    standbyGroup.scale.y = 1.20
     // Derive every horizontal standby coordinate from the real camera frustum.
     // This preserves intended screen-space proportions at 16:9 and 32:9 without
     // scaling a 16:9 composition horizontally.
@@ -50,7 +50,7 @@ standbyGroup.scale.y = 1.20
       ]
       panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour, density }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
-        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -.62; standbyGroup.add(panelGroup)
+        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -.22; standbyGroup.add(panelGroup)
         panelGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(width, height), material)); standbyGlassMaterials.push(material)
         const addPanelLine = (points: number[], color: number, targetOpacity: number) => {
           const lineMaterial = makeLineMaterial(color); lineMaterial.userData.targetOpacity = targetOpacity; standbyLineMaterials.push(lineMaterial)
@@ -169,18 +169,19 @@ standbyGroup.scale.y = 1.20
           right, footerY
         )
 
-        // Clearly visible electric-blue telemetry on both glass layers.
+
+        // Quiet structural data.
         addPanelLine(
           detailPoints,
-          0x579FF5,
-          edgeOpacity * (density === 1 ? .95 : .92)
+          0x347BC5,
+          edgeOpacity * (density === 1 ? .50 : .46)
         )
 
-        // Brighter illuminated data segments.
+        // Selected bright telemetry accents.
         addPanelLine(
           accentPoints,
           0xA8D5FF,
-          edgeOpacity * (density === 1 ? 1.0 : .98)
+          edgeOpacity * (density === 1 ? 1.0 : .95)
         )
 
       })
@@ -480,8 +481,8 @@ standbyGroup.scale.y = 1.20
     const packetGlowGeometry = new THREE.PlaneGeometry(1.46, .17)
     const addTraveller = (path: { start: THREE.Vector3; end: THREE.Vector3 }, delay: number, packet: boolean) => {
       const object = new THREE.Group(); const direction = path.end.clone().sub(path.start).normalize()
-      const glow = packet ? makeTrailMaterial(0x36d6ff, true) : new THREE.SpriteMaterial({ color: 0x36d6ff, map: haloTexture, transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending })
-      const core = packet ? makeTrailMaterial(0xe9fcff, false) : new THREE.SpriteMaterial({ color: 0xe9fcff, map: coreTexture, transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending })
+      const glow = packet ? makeTrailMaterial(0x287DFF, true) : new THREE.SpriteMaterial({ color: 0x287DFF, map: haloTexture, transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending })
+      const core = packet ? makeTrailMaterial(0xF2FAFF, false) : new THREE.SpriteMaterial({ color: 0xF2FAFF, map: coreTexture, transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending })
       if (packet) {
         object.add(new THREE.Mesh(packetGlowGeometry, glow), new THREE.Mesh(packetCoreGeometry, core))
       } else {
@@ -560,7 +561,20 @@ standbyGroup.scale.y = 1.20
         attribute.needsUpdate = true
       })
 
-      ambientLinearStreaks.forEach((streak) => { const breath = .5 + .5 * Math.sin(elapsed * streak.breathingSpeed + streak.phase); streak.core.opacity = .16 + streak.coreBrightness * (.26 + breath * .34); streak.glow.opacity = .035 + streak.glowStrength * (.2 + breath * .4) })
+
+      ambientLinearStreaks.forEach((streak) => {
+        const breath = .5 + .5 * Math.sin(
+          elapsed * streak.breathingSpeed + streak.phase
+        )
+
+        // Most streaks stay subtle.
+        streak.core.opacity =
+          .07 + streak.coreBrightness * (.14 + breath * .20)
+
+        streak.glow.opacity =
+          .025 + streak.glowStrength * (.14 + breath * .28)
+      })
+
 
       particleLayers.forEach((layer) => {
         const colours = layer.colours
@@ -610,7 +624,7 @@ standbyGroup.scale.y = 1.20
       const animateTraveller = ({ object, core, glow, path, delay }: StandbyTraveller, duration: number, isPacket: boolean) => {
         const flow = gsap.timeline({ repeat: -1, repeatDelay: .45, delay })
         flow.set(object.position, { x: path.start.x, y: path.start.y, z: path.start.z }).set(core, { opacity: 0 }).set(glow, { opacity: 0 })
-          .to(glow, { opacity: isPacket ? .6 : .3, duration: .13 }).to(core, { opacity: isPacket ? 1 : .7, duration: .1 }, '<')
+          .to(glow, { opacity: isPacket ? .8 : .42, duration: .13 }).to(core, { opacity: isPacket ? 1 : .7, duration: .1 }, '<')
           .to(object.position, { x: path.end.x, y: path.end.y, z: path.end.z, duration, ease: 'power1.in' }, '<')
           .to([core, glow], { opacity: 0, duration: .14 }, '>-0.13')
         idleTimelines.push(flow)
