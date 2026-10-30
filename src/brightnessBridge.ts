@@ -162,6 +162,14 @@ export async function readBrightnessMonitors(token: string) {
   return request<MonitorResponse>('/api/monitors', token)
 }
 
+// A token-shaped string is not evidence of a valid pairing. The monitor route is
+// authenticated but safe to call during startup, even when no DDC/CI display is
+// available, so it is the canonical credential validation probe.
+export async function validateBrightnessToken(token: string) {
+  if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) throw new Error('PAIRING TOKEN FORMAT IS INVALID')
+  return readBrightnessMonitors(token)
+}
+
 export async function readDisplayGeometry(token: string) {
   return request<{ displays: DisplayGeometry[] }>('/api/displays', token)
 }
@@ -212,10 +220,14 @@ export async function readPrivateCredentialBootstrap() {
   const response = await fetch(new URL('./elucidator-private-bootstrap.json', window.location.href), { cache: 'no-store' })
   if (response.status === 404) return ''
   if (!response.ok) throw new Error(`PRIVATE CREDENTIAL BOOTSTRAP READ FAILED · HTTP ${response.status}`)
-  const contentType = response.headers.get('content-type') ?? ''
-  if (!contentType.includes('json')) return ''
-  const value = await response.json() as { token?: unknown }
-  return typeof value.token === 'string' && /^[A-Za-z0-9_-]{40,60}$/.test(value.token) ? value.token : ''
+  // Lively's local-file host does not consistently assign application/json.
+  // Parse defensively instead: Vite's HTML fallback and malformed files are
+  // rejected without treating them as a credential bootstrap.
+  const body = await response.text()
+  try {
+    const value = JSON.parse(body) as { token?: unknown }
+    return typeof value.token === 'string' && /^[A-Za-z0-9_-]{40,60}$/.test(value.token) ? value.token : ''
+  } catch { return '' }
 }
 
 export async function persistPrivateCredentialBootstrap(token: string) {

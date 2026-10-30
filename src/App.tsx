@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSPro
 import { siGooglechrome, siNetflix, siRoblox, type SimpleIcon } from 'simple-icons'
 import { BootSequence } from './BootSequence'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
-import { changeBrightness, checkBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readDisplayGeometry, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
+import { changeBrightness, checkBrightnessHelperHealth, getBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readDisplayGeometry, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, validateBrightnessToken, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
 import './App.css'
 
@@ -486,7 +486,7 @@ const COMMAND_COMPLETIONS = [
   'sys widget 1 on', 'sys widget 1 off', 'sys widget 2 on', 'sys widget 2 off',
   'sys widget 3 on', 'sys widget 3 off', 'sys widget 4 on', 'sys widget 4 off', 'sys widget 5 on', 'sys widget 5 off',
   'sys widget move 1 50 20', 'sys widget position info', 'sys widget size 1 1', 'sys widgets size 1', 'sys scale 1', 'sys compact on', 'sys compact off', 'sys compact httyd save 1', 'sys compact kagune save 1', 'sys widget reset', 'sys layout list', 'sys layout free', 'sys layout left', 'sys layout right', 'sys layout top', 'sys layout bottom', 'sys layout save desk', 'sys layout load desk', 'sys layout reset', 'sys standby', 'sys arise', 'sys link start',
-  'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
+  'sys pair', 'sys brightness', 'sys brightness status', 'sys brightness list', 'sys brightness help', 'sys brightness 40', 'sys brightness monitor 1 60', 'sys brightness unpair', 'sys lock',
   'sys wallpaper fit cover', 'sys wallpaper fit contain', 'sys wallpaper fit stretch', 'sys wallpaper fit span',
   'sys grimoire', 'sys limitless',
   'sys hinokami kagura', 'sys demon mode', 'sys httyd', 'sys night fury', 'sys kagune', 'sys stealth', 'sys help', 'help',
@@ -540,6 +540,7 @@ function App() {
   const historyIndexRef = useRef(0)
   const commandDraftRef = useRef('')
   const completionRef = useRef<{ lastValue: string; candidates: string[]; index: number } | null>(null)
+  const credentialRecoveryRef = useRef<() => Promise<'restored' | 'missing' | 'helper-unavailable' | 'rejected'>>(async () => 'missing')
   const draggingWidgetRef = useRef<{ id: number; pointerId: number; offsetX: number; offsetY: number; startX: number; startY: number; activated: boolean; compact?: boolean; originX?: number; originY?: number } | null>(null)
   const draggingCompactPanelRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null)
   const compactPreferencesLoadedRef = useRef(false)
@@ -710,33 +711,90 @@ function App() {
 
   useEffect(() => {
     let active = true
-    void (async () => {
+    let retryTimer: number | undefined
+    const scheduleRetry = () => {
+      if (retryTimer === undefined && active) retryTimer = window.setTimeout(() => { retryTimer = undefined; void restoreCredential() }, 5000)
+    }
+    const syncVerifiedToken = async (token: string, monitorCount: number, bootstrapWasPresent: boolean) => {
+      if (!active) return
+      setBrightnessToken(token)
+      setConnectedMonitorCount(monitorCount)
+      if (!saveBrightnessToken(token)) setStorageIssue('brightness token restore', new Error('Could not restore token to localStorage'))
+      try { await writeBrightnessTokenBackup(token); if (active) setStorageIssue('brightness token backup write', null) }
+      catch (error) { if (active) setStorageIssue('brightness token backup write', error) }
+      try {
+        const bootstrap = await persistPrivateCredentialBootstrap(token)
+        if (!bootstrap.saved) throw new Error('Private credential bootstrap was not confirmed')
+        if (active) { setCredentialBootstrapAvailable(true); setStorageIssue('brightness credential bootstrap write', null) }
+      } catch (error) {
+        if (active) {
+          setCredentialBootstrapAvailable(bootstrapWasPresent)
+          setStorageIssue('brightness credential bootstrap write', error)
+        }
+      }
+    }
+    const restoreCredential = async () => {
       try {
         let bootstrapToken = ''
         try {
           bootstrapToken = await readPrivateCredentialBootstrap()
           setStorageIssue('brightness credential bootstrap restore', null)
         } catch (error) { setStorageIssue('brightness credential bootstrap restore', error) }
-        if (!active) return
+        if (!active) return 'missing'
         setCredentialBootstrapAvailable(Boolean(bootstrapToken))
-        const tokenBackup = await readBrightnessTokenBackup()
-        if (!active) return
+        let tokenBackup = ''
+        try { tokenBackup = await readBrightnessTokenBackup() }
+        catch (error) { setStorageIssue('brightness token backup restore', error) }
+        if (!active) return 'missing'
         const localToken = getBrightnessToken()
-        const restoredToken = bootstrapToken || localToken || tokenBackup
-        if (restoredToken) setBrightnessToken(restoredToken)
-        if (!localToken && restoredToken) {
-          if (saveBrightnessToken(restoredToken)) setBrightnessToken(restoredToken)
-          else setStorageIssue('brightness token restore', new Error('Could not restore token to localStorage'))
+        const candidates = [...new Set([bootstrapToken, localToken, tokenBackup].filter((token) => /^[A-Za-z0-9_-]{40,60}$/.test(token)))]
+        if (!candidates.length) { if (active) setBrightnessToken(''); return 'missing' }
+        const health = await getBrightnessHelperHealth()
+        if (!active) return 'missing'
+        setBrightnessHelperOnline(health.state === 'online')
+        if (health.state !== 'online') {
+          setStorageIssue('brightness credential validation', new Error(health.message))
+          scheduleRetry()
+          return 'helper-unavailable'
         }
-        if (restoredToken) {
+        for (const candidate of candidates) {
           try {
-            await writeBrightnessTokenBackup(restoredToken)
-            if (active) setStorageIssue('brightness token backup write', null)
-          } catch (error) { if (active) setStorageIssue('brightness token backup write', error) }
+            const result = await validateBrightnessToken(candidate)
+            if (!active) return 'missing'
+            setStorageIssue('brightness credential validation', null)
+            await syncVerifiedToken(candidate, result.monitors.length, Boolean(bootstrapToken))
+            return 'restored'
+          } catch (error) {
+            if (!active) return 'missing'
+            const message = error instanceof Error ? error.message : 'Pairing validation failed'
+            if (message.includes('WINDOWS HELPER') || message.includes('TIMED OUT')) {
+              setStorageIssue('brightness credential validation', error)
+              scheduleRetry()
+              return 'helper-unavailable'
+            }
+          }
         }
-      } catch (error) { if (active) setStorageIssue('brightness token backup restore', error) }
-    })()
-    return () => { active = false }
+        // Stale browser copies must not shadow a valid Windows helper token.
+        // Never delete or regenerate the helper token from this path.
+        if (active) {
+          setBrightnessToken('')
+          saveBrightnessToken(null)
+          try { await writeBrightnessTokenBackup(null) } catch (error) { setStorageIssue('brightness token backup write', error) }
+          setStorageIssue('brightness credential validation', new Error('Stored pairing credentials were rejected by the Windows helper'))
+        }
+        return 'rejected'
+      } catch (error) {
+        if (active) setStorageIssue('brightness credential restore', error)
+        return 'helper-unavailable'
+      }
+    }
+    credentialRecoveryRef.current = restoreCredential
+    void restoreCredential()
+    return () => {
+      active = false
+      credentialRecoveryRef.current = async () => 'missing'
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer)
+    }
   }, [setStorageIssue])
 
   useEffect(() => {
@@ -1282,7 +1340,25 @@ function App() {
       if (!result.saved) throw new Error('WINDOWS HELPER DID NOT CONFIRM THE CONFIGURATION SAVE')
     }
 
-    if (domain === 'admin' && action === 'sys' && args[2] === 'config' && args[3] === 'save' && args.length === 4) {
+    if (domain === 'pair' && args.length === 1) {
+      report([
+        'PAIRING RECOVERY STARTED',
+        'CHECKING THE WINDOWS HELPER AND EXISTING LOCAL CREDENTIALS',
+        'NO CREDENTIALS ARE DISPLAYED, COPIED OR GENERATED',
+      ])
+      setStatus('PAIRING RECOVERY IN PROGRESS')
+      const recovery = await credentialRecoveryRef.current()
+      if (recovery === 'restored') {
+        report(['PAIRING RECOVERY COMPLETE', 'AUTHENTICATED HELPER SESSION RESTORED'])
+        setStatus('PAIRING RECOVERY COMPLETE')
+      } else if (recovery === 'helper-unavailable') {
+        report(['PAIRING RECOVERY WAITING', 'WINDOWS HELPER IS UNAVAILABLE OR RESTARTING', 'RECOVERY WILL RETRY AUTOMATICALLY'])
+        setStatus('PAIRING RECOVERY WAITING FOR HELPER')
+      } else {
+        report(['PAIRING RECOVERY PENDING', 'NO VALID EXISTING CREDENTIAL WAS AVAILABLE', 'RUN SYS BRIGHTNESS PAIR <TOKEN> ONLY AFTER EXPLICIT LOCAL AUTHORIZATION'])
+        setStatus('PAIRING RECOVERY REQUIRES AUTHORIZATION')
+      }
+    } else if (domain === 'admin' && action === 'sys' && args[2] === 'config' && args[3] === 'save' && args.length === 4) {
       if (!wallpaperUrl) {
         report(['STARTUP CONFIGURATION NOT SAVED', 'LOAD THE WALLPAPER YOU WANT FIRST.', 'USE SYS WALLPAPER SELECT.'])
         setStatus('STARTUP CONFIGURATION NEEDS A WALLPAPER')
@@ -1319,12 +1395,17 @@ function App() {
             installIntoLively: true,
           })
           if (!saved.saved) throw new Error('HELPER DID NOT CONFIRM THE DURABLE CONFIGURATION SAVE')
+          const verified = await readDurableStartupConfiguration()
+          if (!verified || verified.theme !== theme || verified.wallpaperName !== wallpaperName ||
+            verified.settings?.animationMirror !== animationMirror || verified.settings?.sequenceMirror !== sequenceMirror) {
+            throw new Error('HELPER CONFIGURATION READBACK DID NOT MATCH THE SAVED STATE')
+          }
           try { await writeDefaultWallpaper({ name: wallpaperName, blob }) }
           catch (error) { setStorageIssue('startup wallpaper browser cache write', error) }
           setDefaultWallpaperName(wallpaperName)
           setDefaultTheme(theme)
           setCredentialBootstrapAvailable(true)
-          const saveReport = ['STARTUP CONFIGURATION SAVED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WIDGET LAYOUT + SETTINGS ........ SAVED', `ACTIVATION MIRROR ............... ${animationMirror ? 'ON' : 'OFF'} + SAVED`, `SEQUENCE MIRROR ................. ${sequenceMirror ? 'ON' : 'OFF'} + SAVED`]
+          const saveReport = ['STARTUP CONFIGURATION SAVED + READBACK VERIFIED', `WALLPAPER .............. ${wallpaperName.toUpperCase()}`, `THEME .................. ${THEME_CHOICES.find((choice) => choice.id === theme)?.label ?? theme.toUpperCase()}`, 'WIDGET LAYOUT + SETTINGS ........ SAVED', `ACTIVATION MIRROR ............... ${animationMirror ? 'ON' : 'OFF'} + SAVED`, `SEQUENCE MIRROR ................. ${sequenceMirror ? 'ON' : 'OFF'} + SAVED`]
           saveReport.push(saved.installedProjectUpdated ? 'INSTALLED LIVELY PROJECT UPDATED' : 'INSTALLED LIVELY PROJECT UPDATE NOT REQUESTED')
           saveReport.push(saved.reloadRequested ? 'LIVELY RELOAD REQUEST ACCEPTED' : `LIVELY RELOAD NOT REQUESTED · ${(saved.reloadMessage ?? 'CHECK LIVELY INSTALLATION').toUpperCase()}`)
           report(saveReport)
@@ -1440,25 +1521,25 @@ function App() {
         if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) {
           report(['BRIGHTNESS PAIRING ERROR', 'TOKEN FORMAT INVALID · COPY THE TOKEN FROM THE HELPER INSTALLER'])
           setStatus('BRIGHTNESS PAIRING FAILED')
-        } else if (!saveBrightnessToken(token)) {
-          report(['BRIGHTNESS PAIRING ERROR', 'BROWSER STORAGE IS UNAVAILABLE'])
-          setStatus('BRIGHTNESS PAIRING FAILED')
         } else {
-          setBrightnessToken(token)
           try {
+            const verified = await validateBrightnessToken(token)
             const bootstrap = await persistPrivateCredentialBootstrap(token)
             if (!bootstrap.saved) throw new Error('PRIVATE LOCAL BOOTSTRAP WAS NOT CONFIRMED')
+            if (!saveBrightnessToken(token)) throw new Error('BROWSER STORAGE IS UNAVAILABLE')
+            setBrightnessToken(token)
+            setConnectedMonitorCount(verified.monitors.length)
             setCredentialBootstrapAvailable(true)
             await writeBrightnessTokenBackup(token)
             setStorageIssue('brightness token backup write', null)
-            report(['DDC/CI BRIDGE PAIRED', 'PRIVATE LOCAL BOOTSTRAP SAVED', 'RUN SYS BRIGHTNESS STATUS TO READ MONITORS'])
+            setStorageIssue('brightness credential validation', null)
+            report(['DDC/CI BRIDGE PAIRED + VALIDATED', `DDC/CI DISPLAYS ........ ${verified.monitors.length}`, 'PRIVATE LOCAL BOOTSTRAP SAVED', 'RUN SYS BRIGHTNESS STATUS TO READ MONITORS'])
             setStatus('BRIGHTNESS PAIRED · PRIVATE BOOTSTRAP SAVED')
           } catch (error) {
-            setStorageIssue('brightness credential bootstrap write', error)
-            try { await writeBrightnessTokenBackup(token) } catch (backupError) { setStorageIssue('brightness token backup write', backupError) }
-            const message = error instanceof Error ? error.message : 'PRIVATE BOOTSTRAP SAVE FAILED'
-            report(['BRIGHTNESS PAIRED IN THIS PROFILE', 'DURABLE TOKEN BOOTSTRAP NOT CONFIRMED', message.toUpperCase()])
-            setStatus('BRIGHTNESS PAIRED · RESTART RECOVERY NOT CONFIRMED')
+            const message = error instanceof Error ? error.message : 'PAIRING VALIDATION FAILED'
+            setStorageIssue('brightness credential pairing', error)
+            report(['BRIGHTNESS PAIRING FAILED', 'TOKEN WAS NOT SAVED', message.toUpperCase()])
+            setStatus('BRIGHTNESS PAIRING FAILED')
           }
         }
       } else if (action === 'unpair' && args.length === 2) {
