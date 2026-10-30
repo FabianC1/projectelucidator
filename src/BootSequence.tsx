@@ -759,6 +759,44 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xB5E6FF, .72)
 
 
+    // UPPER HUD: two diagonal extensions forming two corners.
+    // The existing horizontal rail remains unchanged.
+    const upperSupportRise = .72
+    const upperSupportSpread = .82
+
+    // Diagonal lines extending upward and outward.
+    addStandbyLines([
+      // Left diagonal
+      -railX, upperRailY, -.52,
+      -railX - upperSupportSpread,
+      upperRailY + upperSupportRise, -.52,
+
+      // Right diagonal
+      railX, upperRailY, -.52,
+      railX + upperSupportSpread,
+      upperRailY + upperSupportRise, -.52
+    ], 0x579BCF, .52)
+
+    // Short illuminated accents at the two corners.
+    addStandbyLines([
+      // Left corner: diagonal highlight
+      -railX - .16, upperRailY + .14, -.46,
+      -railX, upperRailY, -.46,
+
+      // Left corner: horizontal highlight
+      -railX, upperRailY, -.46,
+      -railX + .18, upperRailY, -.46,
+
+      // Right corner: horizontal highlight
+      railX - .18, upperRailY, -.46,
+      railX, upperRailY, -.46,
+
+      // Right corner: diagonal highlight
+      railX, upperRailY, -.46,
+      railX + .16, upperRailY + .14, -.46
+    ], 0xC4EDFF, .88)
+
+
     // Free-floating holographic particles between the
     // central HUD frame and the side glass panels.
     type FloatingParticleLayer = {
