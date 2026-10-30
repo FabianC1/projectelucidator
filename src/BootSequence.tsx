@@ -43,8 +43,8 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       const panels = [
         // D1 foreground and D2 rear retain the accepted responsive anchors but
         // differ materially in detail density, scanning, and illumination.
-        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .085, edge: .82, colour: 0x4bb8d6, density: 1 },
-        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .042, edge: .42, colour: 0x2d7189, density: .68 },
+        { width: 1.35, height: 7.15, x: 9.6, z: -.72, opacity: .065, edge: .78, colour: 0x4bb8d6, density: 1 },
+        { width: 1.55, height: 6.9, x: 8.28, z: -1.48, opacity: .032, edge: .34, colour: 0x2d7189, density: .68 },
       ]
       panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour, density }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
@@ -71,25 +71,116 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           -halfW, -halfH + height * .12, zOffset, -halfW, -halfH, zOffset, -halfW, -halfH, zOffset, -halfW + width * .22, -halfH, zOffset,
           halfW - width * .32, -halfH, zOffset, halfW, -halfH, zOffset, halfW, -halfH, zOffset, halfW, -halfH + height * .16, zOffset,
         ], 0xb9f7ff, edgeOpacity)
+
+        // Structured holographic instrumentation.
+        // Clean data modules rather than disconnected glyphs.
         const detailPoints: number[] = []
-        const rows = density === 1 ? 9 : 6
-        for (let row = 0; row < rows; row++) {
-          const y = halfH * .68 - row * (height * 1.36 / Math.max(1, rows - 1)); const inset = width * (.11 + (row % 3) * .035)
-          const split = row % 2 === 0 ? width * .11 : -width * .06
-          detailPoints.push(-halfW + inset, y, zOffset, split, y, zOffset, split + width * .12, y, zOffset, halfW - inset, y, zOffset)
+        const accentPoints: number[] = []
+
+        const drawLine = (
+          target: number[],
+          x1: number, y1: number,
+          x2: number, y2: number
+        ) => {
+          target.push(
+            x1, y1, zOffset,
+            x2, y2, zOffset
+          )
         }
-        // Calibration divisions are deliberately fragmented: a continuous vertical
-        // rule would put the discarded "elevator door" silhouette back in charge.
-        for (const xMark of [-.23, .08, .29]) {
-          for (const band of [[.62, .38], [.12, -.08], [-.34, -.57]]) {
-            detailPoints.push(width * xMark, halfH * band[0], zOffset, width * xMark, halfH * band[1], zOffset)
+
+        const left = -halfW + width * .13
+        const right = halfW - width * .13
+        const contentWidth = right - left
+
+        // Header: two clean illuminated rails.
+        drawLine(
+          accentPoints,
+          left, halfH * .79,
+          left + contentWidth * .66, halfH * .79
+        )
+
+        drawLine(
+          detailPoints,
+          left, halfH * .70,
+          right, halfH * .70
+        )
+
+        // Three separate holographic data modules.
+        for (let section = 0; section < 3; section++) {
+          const top = halfH * .48 - section * height * .32
+
+          // Small module identifier.
+          drawLine(
+            accentPoints,
+            left, top,
+            left + contentWidth * .19, top
+          )
+
+          // Data rows with varying lengths.
+          for (let row = 0; row < 3; row++) {
+            const y = top - height * (.047 + row * .057)
+
+            const variation = Math.abs(
+              Math.sin(section * 4.7 + row * 2.3 + density)
+            )
+
+            const length = contentWidth * (
+              .30 + variation * .55
+            )
+
+            drawLine(
+              detailPoints,
+              left, y,
+              left + length, y
+            )
+
+            // Bright segment at the beginning of selected rows.
+            if (row === 0 || row === 2) {
+              drawLine(
+                accentPoints,
+                left, y,
+                left + length * .24, y
+              )
+            }
           }
+
+          // Thin module divider.
+          drawLine(
+            detailPoints,
+            left, top - height * .24,
+            right, top - height * .24
+          )
         }
-        for (let tick = 0; tick < 7; tick++) { const y = halfH * .7 - tick * height * .23; detailPoints.push(-halfW, y, zOffset, -halfW + width * .09, y, zOffset, halfW - width * .09, y - height * .055, zOffset, halfW, y - height * .055, zOffset) }
-        detailPoints.push(-halfW + width * .12, halfH * .38, zOffset, -halfW + width * .32, halfH * .38, zOffset, -halfW + width * .32, halfH * .38, zOffset, -halfW + width * .32, halfH * .2, zOffset, halfW - width * .34, -halfH * .3, zOffset, halfW - width * .14, -halfH * .3, zOffset, halfW - width * .14, -halfH * .3, zOffset, halfW - width * .14, -halfH * .1, zOffset)
-        // The near layer carries readable holographic instrumentation; the rear
-        // layer keeps the same language at a restrained intensity.
-        addPanelLine(detailPoints, 0x8beeff, edgeOpacity * (density === 1 ? .82 : .58))
+
+        // Bottom telemetry rail.
+        const footerY = -halfH * .82
+
+        drawLine(
+          accentPoints,
+          left, footerY,
+          left + contentWidth * .38, footerY
+        )
+
+        drawLine(
+          detailPoints,
+          left + contentWidth * .48, footerY,
+          right, footerY
+        )
+
+        // Muted structural details.
+        addPanelLine(
+          detailPoints,
+          0x54b9d6,
+          edgeOpacity * (density === 1 ? .42 : .25)
+        )
+
+        // Brighter cyan holographic highlights.
+        addPanelLine(
+          accentPoints,
+          0xb9f7ff,
+          edgeOpacity * (density === 1 ? .90 : .50)
+        )
+
       })
     }
     // 7.2 × 7.2 inner aperture / 8.4 × 8.4 outer architecture. At 1920×1080 this
