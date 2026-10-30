@@ -150,26 +150,56 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     standbyGlassTexture.needsUpdate = true
 
 
-    // Soft illumination for selected panel telemetry lines.
+
+    // Soft, feathered illumination for panel telemetry.
+    // Fade vertically AND horizontally to avoid rectangular glow patches.
     const telemetryGlowCanvas = document.createElement('canvas')
-    telemetryGlowCanvas.width = 16
+    telemetryGlowCanvas.width = 256
     telemetryGlowCanvas.height = 64
 
     const telemetryGlowCtx = telemetryGlowCanvas.getContext('2d')!
-    const telemetryGradient =
-      telemetryGlowCtx.createLinearGradient(0, 0, 0, 64)
 
-    telemetryGradient.addColorStop(0, 'rgba(65,155,255,0)')
-    telemetryGradient.addColorStop(.25, 'rgba(65,155,255,0.12)')
-    telemetryGradient.addColorStop(.5, 'rgba(165,225,255,0.75)')
-    telemetryGradient.addColorStop(.75, 'rgba(65,155,255,0.12)')
-    telemetryGradient.addColorStop(1, 'rgba(65,155,255,0)')
+    // Vertical falloff: bright around the line, soft above and below.
+    const verticalGlow = telemetryGlowCtx.createLinearGradient(
+      0, 0, 0, 64
+    )
 
-    telemetryGlowCtx.fillStyle = telemetryGradient
-    telemetryGlowCtx.fillRect(0, 0, 16, 64)
+    verticalGlow.addColorStop(0, 'rgba(70,150,255,0)')
+    verticalGlow.addColorStop(.15, 'rgba(70,150,255,0.025)')
+    verticalGlow.addColorStop(.35, 'rgba(85,175,255,0.15)')
+    verticalGlow.addColorStop(.5, 'rgba(140,215,255,0.48)')
+    verticalGlow.addColorStop(.65, 'rgba(85,175,255,0.15)')
+    verticalGlow.addColorStop(.85, 'rgba(70,150,255,0.025)')
+    verticalGlow.addColorStop(1, 'rgba(70,150,255,0)')
+
+    telemetryGlowCtx.fillStyle = verticalGlow
+    telemetryGlowCtx.fillRect(0, 0, 256, 64)
+
+    // Horizontal falloff: remove the hard rectangular ends.
+    telemetryGlowCtx.globalCompositeOperation = 'destination-in'
+
+    const horizontalFade = telemetryGlowCtx.createLinearGradient(
+      0, 0, 256, 0
+    )
+
+    horizontalFade.addColorStop(0, 'rgba(255,255,255,0)')
+    horizontalFade.addColorStop(.08, 'rgba(255,255,255,0.5)')
+    horizontalFade.addColorStop(.2, 'rgba(255,255,255,1)')
+    horizontalFade.addColorStop(.8, 'rgba(255,255,255,1)')
+    horizontalFade.addColorStop(.92, 'rgba(255,255,255,0.5)')
+    horizontalFade.addColorStop(1, 'rgba(255,255,255,0)')
+
+    telemetryGlowCtx.fillStyle = horizontalFade
+    telemetryGlowCtx.fillRect(0, 0, 256, 64)
+
+    telemetryGlowCtx.globalCompositeOperation = 'source-over'
 
     const telemetryGlowTexture =
       new THREE.CanvasTexture(telemetryGlowCanvas)
+
+    telemetryGlowTexture.minFilter = THREE.LinearFilter
+    telemetryGlowTexture.magFilter = THREE.LinearFilter
+
 
 
     const addDepthWing = (side: -1 | 1) => {
@@ -301,7 +331,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           drawLine(
             accentPoints,
             left, top,
-            left + contentWidth * .19, top
+            left + contentWidth * .36, top
           )
 
           // Data rows with varying lengths.
@@ -327,7 +357,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
               drawLine(
                 accentPoints,
                 left, y,
-                left + length * .24, y
+                left + length * .55, y
               )
 
               // Isolated luminous status indicator on each module.
@@ -336,7 +366,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
 
               drawLine(
                 accentPoints,
-                left + contentWidth * .88,
+                left + contentWidth * .76,
                 indicatorY,
                 left + contentWidth * .97,
                 indicatorY
@@ -359,7 +389,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
         drawLine(
           accentPoints,
           left, footerY,
-          left + contentWidth * .38, footerY
+          left + contentWidth * .58, footerY
         )
 
         drawLine(
@@ -399,7 +429,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
         })
 
         telemetryGlowMaterial.userData.targetOpacity =
-          density === 1 ? .72 : .54
+          density === 1 ? .62 : .46
 
         standbyGlassMaterials.push(telemetryGlowMaterial)
 
@@ -416,7 +446,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           if (length < .001) continue
 
           const glow = new THREE.Mesh(
-            new THREE.PlaneGeometry(length + .12, .22),
+            new THREE.PlaneGeometry(length + .30, .38),
             telemetryGlowMaterial
           )
 
@@ -1042,7 +1072,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     if (import.meta.env.DEV) requestAnimationFrame(() => { const ancestors: BootDiagnostics['ancestors'] = []; for (let node: HTMLElement | null = host.parentElement; node && ancestors.length < 4; node = node.parentElement) { const style = getComputedStyle(node); ancestors.push({ tag: node.tagName, className: node.className, position: style.position, transform: style.transform, width: style.width, height: style.height }) }; const canvas = renderer.domElement; const report: BootDiagnostics = { viewport: { width: window.innerWidth, height: window.innerHeight }, scene: host.getBoundingClientRect(), hud: hud.getBoundingClientRect(), canvas: { width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight, pixelRatio: renderer.getPixelRatio() }, assignedViewport: viewport, ancestors }; const browser = window as TimelineWindow; browser.__elucidatorBootDiagnostics = [report]; console.info('[Elucidator boot diagnostics]', report) })
     const standbyInstruction = standbyCopy.querySelector('span'); if (standbyInstruction) standbyInstruction.textContent = 'CLICK ANY BUTTON TO CONTINUE'
     const standbyDiagnostics = document.createElement('div'); standbyDiagnostics.className = 'boot-standby-diagnostics';;['WALLPAPER LOADED  //  OK', 'INTERFACE READY   //  OK', 'DISPLAY SYNC      //  OK'].forEach((line) => { const row = document.createElement('span'); row.textContent = `› ${line}`; standbyDiagnostics.appendChild(row) }); host.appendChild(standbyDiagnostics)
-    
+
     const idleTimelines: gsap.core.Timeline[] = []
     const startStandbyRailFlow = () => {
       if (idleTimelines.length) return
@@ -1087,7 +1117,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       window.addEventListener('keydown', activate); window.addEventListener('pointerdown', activate)
       removeStandbyInput = () => { window.removeEventListener('keydown', activate); window.removeEventListener('pointerdown', activate) }
     }
-    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); standbyGlassTexture.dispose(); telemetryGlowTexture.dispose(); cornerGlowTexture.dispose(); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove();  }
+    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); standbyGlassTexture.dispose(); telemetryGlowTexture.dispose(); cornerGlowTexture.dispose(); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); }
     if (standby) {
       host.classList.add('is-revealing', 'is-standby'); gsap.set([hud, standbyCopy], { autoAlpha: 1 }); gsap.set([connect, core, diagnostics, assembleStack], { autoAlpha: 0 }); gsap.set(titleRail, { scaleX: 0 }); applyRevealPose()
       startStandbyRailFlow()
