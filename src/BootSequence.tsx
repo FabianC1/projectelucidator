@@ -123,18 +123,86 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x4f9ab2, .34)
     addStandbyLines([-standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .239, lowerRailY, -.48, -standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .239, lowerRailY, -.48], 0xa4efff, .68)
     addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xe0fbff, .92)
-    // Annotation 3 is deliberately sparse background ambience, separate from the
-    // ordered corridor-dot rows constructed below.
-    const starCount = 30; const starPositions = new Float32Array(starCount * 3)
-    for (let index = 0; index < starCount; index++) {
-      const side = index % 2 === 0 ? -1 : 1
-      starPositions[index * 3] = side * (standbyViewWidth * (.04 + ((index * 1.37) % .2)))
-      starPositions[index * 3 + 1] = 1.05 + ((index % 9) - 4) * .27
-      starPositions[index * 3 + 2] = -1.8 - (index % 7) * .38
+
+    // Free-floating holographic particles between the
+    // central HUD frame and the side glass panels.
+    type FloatingParticleLayer = {
+      geometry: THREE.BufferGeometry
+      positions: Float32Array
+      origins: Float32Array
+      phases: Float32Array
+      speeds: Float32Array
     }
-    const starGeometry = new THREE.BufferGeometry(); starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
-    const starMaterial = new THREE.PointsMaterial({ color: 0x9aefff, size: .035, transparent: true, opacity: .48, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })
-    standbyGroup.add(new THREE.Points(starGeometry, starMaterial))
+
+    const floatingParticleLayers: FloatingParticleLayer[] = []
+
+    const floatingSizes = [.022, .042, .075]
+    const floatingOpacities = [.28, .48, .72]
+
+    floatingSizes.forEach((size, layerIndex) => {
+      const count = 48
+      const positions = new Float32Array(count * 3)
+      const origins = new Float32Array(count * 3)
+      const phases = new Float32Array(count)
+      const speeds = new Float32Array(count)
+
+      for (let index = 0; index < count; index++) {
+        const side = index % 2 === 0 ? -1 : 1
+        const seed = index * 17.13 + layerIndex * 41.7
+
+        const randomA = Math.abs(Math.sin(seed * 1.73))
+        const randomB = Math.abs(Math.sin(seed * 2.41))
+        const randomC = Math.abs(Math.sin(seed * 3.19))
+
+        // Stay between the central frame and side panels.
+        const x = side * standbyViewWidth * (
+          .335 + randomA * .055
+        )
+
+        const y = (randomB * 2 - 1) * standbyViewHeight * .27
+        const z = -.6 - randomC * 1.4
+
+        const offset = index * 3
+
+        origins[offset] = x
+        origins[offset + 1] = y
+        origins[offset + 2] = z
+
+        positions[offset] = x
+        positions[offset + 1] = y
+        positions[offset + 2] = z
+
+        phases[index] = seed
+        speeds[index] = .18 + randomC * .32
+      }
+
+      const geometry = new THREE.BufferGeometry()
+      geometry.setAttribute(
+        'position',
+        new THREE.BufferAttribute(positions, 3)
+      )
+
+      const material = new THREE.PointsMaterial({
+        color: layerIndex === 2 ? 0xc9f7ff : 0x65dfff,
+        size,
+        transparent: true,
+        opacity: floatingOpacities[layerIndex],
+        depthWrite: false,
+        depthTest: false,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true,
+      })
+
+      standbyGroup.add(new THREE.Points(geometry, material))
+
+      floatingParticleLayers.push({
+        geometry,
+        positions,
+        origins,
+        phases,
+        speeds,
+      })
+    })
 
     // Holographic corridor particles.
     // Fixed positions, perspective-aligned rows, varied sizes and brightness.
@@ -159,9 +227,9 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     ]
 
     const rowBands = [
-      -.48, -.32, -.17, -.05,
-      .08, .17, .28, .39, .50, .61, .72, .83, .93,
-      1.07, 1.20, 1.34, 1.48
+      -.38, -.15,
+      .08, .24, .40, .56, .72, .88, .96,
+      1.18, 1.40
     ]
 
     for (const [upperIndex, lowerIndex] of [[0, 1], [2, 3]]) {
@@ -360,6 +428,39 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const pulseMaterials: THREE.LineBasicMaterial[] = []; const pulses: THREE.Line[] = []; for (let i = 0; i < 10; i++) { const y = i % 2 ? -2.9 : 2.9; const material = makeLineMaterial(0xd8fbff); const x = i % 3 === 0 ? 4.7 : -4.7; const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, 0), new THREE.Vector3(x, y, -1.5)]), material); pulse.position.z = -31; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const particleClock = new THREE.Clock(); const render = () => {
       const elapsed = particleClock.getElapsedTime()
+
+      // Gentle independent floating motion.
+      floatingParticleLayers.forEach((layer) => {
+        const { positions, origins, phases, speeds } = layer
+
+        for (let index = 0; index < phases.length; index++) {
+          const offset = index * 3
+          const time = elapsed * speeds[index]
+          const phase = phases[index]
+
+          // Small sideways movement.
+          positions[offset] =
+            origins[offset] +
+            Math.sin(time + phase) * .055
+
+          // Slow vertical floating, not a travelling scan.
+          positions[offset + 1] =
+            origins[offset + 1] +
+            Math.sin(time * .73 + phase * 1.31) * .095
+
+          // Subtle depth movement.
+          positions[offset + 2] =
+            origins[offset + 2] +
+            Math.sin(time * .48 + phase) * .035
+        }
+
+        const attribute = layer.geometry.getAttribute(
+          'position'
+        ) as THREE.BufferAttribute
+
+        attribute.needsUpdate = true
+      })
+
       ambientLinearStreaks.forEach((streak) => { const breath = .5 + .5 * Math.sin(elapsed * streak.breathingSpeed + streak.phase); streak.core.opacity = .16 + streak.coreBrightness * (.26 + breath * .34); streak.glow.opacity = .035 + streak.glowStrength * (.2 + breath * .4) })
 
       particleLayers.forEach((layer) => {
