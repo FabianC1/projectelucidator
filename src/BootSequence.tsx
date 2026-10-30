@@ -162,13 +162,13 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       const object = new THREE.Group(); const planarDirection = direction.clone().setZ(0).normalize()
       const core = new THREE.MeshBasicMaterial({ color: 0xeafcff, map: coreTexture, transparent: true, opacity: .18, depthWrite: false, depthTest: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
       const glow = new THREE.MeshBasicMaterial({ color: 0x55dcff, map: haloTexture, transparent: true, opacity: .05, depthWrite: false, depthTest: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
-      const coreMesh = new THREE.Mesh(new THREE.PlaneGeometry(length, .012), core); const glowMesh = new THREE.Mesh(new THREE.PlaneGeometry(length * 1.45, .052), glow)
+      const coreMesh = new THREE.Mesh(new THREE.PlaneGeometry(length, .018), core); const glowMesh = new THREE.Mesh(new THREE.PlaneGeometry(length * 1.5, .075), glow)
       object.position.copy(position); object.rotation.z = Math.atan2(planarDirection.y, planarDirection.x); object.add(glowMesh, coreMesh); standbyGroup.add(object)
       ambientLinearStreaks.push({ core, glow, coreBrightness, glowStrength, breathingSpeed, phase })
     }
     // Stage 1B test: deliberately fixed in the upper-left sky band. Only opacity
     // breathes; the group itself is never translated, rotated, or regenerated.
-    addAmbientLinearStreak({ position: new THREE.Vector3(-standbyViewWidth * .235, 3.82, .08), length: .44, direction: new THREE.Vector3(.94, -.34, 0), coreBrightness: .78, glowStrength: .26, breathingSpeed: .42, phase: .7 })
+    addAmbientLinearStreak({ position: new THREE.Vector3(-standbyViewWidth * .235, 3.82, .08), length: .55, direction: new THREE.Vector3(.94, -.34, 0), coreBrightness: .95, glowStrength: .45, breathingSpeed: .42, phase: .7 })
     const packetCoreGeometry = new THREE.PlaneGeometry(.9, .045)
     const packetGlowGeometry = new THREE.PlaneGeometry(1.46, .17)
     const addTraveller = (path: { start: THREE.Vector3; end: THREE.Vector3 }, delay: number, packet: boolean) => {
