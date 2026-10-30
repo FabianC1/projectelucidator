@@ -100,8 +100,11 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
         depthWrite: false
       })
 
+
       material.userData.targetOpacity = opacity
+      material.userData.revealDelay = .62
       standbyLineMaterials.push(material)
+
 
       standbyGroup.add(new THREE.LineSegments(geometry, material))
     }
@@ -201,6 +204,30 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     telemetryGlowTexture.magFilter = THREE.LinearFilter
 
 
+    // Shared soft reflection texture for the four glass panels.
+    const reflectionCanvas = document.createElement('canvas')
+    reflectionCanvas.width = 256
+    reflectionCanvas.height = 128
+
+    const reflectionCtx = reflectionCanvas.getContext('2d')!
+    const reflectionGradient = reflectionCtx.createRadialGradient(
+      128, 64, 2,
+      128, 64, 126
+    )
+
+    reflectionGradient.addColorStop(0, 'rgba(175,225,255,0.30)')
+    reflectionGradient.addColorStop(.35, 'rgba(75,155,245,0.12)')
+    reflectionGradient.addColorStop(1, 'rgba(35,100,210,0)')
+
+    reflectionCtx.fillStyle = reflectionGradient
+    reflectionCtx.fillRect(0, 0, 256, 128)
+
+    const reflectionTexture = new THREE.CanvasTexture(reflectionCanvas)
+    const standbyReflections: Array<{
+      mesh: THREE.Mesh
+      width: number
+    }> = []
+
 
     const addDepthWing = (side: -1 | 1) => {
       const panels = [
@@ -230,10 +257,44 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
 
         material.userData.targetOpacity = opacity
 
-        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -1.65; standbyGroup.add(panelGroup)
+        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z);
+        // Faint reflection that travels across the glass surface.
+        const reflectionMaterial = new THREE.MeshBasicMaterial({
+          map: reflectionTexture,
+          color: 0x8CCFFF,
+          transparent: true,
+          opacity: 0,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          depthTest: false,
+          blending: THREE.AdditiveBlending
+        })
+
+        reflectionMaterial.userData.targetOpacity = .13
+        reflectionMaterial.userData.revealDelay = .28
+        standbyGlassMaterials.push(reflectionMaterial)
+
+        const reflectionMesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(width * .65, height * .85),
+          reflectionMaterial
+        )
+
+        reflectionMesh.position.set(-width * .65, 0, .012)
+        panelGroup.add(reflectionMesh)
+
+        standbyReflections.push({
+          mesh: reflectionMesh,
+          width
+        })
+        panelGroup.rotation.y = side * -1.65; standbyGroup.add(panelGroup)
         panelGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(width, height), material)); standbyGlassMaterials.push(material)
         const addPanelLine = (points: number[], color: number, targetOpacity: number) => {
-          const lineMaterial = makeLineMaterial(color); lineMaterial.userData.targetOpacity = targetOpacity; standbyLineMaterials.push(lineMaterial)
+
+          const lineMaterial = makeLineMaterial(color)
+          lineMaterial.userData.targetOpacity = targetOpacity
+          lineMaterial.userData.revealDelay = .30
+          standbyLineMaterials.push(lineMaterial)
+
           panelGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)), lineMaterial))
         }
         const halfW = width * .5; const halfH = height * .5; const zOffset = .018
@@ -535,9 +596,11 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const cornerGlowGradient =
       cornerGlowCtx.createRadialGradient(64, 64, 0, 64, 64, 64)
 
-    cornerGlowGradient.addColorStop(0, 'rgba(180,235,255,0.55)')
-    cornerGlowGradient.addColorStop(0.18, 'rgba(95,180,255,0.32)')
-    cornerGlowGradient.addColorStop(0.5, 'rgba(40,110,220,0.10)')
+
+    cornerGlowGradient.addColorStop(0, 'rgba(225,248,255,0.72)')
+    cornerGlowGradient.addColorStop(.12, 'rgba(125,205,255,0.42)')
+    cornerGlowGradient.addColorStop(.32, 'rgba(55,135,235,0.14)')
+    cornerGlowGradient.addColorStop(.65, 'rgba(25,85,190,0.025)')
     cornerGlowGradient.addColorStop(1, 'rgba(20,60,150,0)')
 
     cornerGlowCtx.fillStyle = cornerGlowGradient
@@ -562,14 +625,86 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
 
         const glow = new THREE.Sprite(glowMaterial)
         glow.position.set(x, y, -0.03)
-        glow.scale.set(.95, .95, 1)
+        glow.scale.set(.68, .68, 1)
 
         standbyGroup.add(glow)
         standbyCornerGlowMaterials.push(glowMaterial)
       }
     }
 
+
+    // Six restrained registration marks around the central viewport.
+    // They sit outside the frame, not across the wallpaper.
+    const registrationGap = .20
+    const registrationLength = .14
+
+    addStandbyLines([
+      // Left: upper, middle, lower
+      -frameX - registrationGap, frameY * .62, 0,
+      -frameX - registrationGap - registrationLength, frameY * .62, 0,
+
+      -frameX - registrationGap, 0, 0,
+      -frameX - registrationGap - registrationLength, 0, 0,
+
+      -frameX - registrationGap, -frameY * .62, 0,
+      -frameX - registrationGap - registrationLength, -frameY * .62, 0,
+
+      // Right: upper, middle, lower
+      frameX + registrationGap, frameY * .62, 0,
+      frameX + registrationGap + registrationLength, frameY * .62, 0,
+
+      frameX + registrationGap, 0, 0,
+      frameX + registrationGap + registrationLength, 0, 0,
+
+      frameX + registrationGap, -frameY * .62, 0,
+      frameX + registrationGap + registrationLength, -frameY * .62, 0
+    ], 0x5A9CCB, .38)
+
+
     addDepthWing(-1); addDepthWing(1)
+
+
+    // Soft illumination for the outer portion of the perspective rails.
+    // Reuses the feathered telemetry texture to avoid extra GPU textures.
+    const addPerspectiveRailGlow = (
+      start: THREE.Vector3,
+      end: THREE.Vector3
+    ) => {
+      const glowEnd = start.clone().lerp(end, .40)
+      const direction = glowEnd.clone().sub(start)
+      const length = direction.length()
+
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        map: telemetryGlowTexture,
+        color: 0x70C5FF,
+        transparent: true,
+        opacity: 0,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        depthTest: false,
+        blending: THREE.AdditiveBlending
+      })
+
+      glowMaterial.userData.targetOpacity = .36
+      glowMaterial.userData.revealDelay = .55
+      standbyGlassMaterials.push(glowMaterial)
+
+      const glow = new THREE.Mesh(
+        new THREE.PlaneGeometry(length, .20),
+        glowMaterial
+      )
+
+      glow.position.copy(start).add(glowEnd).multiplyScalar(.5)
+
+      // Align the luminous strip with the actual 3D rail.
+      glow.quaternion.setFromUnitVectors(
+        new THREE.Vector3(1, 0, 0),
+        direction.normalize()
+      )
+
+      standbyGroup.add(glow)
+    }
+
     // F1/F2: four dedicated perspective rails, two per side. They terminate at the
     // central frame rather than extending through it, so they imply depth without a tunnel.
     const standbyRailPaths: Array<{ start: THREE.Vector3; end: THREE.Vector3 }> = []
@@ -577,7 +712,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       const direction = upper ? 1 : -1
       const start = new THREE.Vector3(side * standbyViewWidth * .54, upper ? 3.0 : -1.65, -1.18)
       const end = new THREE.Vector3(side * frameX, upper ? 1.72 : -1.08, -.04)
-
+      addPerspectiveRailGlow(start, end)
       standbyRailPaths.push({ start, end })
 
       // Primary perspective rail: navy distance -> luminous foreground.
@@ -610,11 +745,19 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     addPerspectiveRail(-1, true); addPerspectiveRail(-1, false); addPerspectiveRail(1, true); addPerspectiveRail(1, false)
     // E: exactly two horizontal structural rails, above and below the viewport. They are
     // segmented guides, not another enclosing frame or a line through the wallpaper.
+
     const railX = standbyViewWidth * .269
     const upperRailY = 3.9; const lowerRailY = -3.4
-    addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x4f9ab2, .34)
-    addStandbyLines([-standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .239, lowerRailY, -.48, -standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .239, lowerRailY, -.48], 0xa4efff, .68)
-    addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xe0fbff, .92)
+
+    // Subdued horizontal structural rails.
+    addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x39718E, .24)
+
+    // Segmented horizontal guides.
+    addStandbyLines([-standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .239, lowerRailY, -.48, -standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .239, lowerRailY, -.48], 0x78B7D9, .48)
+
+    // Small central illuminated ticks.
+    addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xB5E6FF, .72)
+
 
     // Free-floating holographic particles between the
     // central HUD frame and the side glass panels.
@@ -1076,6 +1219,24 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const idleTimelines: gsap.core.Timeline[] = []
     const startStandbyRailFlow = () => {
       if (idleTimelines.length) return
+
+      // Very slow glass reflections, staggered between panels.
+      standbyReflections.forEach(({ mesh, width }, index) => {
+        const sweep = gsap.timeline({
+          repeat: -1,
+          repeatDelay: 3.5,
+          delay: index * 1.4
+        })
+
+        sweep.to(mesh.position, {
+          x: width * .65,
+          duration: 10,
+          ease: 'none'
+        })
+
+        idleTimelines.push(sweep)
+      })
+
       const animateTraveller = ({ object, core, glow, path, delay }: StandbyTraveller, duration: number, isPacket: boolean) => {
         const flow = gsap.timeline({ repeat: -1, repeatDelay: .45, delay })
         flow.set(object.position, { x: path.start.x, y: path.start.y, z: path.start.z }).set(core, { opacity: 0 }).set(glow, { opacity: 0 })
@@ -1094,14 +1255,92 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       )
 
     }
-    const applyRevealPose = (timeline?: gsap.core.Timeline, at = 0) => {
-      const set = (target: gsap.TweenTarget, vars: gsap.TweenVars) => timeline ? timeline.to(target, { ...vars, overwrite: 'auto' }, at) : gsap.set(target, vars)
-      set(camera.position, { z: 14, duration: .72, ease: 'power2.out' }); set(frameMaterials, { opacity: 0, duration: .55 }); set(railMaterial, { opacity: 0, duration: .5 }); set(architectureMaterial, { opacity: 0, duration: .5 }); set(panelMaterials, { opacity: 0, duration: .55 }); set(panelEdgeMaterials, { opacity: 0, duration: .55 }); set(hazeMaterial, { opacity: 0, duration: .5 }); set(standbyGroup, { visible: true }); set(standbyLineMaterials, { opacity: (index: number) => Number(standbyLineMaterials[index].userData.targetOpacity ?? .6), duration: .55 }); set(standbyGlassMaterials, { opacity: (index: number) => Number(standbyGlassMaterials[index].userData.targetOpacity ?? .12), duration: .55 }); set(standbyCornerGlowMaterials, {
-        opacity: .55,
-        duration: .7,
+
+    const revealTweens: gsap.core.Tween[] = []
+
+    const applyRevealPose = (
+      timeline?: gsap.core.Timeline,
+      at = 0
+    ) => {
+      const set = (
+        target: gsap.TweenTarget,
+        vars: gsap.TweenVars
+      ) => timeline
+          ? timeline.to(target, { ...vars, overwrite: 'auto' }, at)
+          : gsap.set(target, vars)
+
+      // Retire the boot corridor.
+      set(camera.position, {
+        z: 14,
+        duration: .72,
         ease: 'power2.out'
-      }); set(shutterParts, { '--open': '1', duration: .9, ease: 'power3.inOut' })
+      })
+
+      set(frameMaterials, { opacity: 0, duration: .55 })
+      set(railMaterial, { opacity: 0, duration: .5 })
+      set(architectureMaterial, { opacity: 0, duration: .5 })
+      set(panelMaterials, { opacity: 0, duration: .55 })
+      set(panelEdgeMaterials, { opacity: 0, duration: .55 })
+      set(hazeMaterial, { opacity: 0, duration: .5 })
+
+      set(standbyGroup, { visible: true })
+
+      // Schedule individual material illumination.
+      const illuminate = (
+        material: THREE.Material & { opacity: number },
+        opacity: number,
+        delay: number,
+        duration = .55
+      ) => {
+        const vars = {
+          opacity,
+          duration,
+          ease: 'power2.out',
+          overwrite: 'auto' as const
+        }
+
+        if (timeline) {
+          timeline.to(material, vars, at + delay)
+        } else {
+          revealTweens.push(
+            gsap.to(material, { ...vars, delay })
+          )
+        }
+      }
+
+      // Structural frame first, panel details second,
+      // perspective railings last.
+      standbyLineMaterials.forEach(material => {
+        illuminate(
+          material,
+          Number(material.userData.targetOpacity ?? .6),
+          Number(material.userData.revealDelay ?? .08)
+        )
+      })
+
+      // Glass, telemetry glow and reflections.
+      standbyGlassMaterials.forEach(material => {
+        illuminate(
+          material,
+          Number(material.userData.targetOpacity ?? .12),
+          Number(material.userData.revealDelay ?? .30),
+          .65
+        )
+      })
+
+      // Central frame corner halos.
+      standbyCornerGlowMaterials.forEach(material => {
+        illuminate(material, .55, .08, .65)
+      })
+
+      // Existing shutter reveal remains unchanged.
+      set(shutterParts, {
+        '--open': '1',
+        duration: .9,
+        ease: 'power3.inOut'
+      })
     }
+
     let removeStandbyInput: () => void = () => { }
     const installStandbyInput = () => {
       let dismissed = false
@@ -1117,7 +1356,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       window.addEventListener('keydown', activate); window.addEventListener('pointerdown', activate)
       removeStandbyInput = () => { window.removeEventListener('keydown', activate); window.removeEventListener('pointerdown', activate) }
     }
-    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); standbyGlassTexture.dispose(); telemetryGlowTexture.dispose(); cornerGlowTexture.dispose(); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); }
+    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); revealTweens.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); standbyGlassTexture.dispose(); telemetryGlowTexture.dispose(); reflectionTexture.dispose(); cornerGlowTexture.dispose(); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); }
     if (standby) {
       host.classList.add('is-revealing', 'is-standby'); gsap.set([hud, standbyCopy], { autoAlpha: 1 }); gsap.set([connect, core, diagnostics, assembleStack], { autoAlpha: 0 }); gsap.set(titleRail, { scaleX: 0 }); applyRevealPose()
       startStandbyRailFlow()
