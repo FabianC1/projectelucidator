@@ -1634,32 +1634,109 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
   const seek = (time: number) => (window as TimelineWindow).__elucidatorBootTimeline?.pause().seek(time); const previewRevealAt = short ? 2.12 : 5.25
   const panel = (title: string, lines: DiagnosticLine[], side: 'left' | 'right') => <section className={`boot-diagnostic-panel boot-diagnostic-${side}`}><header><span>{title}</span><i>LINKED</i></header><div className="boot-diagnostic-rule" />{lines.map(line => <p className="boot-module" key={line.label}><b>› {line.label}</b><em>{line.label === 'WALLPAPER_DECODER' || line.label === 'TEXTURE_BUFFER' ? wallpaperReady ? 'READY' : 'BUFFERED' : line.value}</em><i /></p>)}<footer><span>MODULES</span><i /><b>{side === 'left' ? '08 / 08' : 'SYNC // 01'}</b></footer></section>
   return <><section ref={mount} className={`boot-scene${standby ? ' is-standby' : ''}`} style={viewport} aria-hidden="true"><div className="boot-shutters"><i className="top" /><i className="right" /><i className="bottom" /><i className="left" /><i className="center" /></div><div className="boot-hud"><span className="boot-hud-project">PROJECT ELUCIDATOR<small>VISUAL INTERFACE v1.0</small></span><span className="boot-hud-state">DISPLAY LINK<small>INITIALISING</small></span><span className="boot-hud-coordinates left">35.6762° N<br />139.6503° E</span><span className="boot-hud-coordinates right">51.5074° N<br />0.1278° W</span><span className="boot-hud-sync">LINK CHANNEL // GLOBAL<br />SU-4927-A</span><span className="boot-hud-sync right">SYNC // 00.01<br />RTT // 12 ms</span></div><div className="boot-focal-core"><i /><i /><i /><i /><b /></div><div className="boot-status-columns">{panel('CORE MODULES', coreModules, 'left')}{panel('SYSTEM LAYERS', sceneModules, 'right')}</div><div className="boot-connect">ELUCIDATOR<small>ESTABLISHING DISPLAY LINK</small></div><div className="boot-assemble-stack"><div className="boot-assemble">ELUCIDATOR<small>SYSTEM SYNCHRONISED</small></div><div className="boot-title-rail" aria-hidden="true"><span className="boot-rail-guide" /><div className="boot-rail-segments">{Array.from({ length: 14 }, (_, index) => <i key={index} />)}</div><span className="boot-rail-guide" /></div><div className="boot-ready-nodes"><div className="boot-ready-node"><i /><b>DISPLAY</b><small>INITIALISED</small></div><div className="boot-ready-node"><i /><b>THEME</b><small>INITIALISED</small></div><div className="boot-ready-node"><i /><b>WALLPAPER</b><small>{wallpaperReady ? 'READY' : 'BUFFERED'}</small></div></div></div>
-    <div className="boot-sao-link" aria-label="Elucidator system link established">
-      <div className="boot-sao-link-header">
+
+
+    <div className="boot-upper-title" aria-label="Elucidator">
+      <span className="boot-upper-title-side boot-upper-title-side-left" aria-hidden="true">
+        <i /><i /><i />
+      </span>
+
+      <span className="boot-upper-title-text">
+        ELUCIDATOR
+      </span>
+
+      <span className="boot-upper-title-side boot-upper-title-side-right" aria-hidden="true">
+        <i className="long" />
+        <i className="medium" />
+        <i className="short" />
+      </span>
+
+      <svg
+        className="boot-upper-title-underline"
+        viewBox="0 0 420 18"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M0 3 H198 L210 15 L222 3 H420"
+          fill="none"
+          stroke="#9ce8ff"
+          strokeWidth="1.25"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+
+
+    <div className="boot-sao-link" aria-label="Elucidator display synchronised">
+      <svg
+        className="boot-sao-link-outline"
+        viewBox="0 0 440 90"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id="sao-outline-fade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#b7eaff" stopOpacity=".85" />
+            <stop offset="100%" stopColor="#5b9fc9" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M0 90 V14 L14 0 H426 L440 14 V90"
+          fill="none"
+          stroke="url(#sao-outline-fade)"
+          strokeWidth="1.5"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+
+      <div className="boot-sao-link-core">
+        <svg
+          className="boot-sao-link-rails"
+          viewBox="0 0 400 58"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M4 9 H130 L153 25 H164 M396 9 H270 L247 25 H236"
+            fill="none"
+            stroke="#7fc8f2"
+            strokeWidth="1.4"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+
+        <div className="boot-sao-link-segments" aria-hidden="true">
+          {Array.from({ length: 9 }, (_, index) => (
+            <i
+              key={index}
+              style={{ '--segment-index': 8 - index } as CSSProperties}
+            />
+          ))}
+        </div>
+
         <img
           className="boot-sao-swords"
           src="/assets/emblems/link-start-crossed-swords-cropped.png"
           alt=""
           aria-hidden="true"
         />
-        <span className="boot-sao-link-title">ELUCIDATOR</span>
-        <span className="boot-sao-link-status">
-          SYSTEM LINK // ESTABLISHED
-        </span>
-      </div>
 
-      <div className="boot-sao-link-segments" aria-hidden="true">
-        {Array.from({ length: 18 }, (_, index) => (
-          <i
-            key={index}
-            style={{ '--segment-index': index } as CSSProperties}
-          />
-        ))}
+        <div className="boot-sao-link-segments" aria-hidden="true">
+          {Array.from({ length: 9 }, (_, index) => (
+            <i
+              key={index}
+              style={{ '--segment-index': index } as CSSProperties}
+            />
+          ))}
+        </div>
       </div>
 
       <div className="boot-sao-link-footer">
         DISPLAY SYNCHRONISED
       </div>
     </div>
+
+
     <div className="boot-standby-copy"><b>SYSTEM READY</b><span>PRESS ANY KEY OR MOVE MOUSE TO CONTINUE</span></div></section>{import.meta.env.DEV && debug && !standby && <div className="boot-debug" aria-label="Boot timeline preview"><button onClick={() => seek(0)}>Connect</button><button onClick={() => seek(short ? .9 : 2)}>Compile</button><button onClick={() => seek(short ? 1.55 : 3.75)}>Assemble</button><button onClick={() => seek(previewRevealAt)}>Reveal</button></div>}</>
 }
