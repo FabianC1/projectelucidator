@@ -110,3 +110,98 @@
     height: 80%;
   }
 }
+
+
+/* STANDBY — EDGE-TO-EDGE OUTER FRAME */
+.boot-scene.is-standby .boot-hud {
+  inset: 1px;
+  border: 1px solid rgba(75, 151, 235, 0.78);
+  box-shadow:
+    inset 0 0 18px rgba(15, 80, 170, 0.12),
+    0 0 9px rgba(35, 110, 225, 0.18);
+}
+
+/* Keep the central vertical axis aligned with the new frame */
+.boot-scene.is-standby .boot-standby-axis {
+  top: 1px;
+  bottom: 1px;
+}
+
+
+/* STANDBY — FINAL EDGE FRAME */
+.boot-scene.is-standby .boot-hud {
+  inset: 1px;
+  border-width: 2px;
+}
+
+/* Top-left and top-right labels */
+.boot-scene.is-standby .boot-hud-project {
+  top: 1.25rem;
+  left: 1.25rem;
+}
+
+.boot-scene.is-standby .boot-hud-state {
+  top: 1.25rem;
+  right: 1.25rem;
+}
+
+/* Bottom-left diagnostics */
+.boot-scene.is-standby .boot-standby-diagnostics {
+  left: 1.5rem;
+  bottom: 1.5rem;
+}
+
+/* Bottom-right system-ready message */
+.boot-scene.is-standby .boot-standby-copy {
+  right: 1.5rem;
+  bottom: 1.5rem;
+}
+
+/* Central alignment guide */
+.boot-scene.is-standby .boot-standby-axis {
+  top: 1px;
+  bottom: 1px;
+}
+
+
+/* ============================================
+   BOOT → STANDBY FRAME EXPANSION
+   ============================================ */
+
+/* Animate the original boot frame smoothly */
+.boot-hud {
+  transition:
+    inset 0.95s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.75s ease,
+    box-shadow 0.75s ease;
+}
+
+/* During REVEAL, expand the frame outward */
+.boot-scene.is-revealing .boot-hud,
+.boot-scene.is-standby .boot-hud {
+  inset: 10px;
+  border: 2px solid rgba(85, 158, 235, 0.85);
+  box-shadow:
+    inset 0 0 18px rgba(15, 80, 170, 0.10),
+    0 0 9px rgba(35, 110, 225, 0.16);
+}
+
+/* Keep corner labels comfortably inside the frame */
+.boot-scene.is-revealing .boot-hud-project,
+.boot-scene.is-standby .boot-hud-project {
+  top: 1.1rem;
+  left: 1.1rem;
+}
+
+.boot-scene.is-revealing .boot-hud-state,
+.boot-scene.is-standby .boot-hud-state {
+  top: 1.1rem;
+  right: 1.1rem;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .boot-hud {
+    transition: none;
+  }
+}

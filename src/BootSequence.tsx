@@ -31,6 +31,8 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     // Static standby is its own display architecture. It is deliberately independent of
     // the boot corridor, with one central viewport and two glass layers per side.
     const standbyGroup = new THREE.Group(); standbyGroup.visible = false; scene.add(standbyGroup)
+    // Increase standby hologram height without changing horizontal positions.
+standbyGroup.scale.y = 1.20
     // Derive every horizontal standby coordinate from the real camera frustum.
     // This preserves intended screen-space proportions at 16:9 and 32:9 without
     // scaling a 16:9 composition horizontally.
@@ -44,7 +46,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
         // D1 foreground and D2 rear retain the accepted responsive anchors but
         // differ materially in detail density, scanning, and illumination.
         { width: 1.35, height: 7.15, x: 9.6, z: -.72, opacity: .065, edge: .78, colour: 0x4bb8d6, density: 1 },
-        { width: 1.55, height: 6.9, x: 8.28, z: -1.48, opacity: .032, edge: .34, colour: 0x2d7189, density: .68 },
+        { width: 1.55, height: 6.9, x: 8.28, z: -1.48, opacity: .042, edge: .48, colour: 0x2d7189, density: .68 },
       ]
       panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour, density }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
@@ -62,7 +64,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           halfW, halfH, zOffset, halfW, -halfH, zOffset,
           halfW, -halfH, zOffset, -halfW, -halfH, zOffset,
           -halfW, -halfH, zOffset, -halfW, halfH, zOffset,
-        ], 0x70c9df, edgeOpacity * .46)
+        ], 0x3D91E8, edgeOpacity * 1.0)
         // Brighter illuminated corners and separated edge runs retain the layered,
         // technical hologram language without making the perimeter heavy.
         addPanelLine([
@@ -70,7 +72,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           halfW - width * .23, halfH, zOffset, halfW, halfH, zOffset, halfW, halfH, zOffset, halfW, halfH - height * .11, zOffset,
           -halfW, -halfH + height * .12, zOffset, -halfW, -halfH, zOffset, -halfW, -halfH, zOffset, -halfW + width * .22, -halfH, zOffset,
           halfW - width * .32, -halfH, zOffset, halfW, -halfH, zOffset, halfW, -halfH, zOffset, halfW, -halfH + height * .16, zOffset,
-        ], 0xb9f7ff, edgeOpacity)
+        ], 0x76B7FF, edgeOpacity)
 
         // Structured holographic instrumentation.
         // Clean data modules rather than disconnected glyphs.
@@ -167,18 +169,18 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           right, footerY
         )
 
-        // Muted structural details.
+        // Clearly visible electric-blue telemetry on both glass layers.
         addPanelLine(
           detailPoints,
-          0x54b9d6,
-          edgeOpacity * (density === 1 ? .42 : .25)
+          0x579FF5,
+          edgeOpacity * (density === 1 ? .95 : .92)
         )
 
-        // Brighter cyan holographic highlights.
+        // Brighter illuminated data segments.
         addPanelLine(
           accentPoints,
-          0xb9f7ff,
-          edgeOpacity * (density === 1 ? .90 : .50)
+          0xA8D5FF,
+          edgeOpacity * (density === 1 ? 1.0 : .98)
         )
 
       })
