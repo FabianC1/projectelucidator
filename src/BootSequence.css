@@ -1413,3 +1413,69 @@
       opacity: 1;
    }
 }
+
+
+
+/* ============================================
+   SAO LOADING TABS — SELECTIVE ILLUMINATION
+   ============================================ */
+
+/* Default tabs: subtle cyan */
+.boot-sao-link-segments i {
+  background: #69b9df;
+  opacity: 0.48;
+  border-radius: 1px;
+
+  box-shadow: 0 0 3px rgba(75, 170, 235, 0.3);
+
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Gentle, scattered illumination */
+.boot-scene.is-standby .boot-sao-link-segments i {
+  animation: sao-tab-glow 5.4s ease-in-out infinite;
+  animation-delay: calc(var(--segment-index) * -0.63s);
+}
+
+/* Slight variation between tabs */
+.boot-scene.is-standby .boot-sao-link-segments i:nth-child(3n) {
+  animation-delay: calc(var(--segment-index) * -0.63s - 1.4s);
+}
+
+.boot-scene.is-standby .boot-sao-link-segments i:nth-child(4n) {
+  animation-delay: calc(var(--segment-index) * -0.63s - 2.6s);
+}
+
+@keyframes sao-tab-glow {
+  0%, 100% {
+    opacity: 0.42;
+    background: #69b9df;
+    box-shadow: 0 0 3px rgba(75, 170, 235, 0.25);
+  }
+
+  15%, 30% {
+    opacity: 1;
+    background: #d5f8ff;
+
+    box-shadow:
+      0 0 5px rgba(184, 239, 255, 0.95),
+      0 0 12px rgba(76, 192, 255, 0.75),
+      0 0 20px rgba(47, 151, 255, 0.35);
+  }
+
+  50% {
+    opacity: 0.65;
+    background: #92d8f4;
+    box-shadow: 0 0 7px rgba(90, 195, 255, 0.45);
+  }
+}
+
+/* Keep reduced-motion preferences respected */
+@media (prefers-reduced-motion: reduce) {
+  .boot-scene.is-standby .boot-sao-link-segments i {
+    animation: none;
+    opacity: 0.7;
+  }
+}
