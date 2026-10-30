@@ -56,8 +56,16 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           panelGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)), lineMaterial))
         }
         const halfW = width * .5; const halfH = height * .5; const zOffset = .018
-        // Fragmented border: illuminated corners and separated edge runs avoid a
-        // dominant door-shaped outline while retaining the panel silhouette.
+        // A complete, deliberately fine perimeter establishes the glass structure.
+        // The brighter fragmented runs below are accents, not a replacement outline.
+        addPanelLine([
+          -halfW, halfH, zOffset, halfW, halfH, zOffset,
+          halfW, halfH, zOffset, halfW, -halfH, zOffset,
+          halfW, -halfH, zOffset, -halfW, -halfH, zOffset,
+          -halfW, -halfH, zOffset, -halfW, halfH, zOffset,
+        ], 0x70c9df, edgeOpacity * .46)
+        // Brighter illuminated corners and separated edge runs retain the layered,
+        // technical hologram language without making the perimeter heavy.
         addPanelLine([
           -halfW, halfH - height * .14, zOffset, -halfW, halfH, zOffset, -halfW, halfH, zOffset, -halfW + width * .3, halfH, zOffset,
           halfW - width * .23, halfH, zOffset, halfW, halfH, zOffset, halfW, halfH, zOffset, halfW, halfH - height * .11, zOffset,
@@ -121,18 +129,38 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x4f9ab2, .34)
     addStandbyLines([-standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .239, lowerRailY, -.48, -standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .239, lowerRailY, -.48], 0xa4efff, .68)
     addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xe0fbff, .92)
-    // One shared particle cloud gives the settled HUD low-cost atmospheric depth.
-    // It is updated in-place in the existing render loop: no per-frame objects.
-    const particleCount = 116; const particlePositions = new Float32Array(particleCount * 3); const particleBase = new Float32Array(particleCount * 3); const particlePhase = new Float32Array(particleCount); const particleSpeed = new Float32Array(particleCount)
-    for (let index = 0; index < particleCount; index++) {
-      const side = index % 2 === 0 ? -1 : 1; const band = index % 4
-      const x = side * (standbyViewWidth * .279 + ((index * 1.71) % (standbyViewWidth * .254))); const y = band < 2 ? (band === 0 ? 2.45 : -2.18) + ((index % 7) - 3) * .12 : ((index % 15) - 7) * .34; const z = -1.3 - (index % 9) * .44
-      particleBase[index * 3] = particlePositions[index * 3] = x; particleBase[index * 3 + 1] = particlePositions[index * 3 + 1] = y; particleBase[index * 3 + 2] = particlePositions[index * 3 + 2] = z
-      particlePhase[index] = index * 1.618; particleSpeed[index] = .08 + (index % 5) * .023
+    // Annotation 3 is deliberately sparse background ambience. The previous 116
+    // drifting points have been replaced by directional geometry below.
+    const starCount = 30; const starPositions = new Float32Array(starCount * 3)
+    for (let index = 0; index < starCount; index++) {
+      const side = index % 2 === 0 ? -1 : 1
+      starPositions[index * 3] = side * (standbyViewWidth * (.04 + ((index * 1.37) % .2)))
+      starPositions[index * 3 + 1] = 1.05 + ((index % 9) - 4) * .27
+      starPositions[index * 3 + 2] = -1.8 - (index % 7) * .38
     }
-    const particleGeometry = new THREE.BufferGeometry(); const particleAttribute = new THREE.BufferAttribute(particlePositions, 3); particleGeometry.setAttribute('position', particleAttribute)
-    const particleMaterial = new THREE.PointsMaterial({ color: 0x9aefff, size: .055, transparent: true, opacity: .74, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })
-    standbyGroup.add(new THREE.Points(particleGeometry, particleMaterial))
+    const starGeometry = new THREE.BufferGeometry(); starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
+    const starMaterial = new THREE.PointsMaterial({ color: 0x9aefff, size: .035, transparent: true, opacity: .48, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })
+    standbyGroup.add(new THREE.Points(starGeometry, starMaterial))
+    // Annotations 1, 10, 12 and 13: one preallocated LineSegments draw call. Each
+    // pair travels on a straight, fixed rail-aligned path; no wandering positions
+    // or per-frame allocations are used.
+    type DirectionalStreak = { sx: number; sy: number; sz: number; ex: number; ey: number; ez: number; speed: number; phase: number; tail: number }
+    const directionalStreaks: DirectionalStreak[] = []
+    const addStreakRoute = (start: THREE.Vector3, end: THREE.Vector3, count: number, phaseOffset: number, tail: number) => {
+      for (let index = 0; index < count; index++) directionalStreaks.push({ sx: start.x, sy: start.y, sz: start.z, ex: end.x, ey: end.y, ez: end.z, speed: .11 + (index % 5) * .026, phase: phaseOffset + index * .173, tail: tail * (.72 + (index % 4) * .1) })
+    }
+    // Upper and lower perspective rails form the principal directional flows.
+    standbyRailPaths.forEach((path, index) => addStreakRoute(path.start, path.end, index % 2 === 0 ? 11 : 15, index * .37, index % 2 === 0 ? .13 : .17))
+    // Floor fragments converge toward the aperture along the same lower perspective.
+    for (const side of [-1, 1] as const) {
+      const start = new THREE.Vector3(side * standbyViewWidth * .52, -3.06, -1.72)
+      const end = new THREE.Vector3(side * frameX * .62, -1.58, -.16)
+      addStreakRoute(start, end, 10, side === -1 ? .18 : .63, .14)
+    }
+    const directionalPositions = new Float32Array(directionalStreaks.length * 6)
+    const directionalGeometry = new THREE.BufferGeometry(); const directionalAttribute = new THREE.BufferAttribute(directionalPositions, 3); directionalGeometry.setAttribute('position', directionalAttribute)
+    const directionalMaterial = new THREE.LineBasicMaterial({ color: 0x8eecff, transparent: true, opacity: .68, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending })
+    standbyGroup.add(new THREE.LineSegments(directionalGeometry, directionalMaterial))
     type TrailMaterial = THREE.MeshBasicMaterial
     type StandbyTraveller = { object: THREE.Group; core: TrailMaterial; glow: TrailMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }
     const standbyPackets: StandbyTraveller[] = []
@@ -173,13 +201,16 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const pulseMaterials: THREE.LineBasicMaterial[] = []; const pulses: THREE.Line[] = []; for (let i = 0; i < 10; i++) { const y = i % 2 ? -2.9 : 2.9; const material = makeLineMaterial(0xd8fbff); const x = i % 3 === 0 ? 4.7 : -4.7; const pulse = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, 0), new THREE.Vector3(x, y, -1.5)]), material); pulse.position.z = -31; pulseMaterials.push(material); pulses.push(pulse); corridor.add(pulse) }
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const particleClock = new THREE.Clock(); const render = () => {
       const elapsed = particleClock.getElapsedTime()
-      for (let index = 0; index < particleCount; index++) {
-        const offset = index * 3; const pulse = Math.sin(elapsed * particleSpeed[index] + particlePhase[index])
-        particlePositions[offset] = particleBase[offset] + pulse * .18
-        particlePositions[offset + 1] = particleBase[offset + 1] + Math.cos(elapsed * particleSpeed[index] * .8 + particlePhase[index]) * .07
-        particlePositions[offset + 2] = particleBase[offset + 2] + pulse * .1
+      for (let index = 0; index < directionalStreaks.length; index++) {
+        const streak = directionalStreaks[index]; const progress = (elapsed * streak.speed + streak.phase) % 1; const tail = Math.max(0, progress - streak.tail); const offset = index * 6
+        directionalPositions[offset] = streak.sx + (streak.ex - streak.sx) * tail
+        directionalPositions[offset + 1] = streak.sy + (streak.ey - streak.sy) * tail
+        directionalPositions[offset + 2] = streak.sz + (streak.ez - streak.sz) * tail
+        directionalPositions[offset + 3] = streak.sx + (streak.ex - streak.sx) * progress
+        directionalPositions[offset + 4] = streak.sy + (streak.ey - streak.sy) * progress
+        directionalPositions[offset + 5] = streak.sz + (streak.ez - streak.sz) * progress
       }
-      particleAttribute.needsUpdate = true
+      directionalAttribute.needsUpdate = true
       renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render)
     }; render()
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!; const connect = get<HTMLElement>('.boot-connect'), diagnostics = get<HTMLElement>('.boot-status-columns'), assembleStack = get<HTMLElement>('.boot-assemble-stack'), titleRail = get<HTMLElement>('.boot-title-rail'), readyNodes = [...host.querySelectorAll<HTMLElement>('.boot-ready-node')], core = get<HTMLElement>('.boot-focal-core'), hud = get<HTMLElement>('.boot-hud'), standbyCopy = get<HTMLElement>('.boot-standby-copy'); const shutterParts = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const diagnosticLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]; const diagnosticPanels = [...host.querySelectorAll<HTMLElement>('.boot-diagnostic-panel')]; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl
