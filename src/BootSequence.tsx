@@ -129,8 +129,8 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x4f9ab2, .34)
     addStandbyLines([-standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .239, lowerRailY, -.48, -standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .239, lowerRailY, -.48], 0xa4efff, .68)
     addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xe0fbff, .92)
-    // Annotation 3 is deliberately sparse background ambience. The previous 116
-    // drifting points have been replaced by directional geometry below.
+    // Annotation 3 is deliberately sparse background ambience, separate from the
+    // ordered corridor-dot rows constructed below.
     const starCount = 30; const starPositions = new Float32Array(starCount * 3)
     for (let index = 0; index < starCount; index++) {
       const side = index % 2 === 0 ? -1 : 1
@@ -141,6 +141,30 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const starGeometry = new THREE.BufferGeometry(); starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
     const starMaterial = new THREE.PointsMaterial({ color: 0x9aefff, size: .035, transparent: true, opacity: .48, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })
     standbyGroup.add(new THREE.Points(starGeometry, starMaterial))
+    // Six static perspective rows per side give the corridor atmospheric depth without
+    // becoming new rails. Every dot derives from a matching interpolation of F1/F2,
+    // including Z, so its row converges naturally toward the aperture.
+    type CorridorDot = { base: number; phase: number; speed: number; sparklePhase: number }
+    const corridorDotPositions: number[] = []; const corridorDotColours: number[] = []; const corridorDots: CorridorDot[] = []
+    const rowBands = [.12, .27, .41, .61, .76, .89]
+    for (const [upperIndex, lowerIndex] of [[0, 1], [2, 3]]) {
+      const upper = standbyRailPaths[upperIndex]; const lower = standbyRailPaths[lowerIndex]
+      rowBands.forEach((band, rowIndex) => {
+        const start = upper.start.clone().lerp(lower.start, band); const end = upper.end.clone().lerp(lower.end, band)
+        const count = 10 + ((rowIndex * 3 + upperIndex) % 5)
+        for (let dotIndex = 0; dotIndex < count; dotIndex++) {
+          const stagger = (((dotIndex * 7 + rowIndex * 11 + upperIndex) % 9) - 4) * .006
+          const progress = THREE.MathUtils.clamp(.07 + dotIndex / Math.max(1, count - 1) * .86 + stagger, 0, 1)
+          corridorDotPositions.push(start.x + (end.x - start.x) * progress, start.y + (end.y - start.y) * progress, start.z + (end.z - start.z) * progress)
+          corridorDotColours.push(.13, .42, .51)
+          corridorDots.push({ base: .28 + ((dotIndex * 5 + rowIndex * 3) % 7) * .035, phase: dotIndex * 1.19 + rowIndex * .83 + upperIndex, speed: .25 + ((dotIndex + rowIndex) % 4) * .045, sparklePhase: dotIndex * .71 + rowIndex * 1.7 })
+        }
+      })
+    }
+    const corridorDotGeometry = new THREE.BufferGeometry(); const corridorDotPositionAttribute = new THREE.Float32BufferAttribute(corridorDotPositions, 3); const corridorDotColourAttribute = new THREE.Float32BufferAttribute(corridorDotColours, 3)
+    corridorDotGeometry.setAttribute('position', corridorDotPositionAttribute); corridorDotGeometry.setAttribute('color', corridorDotColourAttribute)
+    const corridorDotMaterial = new THREE.PointsMaterial({ size: .05, vertexColors: true, transparent: true, opacity: .9, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })
+    standbyGroup.add(new THREE.Points(corridorDotGeometry, corridorDotMaterial))
     type TrailMaterial = THREE.MeshBasicMaterial | THREE.SpriteMaterial
     type StandbyTraveller = { object: THREE.Group; core: TrailMaterial; glow: TrailMaterial; path: { start: THREE.Vector3; end: THREE.Vector3 }; delay: number }
     const standbyPackets: StandbyTraveller[] = []
@@ -211,6 +235,8 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const particleClock = new THREE.Clock(); const render = () => {
       const elapsed = particleClock.getElapsedTime()
       ambientLinearStreaks.forEach((streak) => { const breath = .5 + .5 * Math.sin(elapsed * streak.breathingSpeed + streak.phase); streak.core.opacity = .16 + streak.coreBrightness * (.26 + breath * .34); streak.glow.opacity = .035 + streak.glowStrength * (.2 + breath * .4) })
+      corridorDots.forEach((dot, index) => { const breath = .72 + .28 * (.5 + .5 * Math.sin(elapsed * dot.speed + dot.phase)); const sparkle = Math.pow(Math.max(0, Math.sin(elapsed * .36 + dot.sparklePhase)), 14) * .24; const intensity = .55 + dot.base * breath + sparkle; const offset = index * 3; corridorDotColours[offset] = .42 * intensity; corridorDotColours[offset + 1] = .94 * intensity; corridorDotColours[offset + 2] = intensity })
+      corridorDotColourAttribute.needsUpdate = true
       renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render)
     }; render()
     const get = <T extends Element>(selector: string) => host.querySelector<T>(selector)!; const connect = get<HTMLElement>('.boot-connect'), diagnostics = get<HTMLElement>('.boot-status-columns'), assembleStack = get<HTMLElement>('.boot-assemble-stack'), titleRail = get<HTMLElement>('.boot-title-rail'), readyNodes = [...host.querySelectorAll<HTMLElement>('.boot-ready-node')], core = get<HTMLElement>('.boot-focal-core'), hud = get<HTMLElement>('.boot-hud'), standbyCopy = get<HTMLElement>('.boot-standby-copy'); const shutterParts = host.querySelectorAll<HTMLElement>('.boot-shutters i'); const diagnosticLines = [...host.querySelectorAll<HTMLElement>('.boot-module')]; const diagnosticPanels = [...host.querySelectorAll<HTMLElement>('.boot-diagnostic-panel')]; const tl = gsap.timeline(); timelineRef.current = tl; (window as TimelineWindow).__elucidatorBootTimeline = tl
