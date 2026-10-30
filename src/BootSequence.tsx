@@ -36,11 +36,75 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     // Derive every horizontal standby coordinate from the real camera frustum.
     // This preserves intended screen-space proportions at 16:9 and 32:9 without
     // scaling a 16:9 composition horizontally.
+
     const standbyAspect = Math.max(1, host.clientWidth / Math.max(1, host.clientHeight))
     const standbyViewHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z
     const standbyViewWidth = standbyViewHeight * standbyAspect
     const standbyLineMaterials: THREE.LineBasicMaterial[] = []; const standbyGlassMaterials: THREE.MeshBasicMaterial[] = []
     const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); standbyGroup.add(new THREE.LineSegments(geometry, material)) }
+
+
+    // Perspective rails: dark in the distance, brighter toward the viewer.
+    const addGradientStandbyRail = (
+      start: THREE.Vector3,
+      end: THREE.Vector3,
+      farColour: number,
+      nearColour: number,
+      opacity: number
+    ) => {
+      const segments = 16
+      const positions: number[] = []
+      const colours: number[] = []
+
+      const far = new THREE.Color(farColour)
+      const near = new THREE.Color(nearColour)
+
+      for (let i = 0; i < segments; i++) {
+        const t0 = i / segments
+        const t1 = (i + 1) / segments
+
+        const p0 = start.clone().lerp(end, t0)
+        const p1 = start.clone().lerp(end, t1)
+
+        positions.push(
+          p0.x, p0.y, p0.z,
+          p1.x, p1.y, p1.z
+        )
+
+        // Gentle brightness buildup rather than an abrupt change.
+
+        const c0 = near.clone().lerp(far, t0 * t0)
+        const c1 = near.clone().lerp(far, t1 * t1)
+
+        colours.push(
+          c0.r, c0.g, c0.b,
+          c1.r, c1.g, c1.b
+        )
+      }
+
+      const geometry = new THREE.BufferGeometry()
+      geometry.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(positions, 3)
+      )
+      geometry.setAttribute(
+        'color',
+        new THREE.Float32BufferAttribute(colours, 3)
+      )
+
+      const material = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false
+      })
+
+      material.userData.targetOpacity = opacity
+      standbyLineMaterials.push(material)
+
+      standbyGroup.add(new THREE.LineSegments(geometry, material))
+    }
 
 
     // Subtle translucent holographic glass.
@@ -94,7 +158,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
 
 
         { width: 1.95, height: 7.15, x: 9.6, z: -.72, opacity: .24, edge: .78, colour: 0x123E78, density: 1 },
-        { width: 2.15, height: 6.9, x: 7.65, z: -1.48, opacity: .18, edge: .48, colour: 0x0B2858, density: .68 },
+        { width: 2.15, height: 6.9, x: 7.95, z: -1.48, opacity: .18, edge: .48, colour: 0x0B2858, density: .68 },
 
 
 
@@ -114,7 +178,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
 
         material.userData.targetOpacity = opacity
 
-        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -1.43; standbyGroup.add(panelGroup)
+        const panelGroup = new THREE.Group(); panelGroup.position.set(side * x / 20.1 * standbyViewWidth, 0, z); panelGroup.rotation.y = side * -1.65; standbyGroup.add(panelGroup)
         panelGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(width, height), material)); standbyGlassMaterials.push(material)
         const addPanelLine = (points: number[], color: number, targetOpacity: number) => {
           const lineMaterial = makeLineMaterial(color); lineMaterial.userData.targetOpacity = targetOpacity; standbyLineMaterials.push(lineMaterial)
@@ -318,9 +382,35 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       const direction = upper ? 1 : -1
       const start = new THREE.Vector3(side * standbyViewWidth * .54, upper ? 3.0 : -1.65, -1.18)
       const end = new THREE.Vector3(side * frameX, upper ? 1.72 : -1.08, -.04)
+
       standbyRailPaths.push({ start, end })
-      addStandbyLines([start.x, start.y, start.z, end.x, end.y, end.z], 0x78e8ff, .8)
-      addStandbyLines([start.x, start.y + direction * .22, start.z - .12, end.x, end.y + direction * .14, end.z - .04], 0x276c86, .32)
+
+      // Primary perspective rail: navy distance -> luminous foreground.
+      addGradientStandbyRail(
+        start,
+        end,
+        0x12345C,
+        0xC8F0FF,
+        .88
+      )
+
+      // Secondary parallel guide: darker and more restrained.
+      addGradientStandbyRail(
+        new THREE.Vector3(
+          start.x,
+          start.y + direction * .22,
+          start.z - .12
+        ),
+        new THREE.Vector3(
+          end.x,
+          end.y + direction * .14,
+          end.z - .04
+        ),
+        0x091D39,
+        0x347BC5,
+        .42
+      )
+
     }
     addPerspectiveRail(-1, true); addPerspectiveRail(-1, false); addPerspectiveRail(1, true); addPerspectiveRail(1, false)
     // E: exactly two horizontal structural rails, above and below the viewport. They are
@@ -799,8 +889,15 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
           .to([core, glow], { opacity: 0, duration: .14 }, '>-0.13')
         idleTimelines.push(flow)
       }
-      standbyPackets.forEach((packet, index) => animateTraveller(packet, 1.2 + (index % 3) * .13, true))
-      standbyMarkers.forEach((marker, index) => animateTraveller(marker, 1.45 + (index % 2) * .16, false))
+
+      standbyPackets.forEach((packet, index) =>
+        animateTraveller(packet, 1.9 + (index % 3) * .18, true)
+      )
+
+      standbyMarkers.forEach((marker, index) =>
+        animateTraveller(marker, 2.1 + (index % 2) * .2, false)
+      )
+
     }
     const applyRevealPose = (timeline?: gsap.core.Timeline, at = 0) => {
       const set = (target: gsap.TweenTarget, vars: gsap.TweenVars) => timeline ? timeline.to(target, { ...vars, overwrite: 'auto' }, at) : gsap.set(target, vars)
