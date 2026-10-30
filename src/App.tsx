@@ -435,43 +435,99 @@ async function detectConnectedMonitorCount(token: string): Promise<number | null
   }
 }
 
-async function detectSequenceViewports(token: string): Promise<SequenceViewport[] | null> {
-  if (!token) return null
-  try {
-    const { displays } = await readDisplayGeometry(token)
-    if (displays.length !== 2) return null
-    const left = Math.min(...displays.map((screen) => screen.left))
-    const top = Math.min(...displays.map((screen) => screen.top))
-    const right = Math.max(...displays.map((screen) => screen.left + screen.width))
-    const bottom = Math.max(...displays.map((screen) => screen.top + screen.height))
-    if (!(right > left && bottom > top)) return null
 
-    // Windows monitor coordinates are physical desktop coordinates. They are
-    // not CSS coordinates for a regular browser tab. Only map them once the
-    // Lively host has explicitly supplied a full-span viewport, and only when
-    // its dimensions agree with the physical desktop at one uniform scale.
-    // This deliberately leaves ordinary preview and uncertain host placement
-    // as one full-screen boot.
-    if (import.meta.env.DEV || /^https?:$/.test(location.protocol)) return null
-    // Packaged Lively web wallpapers run from a local file host. In that case
-    // its viewport is the only host measurement available. An integration may
-    // provide the same measurement explicitly when Lively changes its host.
-    const hostViewport = window.elucidatorLivelySpanViewport
-      ?? (location.protocol === 'file:' ? { width: window.innerWidth, height: window.innerHeight } : null)
-    if (!hostViewport || hostViewport.width !== window.innerWidth || hostViewport.height !== window.innerHeight) return null
-    const scaleX = hostViewport.width / (right - left)
-    const scaleY = hostViewport.height / (bottom - top)
-    if (!Number.isFinite(scaleX) || !Number.isFinite(scaleY) || Math.abs(scaleX - scaleY) > .015) return null
-    return displays.map((screen) => ({
-      left: (screen.left - left) * scaleX,
-      top: (screen.top - top) * scaleY,
-      width: screen.width * scaleX,
-      height: screen.height * scaleY,
-    }))
-  } catch {
-    return null
+async function detectSequenceViewports(token: string): Promise<SequenceViewport[] | null> {
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+
+  // This fallback is specific to a verified 3840x1080
+  // Lively Span instance. Never apply it to a normal browser.
+  const isKnownDualMonitorSpan =
+    !import.meta.env.DEV &&
+    location.protocol === 'file:' &&
+    Math.abs(viewportWidth - 3840) <= 2 &&
+    Math.abs(viewportHeight - 1080) <= 2
+
+  const knownDualMonitorViewports: SequenceViewport[] | null =
+    isKnownDualMonitorSpan
+      ? [
+          {
+            left: 0,
+            top: 0,
+            width: viewportWidth / 2,
+            height: viewportHeight,
+          },
+          {
+            left: viewportWidth / 2,
+            top: 0,
+            width: viewportWidth / 2,
+            height: viewportHeight,
+          },
+        ]
+      : null
+
+  if (token) {
+    try {
+      const { displays } = await readDisplayGeometry(token)
+
+      if (displays.length === 2) {
+        const left = Math.min(...displays.map(screen => screen.left))
+        const top = Math.min(...displays.map(screen => screen.top))
+        const right = Math.max(
+          ...displays.map(screen => screen.left + screen.width)
+        )
+        const bottom = Math.max(
+          ...displays.map(screen => screen.top + screen.height)
+        )
+
+        const desktopWidth = right - left
+        const desktopHeight = bottom - top
+
+        const hostViewport =
+          window.elucidatorLivelySpanViewport ??
+          (location.protocol === 'file:'
+            ? { width: viewportWidth, height: viewportHeight }
+            : null)
+
+        if (
+          hostViewport &&
+          hostViewport.width === viewportWidth &&
+          hostViewport.height === viewportHeight &&
+          desktopWidth > 0 &&
+          desktopHeight > 0 &&
+          !import.meta.env.DEV &&
+          !/^https?:$/.test(location.protocol)
+        ) {
+          const scaleX = viewportWidth / desktopWidth
+          const scaleY = viewportHeight / desktopHeight
+
+          if (
+            Number.isFinite(scaleX) &&
+            Number.isFinite(scaleY) &&
+            Math.abs(scaleX - scaleY) <= 0.015
+          ) {
+            return displays
+              .map(screen => ({
+                left: (screen.left - left) * scaleX,
+                top: (screen.top - top) * scaleY,
+                width: screen.width * scaleX,
+                height: screen.height * scaleY,
+              }))
+              .sort((a, b) => a.left - b.left)
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(
+        '[Elucidator] Monitor geometry unavailable; checking span fallback.',
+        error
+      )
+    }
   }
+
+  return knownDualMonitorViewports
 }
+
 
 const COMMAND_COMPLETIONS = [
   'admin sys config save',
@@ -1725,7 +1781,7 @@ function App() {
         setStatus('SEQUENCE MIRROR DISABLED')
       } else {
         const viewports = await detectSequenceViewports(brightnessToken)
-        if (viewports) setSequenceViewports(viewports)
+        setSequenceViewports(viewports)
         if (args[2] === 'status') {
           const state = !sequenceMirror ? 'DISABLED' : viewports ? 'READY · TWO DISPLAY RECTANGLES' : 'SAFE FALLBACK · DISPLAY GEOMETRY UNAVAILABLE'
           report(['SEQUENCE MIRROR STATUS', `SETTING ................. ${sequenceMirror ? 'ON' : 'OFF'}`, `DISPLAY GEOMETRY ....... ${viewports ? 'TWO SCREENS RESOLVED' : 'UNAVAILABLE'}`, `MIRROR STATE ............ ${state}`])
