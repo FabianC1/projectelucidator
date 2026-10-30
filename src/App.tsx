@@ -2619,7 +2619,7 @@ function App() {
   const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${standbyActive ? ' reveal-standby-active' : ''}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${!ready || !startupConfigHydrated || booting ? ' startup-interface-locked' : ''}${standbyActive ?  ' reveal-standby-active' : ''}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
       {wallpaperUrl && (
         <img
           key={`wallpaper-${bootToken}`}

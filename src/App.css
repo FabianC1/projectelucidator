@@ -3706,3 +3706,23 @@
 .wallpaper-experience{--brightness-gradient-start:#29d8ff;--brightness-gradient-end:#3387ff;--brightness-track:#1b2730;--brightness-thumb:#e8fbff}.wallpaper-experience.theme-sao{--brightness-gradient-start:#29d8ff;--brightness-gradient-end:#3387ff}.wallpaper-experience.theme-demon-mode{--brightness-gradient-start:#d7ab4f;--brightness-gradient-end:#bf62ff}.wallpaper-experience.theme-arise{--brightness-gradient-start:#ad70ff;--brightness-gradient-end:#e2a4ff}.wallpaper-experience.theme-grimoire{--brightness-gradient-start:#b98658;--brightness-gradient-end:#ed3448}.wallpaper-experience.theme-limitless{--brightness-gradient-start:#55c7ff;--brightness-gradient-end:#9e62ff}.wallpaper-experience.theme-breathing-sun{--brightness-gradient-start:#ff2f1b;--brightness-gradient-end:#ffb13b}.wallpaper-experience.theme-dragon{--brightness-gradient-start:#2cbdff;--brightness-gradient-end:#1ad8e8}.wallpaper-experience.theme-tokyo-ghoul{--brightness-gradient-start:#9b1020;--brightness-gradient-end:#ff173e}
 .widget-brightness-control input[type=range]{--brightness-fill:calc(var(--brightness-value) * 1%);-webkit-appearance:none;appearance:none;height:.42rem;margin:0;border:1px solid color-mix(in srgb,var(--brightness-gradient-end) 42%,#31414d);border-radius:999px;background:linear-gradient(90deg,var(--brightness-gradient-start),var(--brightness-gradient-end)) 0/var(--brightness-fill) 100% no-repeat,var(--brightness-track);cursor:pointer}.widget-brightness-control input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:.9rem;height:.9rem;border:2px solid var(--brightness-gradient-end);border-radius:50%;background:var(--brightness-thumb);box-shadow:0 0 0 2px rgb(1 8 14 / 55%),0 0 9px color-mix(in srgb,var(--brightness-gradient-end) 55%,transparent)}.widget-brightness-control input[type=range]::-moz-range-thumb{width:.72rem;height:.72rem;border:2px solid var(--brightness-gradient-end);border-radius:50%;background:var(--brightness-thumb);box-shadow:0 0 0 2px rgb(1 8 14 / 55%),0 0 9px color-mix(in srgb,var(--brightness-gradient-end) 55%,transparent)}.widget-brightness-control input[type=range]:focus-visible{outline:1px solid var(--brightness-gradient-end);outline-offset:3px}.widget-brightness-control input[type=range]:disabled{cursor:not-allowed;filter:saturate(.2);opacity:.5}
 
+
+/* ==========================================
+   ELUCIDATOR — STARTUP VISIBILITY LOCK
+   ========================================== */
+
+/* Never show the normal desktop before boot ends */
+.wallpaper-experience.startup-interface-locked .system-widgets,
+.wallpaper-experience.startup-interface-locked .command-console,
+.wallpaper-experience.startup-interface-locked .special-effect,
+.wallpaper-experience.startup-interface-locked .visual-effects {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Prevent theme-specific backgrounds flashing
+   before the cinematic boot is ready */
+.wallpaper-experience.startup-interface-locked {
+  background: #000 !important;
+}
