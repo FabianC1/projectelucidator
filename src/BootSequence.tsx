@@ -43,8 +43,8 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       const panels = [
         // D1 foreground and D2 rear retain the accepted responsive anchors but
         // differ materially in detail density, scanning, and illumination.
-        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .085, edge: .82, colour: 0x4bb8d6, density: 1},
-        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .042, edge: .42, colour: 0x2d7189, density: .68},
+        { width: .8, height: 7.15, x: 9.6, z: -.72, opacity: .085, edge: .82, colour: 0x4bb8d6, density: 1 },
+        { width: 1.1, height: 6.9, x: 8.28, z: -1.48, opacity: .042, edge: .42, colour: 0x2d7189, density: .68 },
       ]
       panels.forEach(({ width, height, x, z, opacity, edge: edgeOpacity, colour, density }) => {
         const material = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending }); material.userData.targetOpacity = opacity
@@ -158,7 +158,11 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       { positions: [], colours: [], dots: [] }, // Bright accents
     ]
 
-    const rowBands = [.08, .17, .28, .39, .50, .61, .72, .83, .93]
+    const rowBands = [
+      -.48, -.32, -.17, -.05,
+      .08, .17, .28, .39, .50, .61, .72, .83, .93,
+      1.07, 1.20, 1.34, 1.48
+    ]
 
     for (const [upperIndex, lowerIndex] of [[0, 1], [2, 3]]) {
       const upper = standbyRailPaths[upperIndex]
@@ -246,17 +250,75 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const makeTrailMaterial = (colour: THREE.ColorRepresentation, halo: boolean): TrailMaterial => new THREE.MeshBasicMaterial({ color: colour, map: halo ? haloTexture : coreTexture, transparent: true, opacity: 0, depthWrite: false, depthTest: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
     type AmbientLinearStreak = { core: THREE.MeshBasicMaterial; glow: THREE.MeshBasicMaterial; coreBrightness: number; glowStrength: number; breathingSpeed: number; phase: number }
     const ambientLinearStreaks: AmbientLinearStreak[] = []
-    const addAmbientLinearStreak = ({ position, length, direction, coreBrightness, glowStrength, breathingSpeed, phase }: { position: THREE.Vector3; length: number; direction: THREE.Vector3; coreBrightness: number; glowStrength: number; breathingSpeed: number; phase: number }) => {
+    const addAmbientLinearStreak = ({
+      position, length, direction, coreBrightness,
+      glowStrength, breathingSpeed, phase, thickness = .018
+    }: {
+      position: THREE.Vector3
+      length: number
+      direction: THREE.Vector3
+      coreBrightness: number
+      glowStrength: number
+      breathingSpeed: number
+      phase: number
+      thickness?: number
+    }) => {
       const object = new THREE.Group(); const planarDirection = direction.clone().setZ(0).normalize()
       const core = new THREE.MeshBasicMaterial({ color: 0xeafcff, map: coreTexture, transparent: true, opacity: .18, depthWrite: false, depthTest: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
       const glow = new THREE.MeshBasicMaterial({ color: 0x55dcff, map: haloTexture, transparent: true, opacity: .05, depthWrite: false, depthTest: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
-      const coreMesh = new THREE.Mesh(new THREE.PlaneGeometry(length, .018), core); const glowMesh = new THREE.Mesh(new THREE.PlaneGeometry(length * 1.5, .075), glow)
+      const coreMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(length, thickness), core
+      )
+      const glowMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(length * 1.5, thickness * 4.2), glow
+      )
       object.position.copy(position); object.rotation.z = Math.atan2(planarDirection.y, planarDirection.x); object.add(glowMesh, coreMesh); standbyGroup.add(object)
       ambientLinearStreaks.push({ core, glow, coreBrightness, glowStrength, breathingSpeed, phase })
     }
     // Stage 1B test: deliberately fixed in the upper-left sky band. Only opacity
     // breathes; the group itself is never translated, rotated, or regenerated.
-    addAmbientLinearStreak({ position: new THREE.Vector3(-standbyViewWidth * .235, 3.82, .08), length: .55, direction: new THREE.Vector3(.94, -.34, 0), coreBrightness: .95, glowStrength: .45, breathingSpeed: .42, phase: .7 })
+
+    // Stationary holographic streaks.
+    // Different lengths, brightness, thickness and breathing phases.
+    const ambientStreaks = [
+      // Upper-left: main cluster
+      { x: -.235, y: 3.82, length: .55, angle: -.34, bright: .95, glow: .45, speed: .42, phase: .7, thick: .018 },
+      { x: -.195, y: 4.18, length: .90, angle: -.28, bright: .76, glow: .34, speed: .31, phase: 2.1, thick: .023 },
+      { x: -.285, y: 3.34, length: .34, angle: -.39, bright: .42, glow: .20, speed: .53, phase: 4.2, thick: .012 },
+      { x: -.165, y: 2.85, length: 1.12, angle: -.32, bright: .88, glow: .40, speed: .26, phase: 1.4, thick: .027 },
+      { x: -.305, y: 4.48, length: .28, angle: -.25, bright: .32, glow: .15, speed: .47, phase: 3.6, thick: .010 },
+
+      // Upper-right: fewer accents for balance
+      { x: .215, y: 4.06, length: .76, angle: .30, bright: .68, glow: .30, speed: .35, phase: 2.8, thick: .019 },
+      { x: .278, y: 3.48, length: .42, angle: .36, bright: .44, glow: .19, speed: .49, phase: 5.1, thick: .012 },
+
+      // Lower corners: subtle reflections
+      { x: -.225, y: -3.25, length: .70, angle: .22, bright: .46, glow: .21, speed: .38, phase: 1.9, thick: .015 },
+      { x: -.275, y: -4.02, length: .36, angle: .18, bright: .30, glow: .14, speed: .44, phase: 3.3, thick: .010 },
+      { x: .245, y: -3.52, length: .86, angle: -.22, bright: .52, glow: .25, speed: .32, phase: 4.6, thick: .020 },
+    ]
+
+    ambientStreaks.forEach((streak) => {
+      addAmbientLinearStreak({
+        position: new THREE.Vector3(
+          standbyViewWidth * streak.x,
+          streak.y,
+          .08
+        ),
+        length: streak.length,
+        direction: new THREE.Vector3(
+          1,
+          Math.tan(streak.angle),
+          0
+        ),
+        coreBrightness: streak.bright,
+        glowStrength: streak.glow,
+        breathingSpeed: streak.speed,
+        phase: streak.phase,
+        thickness: streak.thick,
+      })
+    })
+
     const packetCoreGeometry = new THREE.PlaneGeometry(.9, .045)
     const packetGlowGeometry = new THREE.PlaneGeometry(1.46, .17)
     const addTraveller = (path: { start: THREE.Vector3; end: THREE.Vector3 }, delay: number, packet: boolean) => {
@@ -299,41 +361,41 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const resize = () => { const width = host.clientWidth, height = host.clientHeight; renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix() }; resize(); addEventListener('resize', resize); let running = true; let raf = 0; const particleClock = new THREE.Clock(); const render = () => {
       const elapsed = particleClock.getElapsedTime()
       ambientLinearStreaks.forEach((streak) => { const breath = .5 + .5 * Math.sin(elapsed * streak.breathingSpeed + streak.phase); streak.core.opacity = .16 + streak.coreBrightness * (.26 + breath * .34); streak.glow.opacity = .035 + streak.glowStrength * (.2 + breath * .4) })
-      
-particleLayers.forEach((layer) => {
-  const colours = layer.colours
 
-  layer.dots.forEach((dot, index) => {
-    // Independent slow breathing, not synchronised blinking.
-    const breath = .5 + .5 * Math.sin(
-      elapsed * dot.speed + dot.phase
-    )
+      particleLayers.forEach((layer) => {
+        const colours = layer.colours
 
-    // Occasional soft highlights, not flashing stars.
-    const sparkle = Math.pow(
-      Math.max(0, Math.sin(elapsed * .31 + dot.sparklePhase)),
-      12
-    ) * .16
+        layer.dots.forEach((dot, index) => {
+          // Independent slow breathing, not synchronised blinking.
+          const breath = .5 + .5 * Math.sin(
+            elapsed * dot.speed + dot.phase
+          )
 
-    const intensity = Math.min(
-      .98,
-      dot.base * (.48 + breath * .52) + sparkle
-    )
+          // Occasional soft highlights, not flashing stars.
+          const sparkle = Math.pow(
+            Math.max(0, Math.sin(elapsed * .31 + dot.sparklePhase)),
+            12
+          ) * .16
 
-    const offset = index * 3
+          const intensity = Math.min(
+            .98,
+            dot.base * (.48 + breath * .52) + sparkle
+          )
 
-    colours[offset] = .38 * intensity
-    colours[offset + 1] = .88 * intensity
-    colours[offset + 2] = intensity
-  })
+          const offset = index * 3
 
-  const attribute = layer.colourAttribute
+          colours[offset] = .38 * intensity
+          colours[offset + 1] = .88 * intensity
+          colours[offset + 2] = intensity
+        })
 
-  if (attribute) {
-    attribute.array.set(colours)
-    attribute.needsUpdate = true
-  }
-})
+        const attribute = layer.colourAttribute
+
+        if (attribute) {
+          attribute.array.set(colours)
+          attribute.needsUpdate = true
+        }
+      })
 
       renderer.render(scene, camera); if (running) raf = requestAnimationFrame(render)
     }; render()
