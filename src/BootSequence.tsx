@@ -41,6 +41,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const standbyViewHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z
     const standbyViewWidth = standbyViewHeight * standbyAspect
     const standbyLineMaterials: THREE.LineBasicMaterial[] = []; const standbyGlassMaterials: THREE.MeshBasicMaterial[] = []
+    const standbyTelemetryPulseMaterials: THREE.LineBasicMaterial[] = []
     const addStandbyLines = (points: number[], color: number, opacity: number) => { const material = makeLineMaterial(color); material.userData.targetOpacity = opacity; standbyLineMaterials.push(material); const geometry = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(points, 3)); standbyGroup.add(new THREE.LineSegments(geometry, material)) }
 
 
@@ -476,6 +477,42 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
         )
 
 
+        // Independent pulse overlays for selected telemetry strokes.
+        // Only a subset of lines pulse, not the entire panel.
+        for (let i = 0; i < accentPoints.length; i += 24) {
+          const pulsePoints = accentPoints.slice(i, i + 6)
+
+          if (pulsePoints.length !== 6) continue
+
+          // Position slightly in front of the existing telemetry.
+          pulsePoints[2] += .025
+          pulsePoints[5] += .025
+
+          const pulseMaterial = new THREE.LineBasicMaterial({
+            color: 0xEAFBFF,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+          })
+
+          const pulseGeometry = new THREE.BufferGeometry()
+          pulseGeometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(pulsePoints, 3)
+          )
+
+          const pulseLine = new THREE.LineSegments(
+            pulseGeometry,
+            pulseMaterial
+          )
+
+          panelGroup.add(pulseLine)
+          standbyTelemetryPulseMaterials.push(pulseMaterial)
+        }
+
+
+
         // Soft glow behind each selected telemetry stroke.
         // Reuse the existing standby fade-in lifecycle.
         const telemetryGlowMaterial = new THREE.MeshBasicMaterial({
@@ -583,6 +620,43 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       frameX, -frameY, .025,
       frameX - corner, -frameY, .025
     ], 0xA8D9FF, .82)
+
+
+    // One-time upward illumination along the central frame sides.
+    // The group is anchored at the bottom of the frame.
+    const frameActivationGroup = new THREE.Group()
+    frameActivationGroup.position.y = -frameY
+    frameActivationGroup.scale.y = .001
+
+    const frameActivationMaterial = new THREE.LineBasicMaterial({
+      color: 0xE3F8FF,
+      transparent: true,
+      opacity: .85,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    })
+
+    const frameActivationGeometry = new THREE.BufferGeometry()
+    frameActivationGeometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute([
+        -frameX, 0, .045,
+        -frameX, frameY * 2, .045,
+
+        frameX, 0, .045,
+        frameX, frameY * 2, .045
+      ], 3)
+    )
+
+    frameActivationGroup.add(
+      new THREE.LineSegments(
+        frameActivationGeometry,
+        frameActivationMaterial
+      )
+    )
+
+    standbyGroup.add(frameActivationGroup)
+
 
     // One wide central frame: only a faint joining contour behind the bright corners.
     addStandbyLines([-frameX, frameY, -.08, frameX, frameY, -.08, frameX, -frameY, -.08, -frameX, -frameY, -.08, -frameX, frameY, -.08], 0x72bed4, .56)
@@ -749,11 +823,53 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const railX = standbyViewWidth * .269
     const upperRailY = 3.9; const lowerRailY = -3.4
 
-    // Subdued horizontal structural rails.
-    addStandbyLines([-railX, upperRailY, -.52, railX, upperRailY, -.52, -railX, lowerRailY, -.52, railX, lowerRailY, -.52], 0x39718E, .24)
 
-    // Segmented horizontal guides.
-    addStandbyLines([-standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .109, upperRailY, -.48, standbyViewWidth * .239, upperRailY, -.48, -standbyViewWidth * .239, lowerRailY, -.48, -standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .109, lowerRailY, -.48, standbyViewWidth * .239, lowerRailY, -.48], 0x78B7D9, .48)
+    // Upper horizontal rail remains unchanged.
+    addStandbyLines([
+      -railX, upperRailY, -.52,
+      railX, upperRailY, -.52
+    ], 0x39718E, .24)
+
+    // Lower horizontal rail fades from both outer edges
+    // toward the centre, matching the perspective rail lighting.
+    for (const side of [-1, 1]) {
+      addGradientStandbyRail(
+        new THREE.Vector3(side * railX, lowerRailY, -.52),
+        new THREE.Vector3(0, lowerRailY, -.52),
+        0x102844,
+        0x78B7D9,
+        .38
+      )
+    }
+
+    // Upper segmented guides remain unchanged.
+    addStandbyLines([
+      -standbyViewWidth * .239, upperRailY, -.48,
+      -standbyViewWidth * .109, upperRailY, -.48,
+
+      standbyViewWidth * .109, upperRailY, -.48,
+      standbyViewWidth * .239, upperRailY, -.48
+    ], 0x78B7D9, .48)
+
+    // Lower segmented guides also fade toward the centre.
+    for (const side of [-1, 1]) {
+      addGradientStandbyRail(
+        new THREE.Vector3(
+          side * standbyViewWidth * .239,
+          lowerRailY,
+          -.48
+        ),
+        new THREE.Vector3(
+          side * standbyViewWidth * .109,
+          lowerRailY,
+          -.48
+        ),
+        0x102844,
+        0x78B7D9,
+        .48
+      )
+    }
+
 
     // Small central illuminated ticks.
     addStandbyLines([-.42, upperRailY, -.44, .42, upperRailY, -.44, -.42, lowerRailY, -.44, .42, lowerRailY, -.44], 0xB5E6FF, .72)
@@ -795,6 +911,30 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       railX, upperRailY, -.46,
       railX + .16, upperRailY + .14, -.46
     ], 0xC4EDFF, .88)
+
+
+    // Small illuminated junctions where the diagonals
+    // meet the upper horizontal bar.
+    for (const side of [-1, 1]) {
+      const jointMaterial = new THREE.SpriteMaterial({
+        map: cornerGlowTexture,
+        color: 0x8ACFFF,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        depthTest: false,
+        blending: THREE.AdditiveBlending
+      })
+
+      jointMaterial.userData.targetOpacity = .28
+
+      const jointGlow = new THREE.Sprite(jointMaterial)
+      jointGlow.position.set(side * railX, upperRailY, -.43)
+      jointGlow.scale.set(.34, .34, 1)
+
+      standbyGroup.add(jointGlow)
+      standbyCornerGlowMaterials.push(jointMaterial)
+    }
 
 
     // Free-floating holographic particles between the
@@ -1258,6 +1398,32 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     const startStandbyRailFlow = () => {
       if (idleTimelines.length) return
 
+
+      // Gentle asynchronous telemetry pulses.
+      // Each highlighted stroke gets its own repeating cycle.
+      standbyTelemetryPulseMaterials.forEach((material, index) => {
+        const pulse = gsap.timeline({
+          repeat: -1,
+          repeatDelay: 3.2 + (index % 5) * .55,
+          delay: index * .43
+        })
+
+        pulse
+          .to(material, {
+            opacity: .65,
+            duration: .18,
+            ease: 'power2.out'
+          })
+          .to(material, {
+            opacity: 0,
+            duration: .65,
+            ease: 'power2.inOut'
+          })
+
+        idleTimelines.push(pulse)
+      })
+
+
       // Very slow glass reflections, staggered between panels.
       standbyReflections.forEach(({ mesh, width }, index) => {
         const sweep = gsap.timeline({
@@ -1323,6 +1489,52 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
 
       set(standbyGroup, { visible: true })
 
+
+      // One-time upward activation of the central frame sides.
+      frameActivationGroup.scale.y = .001
+      frameActivationMaterial.opacity = .85
+
+      if (timeline) {
+        timeline.to(
+          frameActivationGroup.scale,
+          {
+            y: 1,
+            duration: .85,
+            ease: 'power2.out'
+          },
+          at + .18
+        )
+
+        timeline.to(
+          frameActivationMaterial,
+          {
+            opacity: 0,
+            duration: .35,
+            ease: 'power2.out'
+          },
+          at + .82
+        )
+      } else {
+        revealTweens.push(
+          gsap.to(frameActivationGroup.scale, {
+            y: 1,
+            duration: .85,
+            delay: .18,
+            ease: 'power2.out'
+          })
+        )
+
+        revealTweens.push(
+          gsap.to(frameActivationMaterial, {
+            opacity: 0,
+            duration: .35,
+            delay: .82,
+            ease: 'power2.out'
+          })
+        )
+      }
+
+
       // Schedule individual material illumination.
       const illuminate = (
         material: THREE.Material & { opacity: number },
@@ -1367,9 +1579,16 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       })
 
       // Central frame corner halos.
+
       standbyCornerGlowMaterials.forEach(material => {
-        illuminate(material, .55, .08, .65)
+        illuminate(
+          material,
+          Number(material.userData.targetOpacity ?? .55),
+          .08,
+          .65
+        )
       })
+
 
       // Existing shutter reveal remains unchanged.
       set(shutterParts, {
@@ -1414,5 +1633,33 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
   }, [active, short, standby])
   const seek = (time: number) => (window as TimelineWindow).__elucidatorBootTimeline?.pause().seek(time); const previewRevealAt = short ? 2.12 : 5.25
   const panel = (title: string, lines: DiagnosticLine[], side: 'left' | 'right') => <section className={`boot-diagnostic-panel boot-diagnostic-${side}`}><header><span>{title}</span><i>LINKED</i></header><div className="boot-diagnostic-rule" />{lines.map(line => <p className="boot-module" key={line.label}><b>› {line.label}</b><em>{line.label === 'WALLPAPER_DECODER' || line.label === 'TEXTURE_BUFFER' ? wallpaperReady ? 'READY' : 'BUFFERED' : line.value}</em><i /></p>)}<footer><span>MODULES</span><i /><b>{side === 'left' ? '08 / 08' : 'SYNC // 01'}</b></footer></section>
-  return <><section ref={mount} className={`boot-scene${standby ? ' is-standby' : ''}`} style={viewport} aria-hidden="true"><div className="boot-shutters"><i className="top" /><i className="right" /><i className="bottom" /><i className="left" /><i className="center" /></div><div className="boot-hud"><span className="boot-hud-project">PROJECT ELUCIDATOR<small>VISUAL INTERFACE v1.0</small></span><span className="boot-hud-state">DISPLAY LINK<small>INITIALISING</small></span><span className="boot-hud-coordinates left">35.6762° N<br />139.6503° E</span><span className="boot-hud-coordinates right">51.5074° N<br />0.1278° W</span><span className="boot-hud-sync">LINK CHANNEL // GLOBAL<br />SU-4927-A</span><span className="boot-hud-sync right">SYNC // 00.01<br />RTT // 12 ms</span></div><div className="boot-focal-core"><i /><i /><i /><i /><b /></div><div className="boot-status-columns">{panel('CORE MODULES', coreModules, 'left')}{panel('SYSTEM LAYERS', sceneModules, 'right')}</div><div className="boot-connect">ELUCIDATOR<small>ESTABLISHING DISPLAY LINK</small></div><div className="boot-assemble-stack"><div className="boot-assemble">ELUCIDATOR<small>SYSTEM SYNCHRONISED</small></div><div className="boot-title-rail" aria-hidden="true"><span className="boot-rail-guide" /><div className="boot-rail-segments">{Array.from({ length: 14 }, (_, index) => <i key={index} />)}</div><span className="boot-rail-guide" /></div><div className="boot-ready-nodes"><div className="boot-ready-node"><i /><b>DISPLAY</b><small>INITIALISED</small></div><div className="boot-ready-node"><i /><b>THEME</b><small>INITIALISED</small></div><div className="boot-ready-node"><i /><b>WALLPAPER</b><small>{wallpaperReady ? 'READY' : 'BUFFERED'}</small></div></div></div><div className="boot-standby-copy"><b>SYSTEM READY</b><span>PRESS ANY KEY OR MOVE MOUSE TO CONTINUE</span></div></section>{import.meta.env.DEV && debug && !standby && <div className="boot-debug" aria-label="Boot timeline preview"><button onClick={() => seek(0)}>Connect</button><button onClick={() => seek(short ? .9 : 2)}>Compile</button><button onClick={() => seek(short ? 1.55 : 3.75)}>Assemble</button><button onClick={() => seek(previewRevealAt)}>Reveal</button></div>}</>
+  return <><section ref={mount} className={`boot-scene${standby ? ' is-standby' : ''}`} style={viewport} aria-hidden="true"><div className="boot-shutters"><i className="top" /><i className="right" /><i className="bottom" /><i className="left" /><i className="center" /></div><div className="boot-hud"><span className="boot-hud-project">PROJECT ELUCIDATOR<small>VISUAL INTERFACE v1.0</small></span><span className="boot-hud-state">DISPLAY LINK<small>INITIALISING</small></span><span className="boot-hud-coordinates left">35.6762° N<br />139.6503° E</span><span className="boot-hud-coordinates right">51.5074° N<br />0.1278° W</span><span className="boot-hud-sync">LINK CHANNEL // GLOBAL<br />SU-4927-A</span><span className="boot-hud-sync right">SYNC // 00.01<br />RTT // 12 ms</span></div><div className="boot-focal-core"><i /><i /><i /><i /><b /></div><div className="boot-status-columns">{panel('CORE MODULES', coreModules, 'left')}{panel('SYSTEM LAYERS', sceneModules, 'right')}</div><div className="boot-connect">ELUCIDATOR<small>ESTABLISHING DISPLAY LINK</small></div><div className="boot-assemble-stack"><div className="boot-assemble">ELUCIDATOR<small>SYSTEM SYNCHRONISED</small></div><div className="boot-title-rail" aria-hidden="true"><span className="boot-rail-guide" /><div className="boot-rail-segments">{Array.from({ length: 14 }, (_, index) => <i key={index} />)}</div><span className="boot-rail-guide" /></div><div className="boot-ready-nodes"><div className="boot-ready-node"><i /><b>DISPLAY</b><small>INITIALISED</small></div><div className="boot-ready-node"><i /><b>THEME</b><small>INITIALISED</small></div><div className="boot-ready-node"><i /><b>WALLPAPER</b><small>{wallpaperReady ? 'READY' : 'BUFFERED'}</small></div></div></div>
+    <div className="boot-sao-link" aria-label="Elucidator system link established">
+      <div className="boot-sao-link-header">
+        <img
+          className="boot-sao-swords"
+          src="/assets/emblems/link-start-crossed-swords-cropped.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <span className="boot-sao-link-title">ELUCIDATOR</span>
+        <span className="boot-sao-link-status">
+          SYSTEM LINK // ESTABLISHED
+        </span>
+      </div>
+
+      <div className="boot-sao-link-segments" aria-hidden="true">
+        {Array.from({ length: 18 }, (_, index) => (
+          <i
+            key={index}
+            style={{ '--segment-index': index } as CSSProperties}
+          />
+        ))}
+      </div>
+
+      <div className="boot-sao-link-footer">
+        DISPLAY SYNCHRONISED
+      </div>
+    </div>
+    <div className="boot-standby-copy"><b>SYSTEM READY</b><span>PRESS ANY KEY OR MOVE MOUSE TO CONTINUE</span></div></section>{import.meta.env.DEV && debug && !standby && <div className="boot-debug" aria-label="Boot timeline preview"><button onClick={() => seek(0)}>Connect</button><button onClick={() => seek(short ? .9 : 2)}>Compile</button><button onClick={() => seek(short ? 1.55 : 3.75)}>Assemble</button><button onClick={() => seek(previewRevealAt)}>Reveal</button></div>}</>
 }
