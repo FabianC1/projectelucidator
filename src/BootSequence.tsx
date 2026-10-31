@@ -55,9 +55,9 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
 
     const bootGlassTexture = new THREE.CanvasTexture(bootGlassCanvas)
     bootGlassTexture.colorSpace = THREE.SRGBColorSpace
-    const frameMaterials: THREE.LineBasicMaterial[] = []; const panelMaterials: THREE.MeshBasicMaterial[] = []; const panelEdgeMaterials: THREE.LineBasicMaterial[] = []; const panels: THREE.Mesh[] = []; const makeLineMaterial = (color = 0x62dfff) => new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 })
+    const frameMaterials: THREE.LineBasicMaterial[] = []; const panelMaterials: THREE.MeshBasicMaterial[] = []; const panelEdgeMaterials: THREE.LineBasicMaterial[] = []; const panels: THREE.Mesh[] = []; const makeLineMaterial = (color = 0x78B7D9) => new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 })
     depths.forEach((z, index) => {
-      const material = makeLineMaterial(index < 2 ? 0xc2f7ff : 0x38b7d9); frameMaterials.push(material); const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(9.4, 5.8, .01)), material); frame.position.z = z; corridor.add(frame)
+      const material = makeLineMaterial(index < 2 ? 0xE3F8FF : 0x347BC5); frameMaterials.push(material); const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(9.4, 5.8, .01)), material); frame.position.z = z; corridor.add(frame)
         ;[-1, 1].forEach((side) => {
           const glass = new THREE.MeshBasicMaterial({
             map: bootGlassTexture,
@@ -74,7 +74,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
             glass
           )
 
-          bootGlassTexture.dispose()
+
 
           panel.position.set(side * 5.65, 0, z)
           panel.rotation.y = side * Math.PI / 2
@@ -95,11 +95,43 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
 
           panelEdgeMaterials.push(edgeMaterial)
           corridor.add(edge)
+
+          // BOOT — directional illumination along the upper glass edge.
+          const highlightGeometry = new THREE.BufferGeometry()
+
+          highlightGeometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute([
+              -1.55, 1.9, 0.015,
+              -0.65, 1.9, 0.015
+            ], 3)
+          )
+
+          const highlightMaterial = new THREE.LineBasicMaterial({
+            color: 0xEAFBFF,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+          })
+
+          const highlight = new THREE.LineSegments(
+            highlightGeometry,
+            highlightMaterial
+          )
+
+          highlight.position.copy(panel.position)
+          highlight.rotation.copy(panel.rotation)
+
+          corridor.add(highlight)
+
+          // Use the existing panel-edge reveal timing.
+          panelEdgeMaterials.push(highlightMaterial)
         })
     })
     const rails: number[] = []; const architecture: number[] = []
     for (let i = 0; i < depths.length - 1; i++) { for (const [x, y] of [[-4.7, -2.9], [-4.7, 2.9], [4.7, -2.9], [4.7, 2.9]]) rails.push(x, y, depths[i], x, y, depths[i + 1]); for (const y of [-2.48, 2.48]) for (const [x0, x1] of [[-3.8, -1.65], [-.9, .9], [1.65, 3.8]]) architecture.push(x0, y, depths[i], x1, y, depths[i]); for (const x of [-4.05, 4.05]) architecture.push(x, -2.65, depths[i], x, 2.65, depths[i]) }
-    const railMaterial = makeLineMaterial(0x4fdcff); corridor.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(rails, 3)), railMaterial)); const architectureMaterial = makeLineMaterial(0x2284a4); corridor.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(architecture, 3)), architectureMaterial)); const hazeMaterial = new THREE.MeshBasicMaterial({ color: 0x1677a0, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }); const haze = new THREE.Mesh(new THREE.PlaneGeometry(11, 6.5), hazeMaterial); haze.position.z = -16; corridor.add(haze)
+    const railMaterial = makeLineMaterial(0x78B7D9); corridor.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(rails, 3)), railMaterial)); const architectureMaterial = makeLineMaterial(0x245A9B); corridor.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(architecture, 3)), architectureMaterial)); const hazeMaterial = new THREE.MeshBasicMaterial({ color: 0x12345C, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }); const haze = new THREE.Mesh(new THREE.PlaneGeometry(11, 6.5), hazeMaterial); haze.position.z = -16; corridor.add(haze)
     // Static standby is its own display architecture. It is deliberately independent of
     // the boot corridor, with one central viewport and two glass layers per side.
     const standbyGroup = new THREE.Group(); standbyGroup.visible = false; scene.add(standbyGroup)
@@ -1701,7 +1733,7 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
       window.addEventListener('keydown', activate); window.addEventListener('pointerdown', activate)
       removeStandbyInput = () => { window.removeEventListener('keydown', activate); window.removeEventListener('pointerdown', activate) }
     }
-    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); revealTweens.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); resizeObserver.disconnect(); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); standbyGlassTexture.dispose(); telemetryGlowTexture.dispose(); reflectionTexture.dispose(); cornerGlowTexture.dispose(); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); }
+    const cleanup = () => { removeStandbyInput(); tl.kill(); idleTimelines.forEach(item => item.kill()); revealTweens.forEach(item => item.kill()); if (timelineRef.current === tl) timelineRef.current = null; waitingForWallpaperRef.current = false; running = false; cancelAnimationFrame(raf); resizeObserver.disconnect(); removeEventListener('resize', resize); if ((window as TimelineWindow).__elucidatorBootTimeline === tl) delete (window as TimelineWindow).__elucidatorBootTimeline; scene.traverse(object => { const drawable = object as THREE.Mesh; drawable.geometry?.dispose(); const material = drawable.material; if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose() }); trailTextures.forEach(texture => texture.dispose()); bootGlassTexture.dispose(); bootGlassTexture.dispose(); bootGlassTexture.dispose(); standbyGlassTexture.dispose(); telemetryGlowTexture.dispose(); reflectionTexture.dispose(); cornerGlowTexture.dispose(); renderer.dispose(); renderer.domElement.remove(); standbyDiagnostics.remove(); }
     if (standby) {
       host.classList.add('is-revealing', 'is-standby'); gsap.set([hud, standbyCopy], { autoAlpha: 1 }); gsap.set([connect, core, diagnostics, assembleStack], { autoAlpha: 0 }); gsap.set(titleRail, { scaleX: 0 }); applyRevealPose()
       startStandbyRailFlow()
