@@ -20,10 +20,82 @@ export function BootSequence({ active, standby, short, wallpaperReady, onStandby
     if (matchMedia('(prefers-reduced-motion: reduce)').matches && !standby) { standbyRef.current(); return }
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' }); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.setClearAlpha(0); host.appendChild(renderer.domElement)
     const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(44, 1, .1, 92); camera.position.set(0, 0, 14); const corridor = new THREE.Group(); scene.add(corridor); const depths = Array.from({ length: 8 }, (_, index) => -index * 4.2)
+    // BOOT SEQUENCE — icy-blue holographic glass texture
+    const bootGlassCanvas = document.createElement('canvas')
+    bootGlassCanvas.width = 256
+    bootGlassCanvas.height = 512
+
+    const ctx = bootGlassCanvas.getContext('2d')
+
+    if (ctx) {
+      const gradient = ctx.createLinearGradient(0, 0, 256, 0)
+
+      gradient.addColorStop(0, 'rgba(125,205,255,0.38)')
+      gradient.addColorStop(0.12, 'rgba(45,115,195,0.19)')
+      gradient.addColorStop(0.45, 'rgba(12,40,85,0.09)')
+      gradient.addColorStop(0.75, 'rgba(35,100,180,0.15)')
+      gradient.addColorStop(1, 'rgba(160,225,255,0.32)')
+
+      ctx.fillStyle = gradient
+      ctx.fillRect(0, 0, 256, 512)
+
+      // Subtle horizontal reflections across the glass.
+      for (let i = 0; i < 5; i++) {
+        const y = 48 + i * 96
+        const reflection = ctx.createLinearGradient(0, y, 0, y + 32)
+
+        reflection.addColorStop(0, 'rgba(180,225,255,0)')
+        reflection.addColorStop(0.5, 'rgba(180,225,255,0.12)')
+        reflection.addColorStop(1, 'rgba(180,225,255,0)')
+
+        ctx.fillStyle = reflection
+        ctx.fillRect(0, y, 256, 32)
+      }
+    }
+
+    const bootGlassTexture = new THREE.CanvasTexture(bootGlassCanvas)
+    bootGlassTexture.colorSpace = THREE.SRGBColorSpace
     const frameMaterials: THREE.LineBasicMaterial[] = []; const panelMaterials: THREE.MeshBasicMaterial[] = []; const panelEdgeMaterials: THREE.LineBasicMaterial[] = []; const panels: THREE.Mesh[] = []; const makeLineMaterial = (color = 0x62dfff) => new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 })
     depths.forEach((z, index) => {
       const material = makeLineMaterial(index < 2 ? 0xc2f7ff : 0x38b7d9); frameMaterials.push(material); const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(9.4, 5.8, .01)), material); frame.position.z = z; corridor.add(frame)
-        ;[-1, 1].forEach(side => { const glass = new THREE.MeshBasicMaterial({ color: 0x2bbde8, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }); const panel = new THREE.Mesh(new THREE.PlaneGeometry(3.35, 3.8), glass); panel.position.set(side * 5.65, 0, z); panel.rotation.y = side * Math.PI / 2; panelMaterials.push(glass); panels.push(panel); corridor.add(panel); const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(3.35, 3.8)), makeLineMaterial(0x86efff)); edge.position.copy(panel.position); edge.rotation.copy(panel.rotation); panelEdgeMaterials.push(edge.material as THREE.LineBasicMaterial); corridor.add(edge) })
+        ;[-1, 1].forEach((side) => {
+          const glass = new THREE.MeshBasicMaterial({
+            map: bootGlassTexture,
+            color: 0xFFFFFF,
+            transparent: true,
+            opacity: 0,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            blending: THREE.NormalBlending
+          })
+
+          const panel = new THREE.Mesh(
+            new THREE.PlaneGeometry(3.35, 3.8),
+            glass
+          )
+
+          bootGlassTexture.dispose()
+
+          panel.position.set(side * 5.65, 0, z)
+          panel.rotation.y = side * Math.PI / 2
+
+          panelMaterials.push(glass)
+          panels.push(panel)
+          corridor.add(panel)
+
+          const edgeMaterial = makeLineMaterial(0x8ACFFF)
+
+          const edge = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.PlaneGeometry(3.35, 3.8)),
+            edgeMaterial
+          )
+
+          edge.position.copy(panel.position)
+          edge.rotation.copy(panel.rotation)
+
+          panelEdgeMaterials.push(edgeMaterial)
+          corridor.add(edge)
+        })
     })
     const rails: number[] = []; const architecture: number[] = []
     for (let i = 0; i < depths.length - 1; i++) { for (const [x, y] of [[-4.7, -2.9], [-4.7, 2.9], [4.7, -2.9], [4.7, 2.9]]) rails.push(x, y, depths[i], x, y, depths[i + 1]); for (const y of [-2.48, 2.48]) for (const [x0, x1] of [[-3.8, -1.65], [-.9, .9], [1.65, 3.8]]) architecture.push(x0, y, depths[i], x1, y, depths[i]); for (const x of [-4.05, 4.05]) architecture.push(x, -2.65, depths[i], x, 2.65, depths[i]) }
