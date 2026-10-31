@@ -437,6 +437,14 @@ async function detectConnectedMonitorCount(token: string): Promise<number | null
 
 
 async function detectSequenceViewports(token: string): Promise<SequenceViewport[] | null> {
+  console.log('[ELUCIDATOR MIRROR DEBUG]', {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    protocol: window.location.protocol,
+    devicePixelRatio: window.devicePixelRatio,
+    helperTokenAvailable: Boolean(token),
+    hostViewport: window.elucidatorLivelySpanViewport ?? null,
+  })
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
 
@@ -451,19 +459,19 @@ async function detectSequenceViewports(token: string): Promise<SequenceViewport[
   const knownDualMonitorViewports: SequenceViewport[] | null =
     isKnownDualMonitorSpan
       ? [
-          {
-            left: 0,
-            top: 0,
-            width: viewportWidth / 2,
-            height: viewportHeight,
-          },
-          {
-            left: viewportWidth / 2,
-            top: 0,
-            width: viewportWidth / 2,
-            height: viewportHeight,
-          },
-        ]
+        {
+          left: 0,
+          top: 0,
+          width: viewportWidth / 2,
+          height: viewportHeight,
+        },
+        {
+          left: viewportWidth / 2,
+          top: 0,
+          width: viewportWidth / 2,
+          height: viewportHeight,
+        },
+      ]
       : null
 
   if (token) {
@@ -2525,142 +2533,142 @@ function App() {
 
   const renderActivationScene = (activationKind: string, stageId: string) => (
     <>
-          {activationKind === 'link-start' && (
-            <div className="sao-activation-interface">
-              <div className="sao-activation-flare">
-                <svg className="sao-flare-geometry" viewBox="0 0 600 600" aria-hidden="true">
-                  <circle className="sao-flare-ring outer" cx="300" cy="300" r="226" />
-                  <circle className="sao-flare-ring orbit" cx="300" cy="300" r="184" />
-                  <circle className="sao-flare-ring inner" cx="300" cy="300" r="112" />
-                  <path className="sao-flare-crosshair" d="M300 34V200M300 400V566M34 300H200M400 300H566" />
-                  <path className="sao-flare-slash slash-a" d="M165 435L435 165" />
-                  <path className="sao-flare-slash slash-b" d="M210 470L470 210" />
-                  <path className="sao-flare-diamond" d="M300 58L311 74L300 90L289 74Z" />
-                  <path className="sao-flare-diamond" d="M542 300L526 311L510 300L526 289Z" />
-                  <path className="sao-flare-diamond" d="M300 542L289 526L300 510L311 526Z" />
-                  <path className="sao-flare-diamond" d="M58 300L74 289L90 300L74 311Z" />
-                </svg>
-                <img className="sao-flare-swords" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} alt="" />
-                <div className="sao-flare-copy"><strong>LINK START</strong><span>ESTABLISHING AINCRAD CONNECTION</span></div>
-              </div>
+      {activationKind === 'link-start' && (
+        <div className="sao-activation-interface">
+          <div className="sao-activation-flare">
+            <svg className="sao-flare-geometry" viewBox="0 0 600 600" aria-hidden="true">
+              <circle className="sao-flare-ring outer" cx="300" cy="300" r="226" />
+              <circle className="sao-flare-ring orbit" cx="300" cy="300" r="184" />
+              <circle className="sao-flare-ring inner" cx="300" cy="300" r="112" />
+              <path className="sao-flare-crosshair" d="M300 34V200M300 400V566M34 300H200M400 300H566" />
+              <path className="sao-flare-slash slash-a" d="M165 435L435 165" />
+              <path className="sao-flare-slash slash-b" d="M210 470L470 210" />
+              <path className="sao-flare-diamond" d="M300 58L311 74L300 90L289 74Z" />
+              <path className="sao-flare-diamond" d="M542 300L526 311L510 300L526 289Z" />
+              <path className="sao-flare-diamond" d="M300 542L289 526L300 510L311 526Z" />
+              <path className="sao-flare-diamond" d="M58 300L74 289L90 300L74 311Z" />
+            </svg>
+            <img className="sao-flare-swords" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} alt="" />
+            <div className="sao-flare-copy"><strong>LINK START</strong><span>ESTABLISHING AINCRAD CONNECTION</span></div>
+          </div>
+        </div>
+      )}
+      {activationKind === 'demon' && (
+        <div className="demon-mode-activation">
+          <div className="demon-activation-aura" />
+          <svg className="demon-activation-frame" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+            <path className="demon-frame-outer" d="M96 34H904L966 96V504L904 566H96L34 504V96Z" />
+            <path className="demon-frame-inner" d="M116 54H884L946 116V484L884 546H116L54 484V116Z" />
+            <path className="demon-frame-locks" d="M96 84H208M792 84H904M96 516H208M792 516H904" />
+          </svg>
+          <img className="demon-activation-clasp clasp-top-left" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+          <img className="demon-activation-clasp clasp-top-right" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+          <img className="demon-activation-clasp clasp-bottom-left" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+          <img className="demon-activation-clasp clasp-bottom-right" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
+          <img className="demon-activation-fissure fissure-upper" src="./assets/emblems/demon-fissure-trimmed.png" alt="" />
+          <img className="demon-activation-fissure fissure-lower" src="./assets/emblems/demon-fissure-trimmed.png" alt="" />
+          <img className="demon-activation-dragon" src={THEME_SYSTEMS.find((system) => system.id === 'demon-mode')?.emblemAsset ?? './assets/emblems/dragon-sin-of-wrath.png'} alt="" />
+          <img className="demon-activation-crescent" src="./assets/emblems/demon-crescent-trimmed.png" alt="" />
+          <div className="demon-activation-copy"><strong>DEMON MODE</strong><span>DRAGON SIN OF WRATH // MELIODAS</span></div>
+          <div className="demon-activation-state"><img src="./assets/emblems/demon-seal-gem-trimmed.png" alt="" /><span>POWER UNSEALED</span></div>
+          <div className="demon-activation-rule">
+            <img className="demon-rule-segments" src="./assets/emblems/demon-underline-segments.png" alt="" />
+            <span />
+            <img className="demon-rule-tip" src="./assets/emblems/demon-underline-tip.png" alt="" />
+          </div>
+        </div>
+      )}
+      {activationKind === 'grimoire' && (
+        <div className="grimoire-seal-activation">
+          <div className="grimoire-seal-cover">
+            <svg className="grimoire-seal-lines" viewBox="0 0 640 400" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <g id={`grimoire-seal-leaf-corner-${stageId}`}>
+                  <path d="M8 9C18 16 25 25 31 37C39 52 49 62 64 72" />
+                  <path d="M24 28C14 27 8 21 7 13C16 14 23 19 27 26Z" />
+                  <path d="M39 48C30 48 24 43 22 35C31 36 38 40 42 47Z" />
+                  <path d="M53 62C46 63 40 59 37 53C45 52 51 55 56 61Z" />
+                </g>
+              </defs>
+              <path className="grimoire-cover-outline" d="M32 4H608L636 32V368L608 396H32L4 368V32Z" />
+              <path className="grimoire-cover-inner" d="M42 15H598L625 42V358L598 385H42L15 358V42Z" />
+              <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(20 22) scale(.78)" />
+              <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(620 22) scale(-.78 .78)" />
+              <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(20 378) scale(.78 -.78)" />
+              <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(620 378) scale(-.78 -.78)" />
+              <path className="grimoire-cover-fissures" d="M74 37L91 29L101 20M566 363L550 371L540 380" />
+            </svg>
+            <div className="grimoire-seal-content">
+              <ThemeEmblem className="grimoire-seal-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/grimoire.png'} title="Five-leaf grimoire" />
+              <strong>BLACK CLOVER</strong>
+              <small>SYSTEM SEAL</small>
             </div>
-          )}
-          {activationKind === 'demon' && (
-            <div className="demon-mode-activation">
-              <div className="demon-activation-aura" />
-              <svg className="demon-activation-frame" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
-                <path className="demon-frame-outer" d="M96 34H904L966 96V504L904 566H96L34 504V96Z" />
-                <path className="demon-frame-inner" d="M116 54H884L946 116V484L884 546H116L54 484V116Z" />
-                <path className="demon-frame-locks" d="M96 84H208M792 84H904M96 516H208M792 516H904" />
-              </svg>
-              <img className="demon-activation-clasp clasp-top-left" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
-              <img className="demon-activation-clasp clasp-top-right" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
-              <img className="demon-activation-clasp clasp-bottom-left" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
-              <img className="demon-activation-clasp clasp-bottom-right" src="./assets/emblems/demon-corner-clasp-trimmed.png" alt="" />
-              <img className="demon-activation-fissure fissure-upper" src="./assets/emblems/demon-fissure-trimmed.png" alt="" />
-              <img className="demon-activation-fissure fissure-lower" src="./assets/emblems/demon-fissure-trimmed.png" alt="" />
-              <img className="demon-activation-dragon" src={THEME_SYSTEMS.find((system) => system.id === 'demon-mode')?.emblemAsset ?? './assets/emblems/dragon-sin-of-wrath.png'} alt="" />
-              <img className="demon-activation-crescent" src="./assets/emblems/demon-crescent-trimmed.png" alt="" />
-              <div className="demon-activation-copy"><strong>DEMON MODE</strong><span>DRAGON SIN OF WRATH // MELIODAS</span></div>
-              <div className="demon-activation-state"><img src="./assets/emblems/demon-seal-gem-trimmed.png" alt="" /><span>POWER UNSEALED</span></div>
-              <div className="demon-activation-rule">
-                <img className="demon-rule-segments" src="./assets/emblems/demon-underline-segments.png" alt="" />
-                <span />
-                <img className="demon-rule-tip" src="./assets/emblems/demon-underline-tip.png" alt="" />
-              </div>
+            <div className="grimoire-seal-messages">
+              <span>FIVE-LEAF GRIMOIRE DETECTED</span>
+              <span>ANTI-MAGIC AWAKENED</span>
             </div>
-          )}
-          {activationKind === 'grimoire' && (
-            <div className="grimoire-seal-activation">
-              <div className="grimoire-seal-cover">
-                <svg className="grimoire-seal-lines" viewBox="0 0 640 400" preserveAspectRatio="none" aria-hidden="true">
-                  <defs>
-                    <g id={`grimoire-seal-leaf-corner-${stageId}`}>
-                      <path d="M8 9C18 16 25 25 31 37C39 52 49 62 64 72" />
-                      <path d="M24 28C14 27 8 21 7 13C16 14 23 19 27 26Z" />
-                      <path d="M39 48C30 48 24 43 22 35C31 36 38 40 42 47Z" />
-                      <path d="M53 62C46 63 40 59 37 53C45 52 51 55 56 61Z" />
-                    </g>
-                  </defs>
-                  <path className="grimoire-cover-outline" d="M32 4H608L636 32V368L608 396H32L4 368V32Z" />
-                  <path className="grimoire-cover-inner" d="M42 15H598L625 42V358L598 385H42L15 358V42Z" />
-                  <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(20 22) scale(.78)" />
-                  <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(620 22) scale(-.78 .78)" />
-                  <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(20 378) scale(.78 -.78)" />
-                  <use className="grimoire-cover-flourish" href={`#grimoire-seal-leaf-corner-${stageId}`} transform="translate(620 378) scale(-.78 -.78)" />
-                  <path className="grimoire-cover-fissures" d="M74 37L91 29L101 20M566 363L550 371L540 380" />
-                </svg>
-                <div className="grimoire-seal-content">
-                  <ThemeEmblem className="grimoire-seal-emblem theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/grimoire.png'} title="Five-leaf grimoire" />
-                  <strong>BLACK CLOVER</strong>
-                  <small>SYSTEM SEAL</small>
-                </div>
-                <div className="grimoire-seal-messages">
-                  <span>FIVE-LEAF GRIMOIRE DETECTED</span>
-                  <span>ANTI-MAGIC AWAKENED</span>
-                </div>
-              </div>
-            </div>
-          )}
-          {activationKind === 'breathing-sun' && (
-            <div className="hinokami-activation">
-              <div className="hinokami-warmth" />
-              <svg className="hinokami-arc" viewBox="0 0 1000 700" preserveAspectRatio="none">
-                <path d="M260 524A305 305 0 0 1 740 220" />
-              </svg>
-              <div className="hinokami-fireblade-wrap">
-                <img className="hinokami-activation-sword" src={HINOKAMI_FIREBLADE} alt="" />
-                <span className="hinokami-fireblade-light" style={{ maskImage: `url(${HINOKAMI_FIREBLADE})`, WebkitMaskImage: `url(${HINOKAMI_FIREBLADE})` }} />
-              </div>
-              <div className="hinokami-activation-copy"><strong>HINOKAMI KAGURA</strong><span>SUN BREATHING // IGNITED</span></div>
-            </div>
-          )}
-          {activationKind === 'tokyo-ghoul' && (
-            <div className="kagune-activation">
-              <div className="kagune-activation-glow" />
-              <svg className="kagune-activation-sigil" viewBox="0 0 600 600" aria-hidden="true">
-                <circle className="kagune-sigil-ring kagune-sigil-ring-outer" cx="300" cy="300" r="260" />
-                <circle className="kagune-sigil-ring kagune-sigil-ring-inner" cx="300" cy="300" r="228" />
-                <path className="kagune-sigil-spokes" d="M300 8V96M300 504V592M8 300H96M504 300H592M94 94L156 156M444 444L506 506M506 94L444 156M156 444L94 506" />
-                <path className="kagune-sigil-cuts" d="M116 138L164 162L190 205M484 462L436 438L410 395M484 138L436 162L410 205M116 462L164 438L190 395" />
-              </svg>
-              <img className="kagune-activation-header-emblem" src="./assets/kagune/kagune-header-emblem-trimmed.png" alt="" />
-              <img className="kagune-activation-header-tendril" src="./assets/kagune/kagune-header-tendril-trimmed.png" alt="" />
-              <img className="kagune-activation-right-tendril" src="./assets/kagune/kagune-right-tendril-trimmed.png" alt="" />
-              <img className="kagune-activation-bottom-tendril" src="./assets/kagune/kagune-bottom-tendril-trimmed.png" alt="" />
-              <div className="kagune-activation-copy"><strong>TOKYO GHOUL</strong><span>ONE-EYED KING // KANEKI PROTOCOL</span></div>
-            </div>
-          )}
-          {activationKind === 'night-fury-stealth' && (
-            <div className="night-fury-activation" style={activationStyle}>
-              <div className="night-fury-activation-aura" />
-              <svg className="night-fury-flight-path" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
-                <path className="night-fury-flight-orbit" d="M90 350C178 145 354 74 537 118c164 39 277 180 358 99" />
-                <path className="night-fury-flight-streak" d="M110 403c174-92 339-100 491-49 100 34 193 31 279-15" />
-                <path className="night-fury-flight-glint" d="M220 160c134-90 318-75 427 13" />
-              </svg>
-              <img className="night-fury-flight-tail" src="./assets/emblems/night-fury-header-tail-trimmed.png" alt="" />
-              <img className="night-fury-flight-wings" src="./assets/emblems/night-fury-corner-fins-trimmed.png" alt="" />
-              <img className="night-fury-flight-lower" src="./assets/emblems/night-fury-bottom-tail-trimmed.png" alt="" />
-              <ThemeEmblem
-                className="night-fury-activation-emblem theme-emblem-image"
-                src={activeThemeSystem?.emblemAsset ?? './assets/emblems/night-fury.png'}
-                title="NIGHT FURY"
-              />
-              <div className="night-fury-activation-copy"><strong>NIGHT FURY</strong><span>HTTYD // TOOTHLESS PROTOCOL</span></div>
-              <div className="night-fury-activation-status"><i /> ALPHA CLASS // LINKED</div>
-            </div>
-          )}
-          {['theme-activation', 'arise', 'limitless'].includes(activationKind) && (
-            <div className={`theme-emblem-activation activation-${theme}`} style={activationStyle}>
-              <ThemeEmblem
-                className="theme-emblem-activation-image theme-emblem-image"
-                src={activeThemeSystem?.emblemAsset ?? './assets/emblems/tokyo-ghoul.png'}
-                title={activePresentation.title}
-              />
-              <span>{stealthIdentity ? activePresentation.title : activeThemeSystem?.activationPresentation.title ?? activePresentation.title}</span>
-            </div>
-          )}
+          </div>
+        </div>
+      )}
+      {activationKind === 'breathing-sun' && (
+        <div className="hinokami-activation">
+          <div className="hinokami-warmth" />
+          <svg className="hinokami-arc" viewBox="0 0 1000 700" preserveAspectRatio="none">
+            <path d="M260 524A305 305 0 0 1 740 220" />
+          </svg>
+          <div className="hinokami-fireblade-wrap">
+            <img className="hinokami-activation-sword" src={HINOKAMI_FIREBLADE} alt="" />
+            <span className="hinokami-fireblade-light" style={{ maskImage: `url(${HINOKAMI_FIREBLADE})`, WebkitMaskImage: `url(${HINOKAMI_FIREBLADE})` }} />
+          </div>
+          <div className="hinokami-activation-copy"><strong>HINOKAMI KAGURA</strong><span>SUN BREATHING // IGNITED</span></div>
+        </div>
+      )}
+      {activationKind === 'tokyo-ghoul' && (
+        <div className="kagune-activation">
+          <div className="kagune-activation-glow" />
+          <svg className="kagune-activation-sigil" viewBox="0 0 600 600" aria-hidden="true">
+            <circle className="kagune-sigil-ring kagune-sigil-ring-outer" cx="300" cy="300" r="260" />
+            <circle className="kagune-sigil-ring kagune-sigil-ring-inner" cx="300" cy="300" r="228" />
+            <path className="kagune-sigil-spokes" d="M300 8V96M300 504V592M8 300H96M504 300H592M94 94L156 156M444 444L506 506M506 94L444 156M156 444L94 506" />
+            <path className="kagune-sigil-cuts" d="M116 138L164 162L190 205M484 462L436 438L410 395M484 138L436 162L410 205M116 462L164 438L190 395" />
+          </svg>
+          <img className="kagune-activation-header-emblem" src="./assets/kagune/kagune-header-emblem-trimmed.png" alt="" />
+          <img className="kagune-activation-header-tendril" src="./assets/kagune/kagune-header-tendril-trimmed.png" alt="" />
+          <img className="kagune-activation-right-tendril" src="./assets/kagune/kagune-right-tendril-trimmed.png" alt="" />
+          <img className="kagune-activation-bottom-tendril" src="./assets/kagune/kagune-bottom-tendril-trimmed.png" alt="" />
+          <div className="kagune-activation-copy"><strong>TOKYO GHOUL</strong><span>ONE-EYED KING // KANEKI PROTOCOL</span></div>
+        </div>
+      )}
+      {activationKind === 'night-fury-stealth' && (
+        <div className="night-fury-activation" style={activationStyle}>
+          <div className="night-fury-activation-aura" />
+          <svg className="night-fury-flight-path" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+            <path className="night-fury-flight-orbit" d="M90 350C178 145 354 74 537 118c164 39 277 180 358 99" />
+            <path className="night-fury-flight-streak" d="M110 403c174-92 339-100 491-49 100 34 193 31 279-15" />
+            <path className="night-fury-flight-glint" d="M220 160c134-90 318-75 427 13" />
+          </svg>
+          <img className="night-fury-flight-tail" src="./assets/emblems/night-fury-header-tail-trimmed.png" alt="" />
+          <img className="night-fury-flight-wings" src="./assets/emblems/night-fury-corner-fins-trimmed.png" alt="" />
+          <img className="night-fury-flight-lower" src="./assets/emblems/night-fury-bottom-tail-trimmed.png" alt="" />
+          <ThemeEmblem
+            className="night-fury-activation-emblem theme-emblem-image"
+            src={activeThemeSystem?.emblemAsset ?? './assets/emblems/night-fury.png'}
+            title="NIGHT FURY"
+          />
+          <div className="night-fury-activation-copy"><strong>NIGHT FURY</strong><span>HTTYD // TOOTHLESS PROTOCOL</span></div>
+          <div className="night-fury-activation-status"><i /> ALPHA CLASS // LINKED</div>
+        </div>
+      )}
+      {['theme-activation', 'arise', 'limitless'].includes(activationKind) && (
+        <div className={`theme-emblem-activation activation-${theme}`} style={activationStyle}>
+          <ThemeEmblem
+            className="theme-emblem-activation-image theme-emblem-image"
+            src={activeThemeSystem?.emblemAsset ?? './assets/emblems/tokyo-ghoul.png'}
+            title={activePresentation.title}
+          />
+          <span>{stealthIdentity ? activePresentation.title : activeThemeSystem?.activationPresentation.title ?? activePresentation.title}</span>
+        </div>
+      )}
     </>
   )
 
@@ -2675,7 +2683,7 @@ function App() {
   const consoleEntryClass = consoleEntry?.theme === theme ? ` console-entering console-entering-${theme}` : ''
 
   return (
-    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${!ready || !startupConfigHydrated || booting ? ' startup-interface-locked' : ''}${standbyActive ?  ' reveal-standby-active' : ''}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
+    <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${!ready || !startupConfigHydrated || booting ? ' startup-interface-locked' : ''}${standbyActive ? ' reveal-standby-active' : ''}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
       {wallpaperUrl && (
         <img
           key={`wallpaper-${bootToken}`}
@@ -2850,9 +2858,9 @@ function App() {
               <ThemeEmblem className="anime-status-orb theme-emblem-image" src={activeThemeSystem?.emblemAsset ?? './assets/emblems/link-start-crossed-swords.png'} title={`${activeThemeSystem?.label ?? 'Theme'} emblem`} />
               <div><small>{theme.replaceAll('-', ' ').toUpperCase()} PROTOCOL</small><strong>{animeStatus.title}</strong></div>
             </div>
-            <p className="anime-status-state">{animeStatus.state}</p>
-            <div className="anime-signal" aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <i key={index} />)}</div>
-            <p className="anime-status-metric"><span>{animeStatus.metric}</span><b>{animeStatus.value}</b></p></>}
+              <p className="anime-status-state">{animeStatus.state}</p>
+              <div className="anime-signal" aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <i key={index} />)}</div>
+              <p className="anime-status-metric"><span>{animeStatus.metric}</span><b>{animeStatus.value}</b></p></>}
             <label className="widget-brightness-control" style={{ '--brightness-value': brightnessLevel } as CSSProperties}>BRIGHTNESS <input type="range" min="0" max="100" value={brightnessLevel} onChange={(event) => { const value = Number(event.target.value); setBrightnessLevel(value); if (brightnessToken && brightnessHelperOnline) void changeBrightness(brightnessToken, value, null) }} /><output>{brightnessLevel}%</output></label>
             <div className="effect-tile-grid" aria-label="Visual effects">{([{ id: 'off', label: 'Off', icon: '○' }, { id: 'haze', label: 'Haze', icon: '≋' }, { id: 'rain', label: 'Rain', icon: '⌇' }, { id: 'lightning', label: 'Lightning', icon: 'ϟ' }, { id: 'particles', label: 'Particles', icon: '✦' }, { id: 'vignette', label: 'Vignette', icon: '◉' }] as const).map((effect) => <button key={effect.id} className={visualTheme === effect.id ? 'is-active' : ''} onClick={() => activateVisualEffect(effect.id)} aria-pressed={visualTheme === effect.id}><span aria-hidden="true">{effect.icon}</span>{effect.label}</button>)}</div>
           </article>
