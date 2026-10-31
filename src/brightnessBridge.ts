@@ -216,27 +216,61 @@ export async function readWallpaperStartupManifest(): Promise<(StartupConfigurat
   return { ...manifest, wallpaperBlob: blob }
 }
 
-export async function readPrivateCredentialBootstrap() {
-  const bootstrapUrl = new URL(
-    './elucidator-private-bootstrap.json',
-    window.location.href
-  )
+export async function readPrivateCredentialBootstrap(): Promise<string> {
+  const filename = 'elucidator-private-bootstrap.json'
 
-  console.info('[ELUCIDATOR PAIRING] Bootstrap URL:', bootstrapUrl.href)
+  const urls = [
+    new URL(filename, document.baseURI),
+    new URL(`./${filename}`, window.location.href),
+    new URL(`/${filename}`, window.location.origin)
+  ]
 
-  const response = await fetch(bootstrapUrl, { cache: 'no-store' })
+  const uniqueUrls = [...new Set(urls.map(url => url.href))]
 
-  console.info('[ELUCIDATOR PAIRING] Bootstrap HTTP status:', response.status)
-  if (response.status === 404) return ''
-  if (!response.ok) throw new Error(`PRIVATE CREDENTIAL BOOTSTRAP READ FAILED · HTTP ${response.status}`)
-  // Lively's local-file host does not consistently assign application/json.
-  // Parse defensively instead: Vite's HTML fallback and malformed files are
-  // rejected without treating them as a credential bootstrap.
-  const body = await response.text()
-  try {
-    const value = JSON.parse(body) as { token?: unknown }
-    return typeof value.token === 'string' && /^[A-Za-z0-9_-]{40,60}$/.test(value.token) ? value.token : ''
-  } catch { return '' }
+  for (const url of uniqueUrls) {
+    try {
+      const response = await fetch(url, {
+        cache: 'no-store',
+        credentials: 'same-origin'
+      })
+
+      console.info(
+        '[ELUCIDATOR PAIRING] Bootstrap check:',
+        new URL(url).pathname,
+        response.status
+      )
+
+      if (!response.ok) continue
+
+      const body = await response.text()
+
+      let parsed: unknown
+
+      try {
+        parsed = JSON.parse(body)
+      } catch {
+        continue
+      }
+
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        'token' in parsed &&
+        typeof parsed.token === 'string' &&
+        /^[A-Za-z0-9_-]{40,60}$/.test(parsed.token)
+      ) {
+        return parsed.token
+      }
+    } catch (error) {
+      console.warn(
+        '[ELUCIDATOR PAIRING] Bootstrap unavailable:',
+        new URL(url).pathname,
+        error instanceof Error ? error.name : 'Unknown error'
+      )
+    }
+  }
+
+  return ''
 }
 
 export async function persistPrivateCredentialBootstrap(token: string) {

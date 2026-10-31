@@ -548,6 +548,34 @@ function Write-PrivateBootstrapForActiveProject {
   [void](Write-CredentialBootstrap $project.Directory $script:BrightnessToken)
 }
 
+function Restore-PrivateBootstrapOnStartup {
+  try {
+    $project = Get-ActiveElucidatorProject
+    $path = Join-Path $project.Directory 'elucidator-private-bootstrap.json'
+
+    $needsRepair = $true
+
+    if (Test-Path -LiteralPath $path -PathType Leaf) {
+      try {
+        $saved = Get-Content -LiteralPath $path -Raw |
+          ConvertFrom-Json
+
+        $needsRepair = ($saved.token -cne $script:BrightnessToken)
+      } catch {
+        $needsRepair = $true
+      }
+    }
+
+    if ($needsRepair) {
+      Write-PrivateBootstrapForActiveProject
+    }
+
+    Write-Host '[ELUCIDATOR] Private bootstrap ready.'
+  } catch {
+    Write-Warning "Private bootstrap recovery: $($_.Exception.Message)"
+  }
+}
+
 function Update-ActiveElucidatorPackage {
   param([byte[]]$ArchiveBytes)
   if ($ArchiveBytes.Length -lt 22 -or $ArchiveBytes.Length -gt 104857600) { throw 'WALLPAPER UPDATE ARCHIVE IS EMPTY OR EXCEEDS THE 100 MB LIMIT' }
@@ -775,6 +803,7 @@ $serverMutex = [System.Threading.Mutex]::new($false, $mutexName)
 $ownsServerMutex = $false
 try { $ownsServerMutex = $serverMutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $ownsServerMutex = $true }
 if (-not $ownsServerMutex) { $serverMutex.Dispose(); exit 0 }
+Restore-PrivateBootstrapOnStartup
 $listener = New-Object System.Net.Sockets.TcpListener([Net.IPAddress]::Loopback, $Port)
 try {
   $listener.Start()

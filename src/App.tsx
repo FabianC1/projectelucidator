@@ -1479,7 +1479,7 @@ return 'rejected'
       setSpecialEffect({ kind: effect, id: ++effectIdRef.current })
     }
     const persistDurableWallpaper = async (selection: SavedWallpaper | null) => {
-      if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS BRIGHTNESS PAIR <TOKEN>')
+      if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS MONITOR PAIR <TOKEN>')
       const patch: Partial<StartupConfiguration> = selection
         ? { wallpaperName: selection.name, wallpaperType: selection.blob.type || 'application/octet-stream', wallpaperData: await blobToBase64(selection.blob) }
         : { wallpaperName: null, wallpaperType: null, wallpaperData: null }
@@ -1487,7 +1487,7 @@ return 'rejected'
       if (!result.saved) throw new Error('WINDOWS HELPER DID NOT CONFIRM THE CONFIGURATION SAVE')
     }
     const persistDurableTheme = async (nextTheme: ThemeId) => {
-      if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS BRIGHTNESS PAIR <TOKEN>')
+      if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS MONITOR PAIR <TOKEN>')
       const result = await saveDurableStartupConfiguration(brightnessToken, { theme: nextTheme })
       if (!result.saved) throw new Error('WINDOWS HELPER DID NOT CONFIRM THE CONFIGURATION SAVE')
     }
@@ -1507,7 +1507,7 @@ return 'rejected'
         report(['PAIRING RECOVERY WAITING', 'WINDOWS HELPER IS UNAVAILABLE OR RESTARTING', 'RECOVERY WILL RETRY AUTOMATICALLY'])
         setStatus('PAIRING RECOVERY WAITING FOR HELPER')
       } else {
-        report(['PAIRING RECOVERY PENDING', 'NO VALID EXISTING CREDENTIAL WAS AVAILABLE', 'RUN SYS BRIGHTNESS PAIR <TOKEN> ONLY AFTER EXPLICIT LOCAL AUTHORIZATION'])
+        report(['PAIRING RECOVERY PENDING', 'NO VALID EXISTING CREDENTIAL WAS AVAILABLE', 'RUN SYS MONITOR PAIR <TOKEN> ONLY AFTER EXPLICIT LOCAL AUTHORIZATION'])
         setStatus('PAIRING RECOVERY REQUIRES AUTHORIZATION')
       }
     } else if (domain === 'admin' && action === 'sys' && args[2] === 'config' && args[3] === 'save' && args.length === 4) {
@@ -1519,7 +1519,7 @@ return 'rejected'
           const response = await fetch(wallpaperUrl)
           if (!response.ok) throw new Error('ACTIVE WALLPAPER BYTES COULD NOT BE READ')
           const blob = await response.blob()
-          if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS BRIGHTNESS PAIR <TOKEN>')
+          if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS MONITOR PAIR <TOKEN>')
           const settings = {
             enabledWidgets,
             widgetPositions,
@@ -1570,7 +1570,7 @@ return 'rejected'
       }
     } else if (domain === 'lock' && args.length === 1) {
       if (!brightnessToken) {
-        report(['WINDOWS LOCK UNAVAILABLE', 'INSTALL THE WINDOWS HELPER', 'THEN PAIR · SYS BRIGHTNESS PAIR <TOKEN>'])
+        report(['WINDOWS LOCK UNAVAILABLE', 'INSTALL THE WINDOWS HELPER', 'THEN PAIR · SYS MONITOR PAIR <TOKEN>'])
         setStatus('WINDOWS HELPER NEEDS PAIRING')
       } else {
         try {
@@ -1669,7 +1669,11 @@ return 'rejected'
       const listMonitors = (monitors: BrightnessMonitor[]) => monitors.length
         ? monitors.map((monitor) => `DISPLAY ${monitor.id} · ${monitor.name.toUpperCase()} · ${monitor.supported && monitor.brightness !== null ? `${monitor.brightness}%` : 'DDC/CI UNAVAILABLE'}`)
         : ['NO DDC/CI MONITORS DETECTED']
-      const helperInstructions = ['INSTALL HELPER · scripts/install-brightness-helper.ps1', 'THEN PAIR · SYS BRIGHTNESS PAIR <TOKEN>']
+      const helperInstructions = [
+  'AUTOMATIC CONNECTION · SYS PAIR',
+  'MANUAL RECOVERY · SYS MONITOR PAIR <TOKEN>',
+  'HELPER INSTALLER · scripts/install-brightness-helper.ps1'
+]
 
       if (action === 'pair' && args.length === 3) {
         const token = submittedCommand.match(
@@ -1737,7 +1741,7 @@ return 'rejected'
           }
         }
       } else if (action === 'help' && args.length === 2) {
-        report(['DDC/CI BRIGHTNESS COMMANDS', 'SYS BRIGHTNESS STATUS · SHOW DISPLAY LEVELS', 'SYS BRIGHTNESS <0–100> · SET ALL COMPATIBLE DISPLAYS', 'SYS BRIGHTNESS MONITOR <ID> <0–100> · SET ONE', 'SYS BRIGHTNESS PAIR <TOKEN> · CONNECT THE WINDOWS HELPER', 'SYS BRIGHTNESS UNPAIR · REMOVE THE STORED TOKEN'])
+        report(['DDC/CI BRIGHTNESS COMMANDS', 'SYS BRIGHTNESS STATUS · SHOW DISPLAY LEVELS', 'SYS BRIGHTNESS <0–100> · SET ALL COMPATIBLE DISPLAYS', 'SYS BRIGHTNESS MONITOR <ID> <0–100> · SET ONE', 'SYS MONITOR PAIR <TOKEN> · CONNECT THE WINDOWS HELPER', 'SYS BRIGHTNESS UNPAIR · REMOVE THE STORED TOKEN'])
         setStatus('BRIGHTNESS COMMAND HELP')
       } else {
         const allLevel = action !== undefined && /^\d{1,3}$/.test(action) && args.length === 2 ? Number(action) : null
