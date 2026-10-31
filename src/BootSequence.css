@@ -979,11 +979,20 @@
       box-shadow 0.75s ease;
 }
 
-/* During REVEAL, expand the frame outward */
-.boot-scene.is-revealing .boot-hud,
+/* REVEAL — retain the complete outer frame */
+.boot-scene.is-revealing .boot-hud {
+   inset: 10px;
+   border: 2px solid rgba(85, 158, 235, 0.85);
+   box-shadow:
+      inset 0 0 18px rgba(15, 80, 170, 0.10),
+      0 0 9px rgba(35, 110, 225, 0.16);
+}
+
+/* STANDBY — top and sides only, no bottom outer border */
 .boot-scene.is-standby .boot-hud {
    inset: 10px;
    border: 2px solid rgba(85, 158, 235, 0.85);
+   border-bottom: none;
    box-shadow:
       inset 0 0 18px rgba(15, 80, 170, 0.10),
       0 0 9px rgba(35, 110, 225, 0.16);
@@ -1422,60 +1431,94 @@
 
 /* Default tabs: subtle cyan */
 .boot-sao-link-segments i {
-  background: #69b9df;
-  opacity: 0.48;
-  border-radius: 1px;
+   background: #69b9df;
+   opacity: 0.48;
+   border-radius: 1px;
 
-  box-shadow: 0 0 3px rgba(75, 170, 235, 0.3);
+   box-shadow: 0 0 3px rgba(75, 170, 235, 0.3);
 
-  transition:
-    background 0.3s ease,
-    box-shadow 0.3s ease;
+   transition:
+      background 0.3s ease,
+      box-shadow 0.3s ease;
 }
 
 /* Gentle, scattered illumination */
 .boot-scene.is-standby .boot-sao-link-segments i {
-  animation: sao-tab-glow 5.4s ease-in-out infinite;
-  animation-delay: calc(var(--segment-index) * -0.63s);
+   animation: sao-tab-glow 5.4s ease-in-out infinite;
+   animation-delay: calc(var(--segment-index) * -0.63s);
 }
 
 /* Slight variation between tabs */
 .boot-scene.is-standby .boot-sao-link-segments i:nth-child(3n) {
-  animation-delay: calc(var(--segment-index) * -0.63s - 1.4s);
+   animation-delay: calc(var(--segment-index) * -0.63s - 1.4s);
 }
 
 .boot-scene.is-standby .boot-sao-link-segments i:nth-child(4n) {
-  animation-delay: calc(var(--segment-index) * -0.63s - 2.6s);
+   animation-delay: calc(var(--segment-index) * -0.63s - 2.6s);
 }
 
 @keyframes sao-tab-glow {
-  0%, 100% {
-    opacity: 0.42;
-    background: #69b9df;
-    box-shadow: 0 0 3px rgba(75, 170, 235, 0.25);
-  }
 
-  15%, 30% {
-    opacity: 1;
-    background: #d5f8ff;
+   0%,
+   100% {
+      opacity: 0.42;
+      background: #69b9df;
+      box-shadow: 0 0 3px rgba(75, 170, 235, 0.25);
+   }
 
-    box-shadow:
-      0 0 5px rgba(184, 239, 255, 0.95),
-      0 0 12px rgba(76, 192, 255, 0.75),
-      0 0 20px rgba(47, 151, 255, 0.35);
-  }
+   15%,
+   30% {
+      opacity: 1;
+      background: #d5f8ff;
 
-  50% {
-    opacity: 0.65;
-    background: #92d8f4;
-    box-shadow: 0 0 7px rgba(90, 195, 255, 0.45);
-  }
+      box-shadow:
+         0 0 5px rgba(184, 239, 255, 0.95),
+         0 0 12px rgba(76, 192, 255, 0.75),
+         0 0 20px rgba(47, 151, 255, 0.35);
+   }
+
+   50% {
+      opacity: 0.65;
+      background: #92d8f4;
+      box-shadow: 0 0 7px rgba(90, 195, 255, 0.45);
+   }
 }
 
 /* Keep reduced-motion preferences respected */
 @media (prefers-reduced-motion: reduce) {
-  .boot-scene.is-standby .boot-sao-link-segments i {
-    animation: none;
-    opacity: 0.7;
-  }
+   .boot-scene.is-standby .boot-sao-link-segments i {
+      animation: none;
+      opacity: 0.7;
+   }
+}
+/* STANDBY — remove the leftover bottom-right corner accent */
+.boot-scene.is-standby .boot-hud::after {
+   border-bottom: none;
+}
+
+/* STANDBY — illuminate the top-left outer corner */
+.boot-scene.is-standby .boot-hud::before {
+   top: -1px;
+   left: -1px;
+   width: 1.25rem;
+   height: 1.25rem;
+   border-top: 2px solid #b9eaff;
+   border-left: 2px solid #b9eaff;
+   filter: drop-shadow(0 0 4px rgba(140, 215, 255, 0.65));
+}
+
+/* STANDBY — illuminated top-right outer corner */
+.boot-scene.is-standby .boot-hud::after {
+   top: -1px;
+   right: -1px;
+   bottom: auto;
+
+   width: 1.25rem;
+   height: 1.25rem;
+
+   border: none;
+   border-top: 2px solid #b9eaff;
+   border-right: 2px solid #b9eaff;
+
+   filter: drop-shadow(0 0 4px rgba(140, 215, 255, 0.65));
 }
