@@ -448,11 +448,14 @@ async function detectSequenceViewports(token: string): Promise<SequenceViewport[
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
 
-  // This fallback is specific to a verified 3840x1080
-  // Lively Span instance. Never apply it to a normal browser.
+
+  // Known dual-monitor Lively Span layout:
+  // two 1920x1080 displays arranged horizontally.
+  // CefSharp may expose the wallpaper through HTTPS.
   const isKnownDualMonitorSpan =
     !import.meta.env.DEV &&
-    location.protocol === 'file:' &&
+    (location.protocol === 'file:' ||
+      location.protocol === 'https:') &&
     Math.abs(viewportWidth - 3840) <= 2 &&
     Math.abs(viewportHeight - 1080) <= 2
 
@@ -1653,7 +1656,10 @@ function App() {
       const helperInstructions = ['INSTALL HELPER · scripts/install-brightness-helper.ps1', 'THEN PAIR · SYS BRIGHTNESS PAIR <TOKEN>']
 
       if (action === 'pair' && args.length === 3) {
-        const token = submittedCommand.match(/^(?:sys\s+)?brightness\s+pair\s+(\S+)$/i)?.[1] ?? args[2]
+        const token = submittedCommand.match(
+          /^(?:sys\s+)?(?:monitor|brightness)\s+pair\s+(\S+)$/i
+        )?.[1] ?? args[2]
+
         if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) {
           report(['BRIGHTNESS PAIRING ERROR', 'TOKEN FORMAT INVALID · COPY THE TOKEN FROM THE HELPER INSTALLER'])
           setStatus('BRIGHTNESS PAIRING FAILED')

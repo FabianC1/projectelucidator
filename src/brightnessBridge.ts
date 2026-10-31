@@ -217,7 +217,16 @@ export async function readWallpaperStartupManifest(): Promise<(StartupConfigurat
 }
 
 export async function readPrivateCredentialBootstrap() {
-  const response = await fetch(new URL('./elucidator-private-bootstrap.json', window.location.href), { cache: 'no-store' })
+  const bootstrapUrl = new URL(
+    './elucidator-private-bootstrap.json',
+    window.location.href
+  )
+
+  console.info('[ELUCIDATOR PAIRING] Bootstrap URL:', bootstrapUrl.href)
+
+  const response = await fetch(bootstrapUrl, { cache: 'no-store' })
+
+  console.info('[ELUCIDATOR PAIRING] Bootstrap HTTP status:', response.status)
   if (response.status === 404) return ''
   if (!response.ok) throw new Error(`PRIVATE CREDENTIAL BOOTSTRAP READ FAILED · HTTP ${response.status}`)
   // Lively's local-file host does not consistently assign application/json.
