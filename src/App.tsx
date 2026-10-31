@@ -815,7 +815,13 @@ function App() {
         if (!active) return 'missing'
         const localToken = getBrightnessToken()
         const candidates = [...new Set([bootstrapToken, localToken, tokenBackup].filter((token) => /^[A-Za-z0-9_-]{40,60}$/.test(token)))]
-        if (!candidates.length) { if (active) setBrightnessToken(''); return 'missing' }
+        if (!candidates.length) {
+          if (active) {
+            setBrightnessToken('')
+            scheduleRetry()
+          }
+          return 'missing'
+        }
         const health = await getBrightnessHelperHealth()
         if (!active) return 'missing'
         setBrightnessHelperOnline(health.state === 'online')
@@ -849,9 +855,11 @@ function App() {
           try { await writeBrightnessTokenBackup(null) } catch (error) { setStorageIssue('brightness token backup write', error) }
           setStorageIssue('brightness credential validation', new Error('Stored pairing credentials were rejected by the Windows helper'))
         }
-        return 'rejected'
+        scheduleRetry()
+return 'rejected'
       } catch (error) {
         if (active) setStorageIssue('brightness credential restore', error)
+          scheduleRetry()
         return 'helper-unavailable'
       }
     }
@@ -1452,7 +1460,12 @@ function App() {
     event.preventDefault()
     const submittedCommand = command.trim()
     const normalized = submittedCommand.toLowerCase().replace(/^\/+/, '').replace(/\s+/g, ' ')
-    if (submittedCommand && !/^sys\s+brightness\s+pair\s+/i.test(submittedCommand)) commandHistoryRef.current.push(submittedCommand)
+    if (
+      submittedCommand &&
+      !/^(?:sys\s+)?(?:brightness|monitor)\s+pair\s+\S+/i.test(submittedCommand)
+    ) {
+      commandHistoryRef.current.push(submittedCommand)
+    }
     historyIndexRef.current = commandHistoryRef.current.length
     commandDraftRef.current = ''
     setCommand('')
@@ -1649,7 +1662,10 @@ function App() {
         `RESTORE ERRORS ......... ${issueLines.length ? issueLines.join(' · ') : 'NONE REPORTED'}`,
       ])
       setStatus(`STORAGE DIAGNOSTIC · ${localStorageError || databaseError || issueLines.length ? 'ERROR' : 'READY'}`)
-    } else if (domain === 'brightness') {
+    } else if (
+      domain === 'brightness' ||
+      (domain === 'monitor' && action === 'pair')
+    ) {
       const listMonitors = (monitors: BrightnessMonitor[]) => monitors.length
         ? monitors.map((monitor) => `DISPLAY ${monitor.id} · ${monitor.name.toUpperCase()} · ${monitor.supported && monitor.brightness !== null ? `${monitor.brightness}%` : 'DDC/CI UNAVAILABLE'}`)
         : ['NO DDC/CI MONITORS DETECTED']
