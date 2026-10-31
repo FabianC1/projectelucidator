@@ -1265,6 +1265,78 @@ function App() {
     widgetExitTimersRef.current.clear()
   }, [])
 
+
+  // Enter the animated standby HUD after five minutes
+  // without interaction with the console or widgets.
+  useEffect(() => {
+    if (!ready || booting || standbyActive) return
+
+    const IDLE_TIMEOUT = 15 * 1000
+    let idleTimer: number | undefined
+
+    const enterIdleStandby = () => {
+      finishingBootRef.current = false
+      setRevealComplete(false)
+      setBootStage('standby')
+      setStandbyActive(true)
+      setBooting(true)
+      setStatus('AUTO STANDBY · AWAITING INPUT')
+    }
+
+    const resetIdleTimer = () => {
+      window.clearTimeout(idleTimer)
+      idleTimer = window.setTimeout(
+        enterIdleStandby,
+        IDLE_TIMEOUT
+      )
+    }
+
+    const onInteraction = (event: Event) => {
+      const target = event.target
+
+      if (!(target instanceof Element)) return
+
+      if (
+        target.closest(
+          '.command-console, .system-widget, .compact-panel-handle'
+        )
+      ) {
+        resetIdleTimer()
+      }
+    }
+
+    const events = [
+      'pointerdown',
+      'pointermove',
+      'keydown',
+      'wheel',
+      'input',
+    ] as const
+
+    events.forEach(eventName => {
+      document.addEventListener(
+        eventName,
+        onInteraction,
+        true
+      )
+    })
+
+    resetIdleTimer()
+
+    return () => {
+      window.clearTimeout(idleTimer)
+
+      events.forEach(eventName => {
+        document.removeEventListener(
+          eventName,
+          onInteraction,
+          true
+        )
+      })
+    }
+  }, [ready, booting, standbyActive])
+
+
   useEffect(() => {
     if (!ready) return
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -1792,7 +1864,25 @@ function App() {
         setSequenceViewports(viewports)
         if (args[2] === 'status') {
           const state = !sequenceMirror ? 'DISABLED' : viewports ? 'READY · TWO DISPLAY RECTANGLES' : 'SAFE FALLBACK · DISPLAY GEOMETRY UNAVAILABLE'
-          report(['SEQUENCE MIRROR STATUS', `SETTING ................. ${sequenceMirror ? 'ON' : 'OFF'}`, `DISPLAY GEOMETRY ....... ${viewports ? 'TWO SCREENS RESOLVED' : 'UNAVAILABLE'}`, `MIRROR STATE ............ ${state}`])
+
+          report([
+            'SEQUENCE MIRROR STATUS',
+            `SETTING ................. ${sequenceMirror ? 'ON' : 'OFF'}`,
+            `DISPLAY GEOMETRY ....... ${viewports ? 'TWO SCREENS RESOLVED' : 'UNAVAILABLE'}`,
+            `MIRROR STATE ............ ${state}`,
+            `VIEWPORT WIDTH .......... ${window.innerWidth}`,
+            `VIEWPORT HEIGHT ......... ${window.innerHeight}`,
+            `DEVICE PIXEL RATIO ...... ${window.devicePixelRatio}`,
+            `PAGE PROTOCOL ........... ${window.location.protocol}`,
+            `HELPER TOKEN ............ ${brightnessToken ? 'AVAILABLE' : 'MISSING'}`,
+            `HOST SPAN ............... ${window.elucidatorLivelySpanViewport
+              ? `${window.elucidatorLivelySpanViewport.width} x ${window.elucidatorLivelySpanViewport.height}`
+              : 'NOT PROVIDED'}`,
+            ...(viewports?.map((screen, index) =>
+              `DISPLAY ${index + 1} ............... ${Math.round(screen.width)}x${Math.round(screen.height)} @ ${Math.round(screen.left)},${Math.round(screen.top)}`
+            ) ?? []),
+          ])
+
           setStatus(`SEQUENCE MIRROR · ${state}`)
         } else {
           const nextMirror = args[2] === 'on' ? true : !sequenceMirror
