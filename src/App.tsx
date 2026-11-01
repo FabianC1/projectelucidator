@@ -306,7 +306,7 @@ function SaoWidgetFrame() {
       <span className="sao-widget-surface" aria-hidden="true" />
 
       <svg
-        className="sao-widget-frame"
+        className="sao-widget-frame sao-frame-ornaments"
         viewBox="0 0 1000 400"
         preserveAspectRatio="none"
         aria-hidden="true"
@@ -315,39 +315,32 @@ function SaoWidgetFrame() {
           className="sao-widget-frame-outer sao-frame-outer"
           d="M24 2H955L998 43V354L955 398H43L2 357V25Z"
         />
-
         <path
           className="sao-widget-frame-inner sao-frame-inner"
           d="M33 10H949L989 49V350L951 390H48L11 352V33Z"
         />
-
         <path
-          className="sao-widget-corner-plate sao-widget-corner-plate-top"
+          className="sao-widget-corner-plate sao-widget-corner-plate-top sao-frame-rails"
           d="M947 2H955L998 43V74L967 44Z"
         />
-
         <path
-          className="sao-widget-corner-plate sao-widget-corner-plate-bottom"
+          className="sao-widget-corner-plate sao-widget-corner-plate-bottom sao-frame-rails"
           d="M2 329V357L43 398H76L45 367Z"
         />
-
         <path
-          className="sao-widget-detail-line"
+          className="sao-widget-detail-line sao-frame-rails"
           d="M42 3H185M813 397H951"
         />
-
         <path
-          className="sao-widget-ticks"
+          className="sao-widget-ticks sao-frame-ticks"
           d="M870 378L882 366M893 378L905 366M916 378L928 366"
         />
-
         <path
-          className="sao-widget-circuit"
+          className="sao-widget-circuit sao-frame-orange"
           d="M35 52V95M35 105V120M965 280V315M965 325V340"
         />
-
         <path
-          className="sao-widget-circuit-node"
+          className="sao-widget-circuit-node sao-frame-lower-accent"
           d="M35 95h8M965 315h-8"
         />
       </svg>

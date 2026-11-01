@@ -3557,51 +3557,65 @@
   letter-spacing: .17em;
 }
 
-.sao-console.sao-starting .sao-frame-outer,
-.sao-console.sao-starting .sao-frame-inner,
-.sao-widgets-starting .sao-frame-outer,
-.sao-widgets-starting .sao-frame-inner,
-.widget-entering-sao .sao-frame-outer,
-.widget-entering-sao .sao-frame-inner {
+/* Shared Aincrad entrance — CLI and widgets use the same stages */
+
+:is(
+  .sao-console.sao-starting,
+  .sao-widgets-starting .system-widget,
+  .widget-entering-sao
+) :is(.sao-frame-outer, .sao-frame-inner) {
   stroke-dasharray: 3000;
   stroke-dashoffset: 3000;
   animation: sao-console-frame-on 760ms ease-out both;
 }
 
-.sao-console.sao-starting .sao-frame-outer,
-.sao-widgets-starting .sao-frame-outer,
-.widget-entering-sao .sao-frame-outer {
+:is(
+  .sao-console.sao-starting,
+  .sao-widgets-starting .system-widget,
+  .widget-entering-sao
+) .sao-frame-outer {
   filter: none;
   animation-delay: 100ms;
 }
 
-.sao-console.sao-starting .sao-frame-inner,
-.sao-widgets-starting .sao-frame-inner,
-.widget-entering-sao .sao-frame-inner {
+:is(
+  .sao-console.sao-starting,
+  .sao-widgets-starting .system-widget,
+  .widget-entering-sao
+) .sao-frame-inner {
   animation-delay: 180ms;
 }
 
-.sao-console.sao-starting .sao-frame-rails,
-.sao-console.sao-starting .sao-frame-orange,
-.sao-console.sao-starting .sao-frame-ticks,
-.sao-console.sao-starting .sao-frame-lower-accent {
+:is(
+  .sao-console.sao-starting,
+  .sao-widgets-starting .system-widget,
+  .widget-entering-sao
+) :is(
+  .sao-frame-rails,
+  .sao-frame-orange,
+  .sao-frame-ticks,
+  .sao-frame-lower-accent
+) {
   filter: none;
   opacity: 0;
   animation: sao-console-details-on 360ms ease-out 380ms both;
 }
 
+/* Original CLI emblem reveal */
 .sao-console.sao-starting .sao-console-swords {
   filter: none;
   clip-path: inset(100% 0 0);
   animation: sao-console-swords-on 620ms cubic-bezier(.18, .68, .25, 1) 180ms both;
 }
 
+/* Original CLI title reveal */
 .sao-console.sao-starting .sao-console-title,
 .sao-console.sao-starting .sao-console-floor {
   opacity: 0;
   animation: sao-console-details-on 300ms ease-out 420ms both;
 }
 
+/* Original CLI stepped underline */
 .sao-console.sao-starting .sao-header-underline path {
   stroke-dasharray: 1700;
   stroke-dashoffset: 1700;
@@ -3612,7 +3626,8 @@
   animation-delay: 620ms;
 }
 
-.sao-console.sao-starting .console-output>p {
+/* Original CLI content reveal */
+.sao-console.sao-starting .console-output > p {
   opacity: 0;
   animation: sao-console-details-on 280ms ease-out 560ms both;
 }
@@ -3621,7 +3636,27 @@
   animation: sao-console-details-on 300ms ease-out 720ms both;
 }
 
-/* Each command console gets a short, theme-specific entrance on theme changes. */
+/* Widget headers and content follow those same reveal stages */
+.wallpaper-experience.theme-sao
+:is(.sao-widgets-starting .system-widget, .widget-entering-sao)
+> header {
+  opacity: 0;
+  animation: sao-console-details-on 300ms ease-out 420ms both;
+}
+
+.wallpaper-experience.theme-sao
+:is(.sao-widgets-starting .system-widget, .widget-entering-sao)
+> :not(
+  .sao-widget-surface,
+  .sao-widget-frame,
+  .sao-widget-scanline,
+  .sao-widget-status-light,
+  .theme-widget-frame,
+  header
+) {
+  opacity: 0;
+  animation: sao-console-details-on 280ms ease-out 560ms both;
+}/* Each command console gets a short, theme-specific entrance on theme changes. */
 .console-entering .console-output>p {
   opacity: 0;
 }
@@ -9897,51 +9932,6 @@
   position: absolute;
   inset: auto
 }
-
-/* Reuse the Aincrad console trace/reveal for a quiet widget array entrance. */
-.wallpaper-experience.theme-sao .sao-widgets-starting .system-widget {
-  opacity: 0;
-  animation: sao-widget-console-in 760ms ease-out both
-}
-
-.wallpaper-experience.theme-sao .sao-widgets-starting .widget-1 {
-  animation-delay: 80ms
-}
-
-.wallpaper-experience.theme-sao .sao-widgets-starting .widget-2 {
-  animation-delay: 150ms
-}
-
-.wallpaper-experience.theme-sao .sao-widgets-starting .widget-3 {
-  animation-delay: 220ms
-}
-
-.wallpaper-experience.theme-sao .sao-widgets-starting .widget-4 {
-  animation-delay: 290ms
-}
-
-.wallpaper-experience.theme-sao .sao-widgets-starting .widget-5 {
-  animation-delay: 360ms
-}
-
-
-.wallpaper-experience.theme-sao .sao-widgets-starting .sao-widget-frame-inner {
-  animation-delay: 90ms
-}
-
-.wallpaper-experience.theme-sao .sao-widgets-starting .sao-widget-corner-plate,
-.wallpaper-experience.theme-sao .sao-widgets-starting .sao-widget-detail-line,
-.wallpaper-experience.theme-sao .sao-widgets-starting .sao-widget-ticks {
-  opacity: 0;
-  animation: sao-console-details-on 300ms ease-out 390ms both
-}
-
-.wallpaper-experience.theme-sao .sao-widgets-starting header,
-.wallpaper-experience.theme-sao .sao-widgets-starting .system-widget>:not(.sao-widget-surface, .sao-widget-frame, header) {
-  opacity: 0;
-  animation: sao-console-details-on 300ms ease-out 300ms both
-}
-
 /* Restore the compact crossed-swords identity requested for System Control. */
 .wallpaper-experience.theme-sao .sao-control-identity {
   justify-content: flex-start;
@@ -13662,22 +13652,7 @@
 
 
 
-.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-frame-inner {
-  animation-delay: 90ms
-}
 
-.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-corner-plate,
-.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-detail-line,
-.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-ticks {
-  opacity: 0;
-  animation: sao-console-details-on 300ms ease-out 390ms both
-}
-
-.system-widgets:not(.sao-widgets-starting) .widget-entering-sao>header,
-.system-widgets:not(.sao-widgets-starting) .widget-entering-sao>:not(.theme-widget-frame):not(.sao-widget-frame):not(.sao-widget-surface):not(header) {
-  opacity: 0;
-  animation: sao-console-details-on 300ms ease-out 300ms both
-}
 
 /* Arise: Shadow Monarch signature rise, followed by its console line resolve. */
 .widget-entering-arise>header {
