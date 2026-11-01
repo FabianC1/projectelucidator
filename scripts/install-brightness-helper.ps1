@@ -21,19 +21,54 @@ if (-not (Test-Path -LiteralPath $tokenPath)) {
   [IO.File]::WriteAllText($tokenPath, $token, [Text.Encoding]::ASCII)
 }
 
-$startupDirectory = [Environment]::GetFolderPath('Startup')
-$shortcutPath = Join-Path $startupDirectory 'Elucidator Windows Bridge.lnk'
-$legacyShortcutPath = Join-Path $startupDirectory 'Elucidator Brightness Helper.lnk'
-if (Test-Path -LiteralPath $legacyShortcutPath) { Remove-Item -LiteralPath $legacyShortcutPath -Force }
+$taskName = 'Elucidator Windows Bridge'
 $powerShellPath = Join-Path $PSHOME 'powershell.exe'
-$shell = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = $powerShellPath
-$shortcut.Arguments = "-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$installedWatchdog`" -HelperPath `"$installedHelper`" -TokenPath `"$tokenPath`""
-$shortcut.WorkingDirectory = $installDirectory
-$shortcut.WindowStyle = 7
-$shortcut.Description = 'Project Elucidator Windows integration watchdog'
-$shortcut.Save()
+
+$taskArguments = "-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$installedWatchdog`" -HelperPath `"$installedHelper`" -TokenPath `"$tokenPath`""
+
+$action = New-ScheduledTaskAction `
+  -Execute $powerShellPath `
+  -Argument $taskArguments `
+  -WorkingDirectory $installDirectory
+
+$currentUser = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User $currentUser
+
+$settings = New-ScheduledTaskSettingsSet `
+  -ExecutionTimeLimit (New-TimeSpan -Seconds 0) `
+  -RestartCount 3 `
+  -RestartInterval (New-TimeSpan -Minutes 1) `
+  -MultipleInstances IgnoreNew
+
+$principal = New-ScheduledTaskPrincipal `
+  -UserId $currentUser `
+  -LogonType Interactive `
+  -RunLevel Limited
+
+Register-ScheduledTask `
+  -TaskName $taskName `
+  -Action $action `
+  -Trigger $trigger `
+  -Settings $settings `
+  -Principal $principal `
+  -Description 'Starts the Project Elucidator Windows Bridge watchdog at sign-in.' `
+  -Force | Out-Null
+
+# Remove obsolete Startup shortcuts after successful registration.
+$startupDirectory = [Environment]::GetFolderPath('Startup')
+
+foreach ($shortcutName in @(
+  'Elucidator Windows Bridge.lnk',
+  'Elucidator Windows Bridge.lnk.disabled',
+  'Elucidator Brightness Helper.lnk'
+)) {
+  $shortcutPath = Join-Path $startupDirectory $shortcutName
+
+  if (Test-Path -LiteralPath $shortcutPath) {
+    Remove-Item -LiteralPath $shortcutPath -Force
+  }
+}
 
 $runningProcesses = Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue |
   Where-Object { $_.CommandLine -and ($_.CommandLine.Contains($installedHelper) -or $_.CommandLine.Contains($installedWatchdog)) }
@@ -57,7 +92,7 @@ for ($attempt = 0; $attempt -lt 12; $attempt++) {
 
 Write-Host ''
 Write-Host 'ELUCIDATOR WINDOWS BRIDGE INSTALLED' -ForegroundColor Cyan
-Write-Host "Startup watchdog: $shortcutPath"
+Write-Host "Startup watchdog: Scheduled Task ($taskName)"
 if ($helperReady) { Write-Host 'DDC/CI bridge: ONLINE · WATCHDOG ACTIVE' -ForegroundColor Green }
 else { Write-Warning 'DDC/CI bridge did not start. The watchdog will retry; check PowerShell or Windows security logs if it stays offline.' }
 Write-Host 'The pairing credential is stored locally; it is never printed by this installer.'

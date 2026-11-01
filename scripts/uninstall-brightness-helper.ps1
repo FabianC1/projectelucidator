@@ -1,4 +1,12 @@
 $ErrorActionPreference = 'Stop'
+
+$taskName = 'Elucidator Windows Bridge'
+
+Unregister-ScheduledTask `
+  -TaskName $taskName `
+  -Confirm:$false `
+  -ErrorAction SilentlyContinue
+
 $startupDirectory = [Environment]::GetFolderPath('Startup')
 foreach ($shortcutName in @('Elucidator Windows Bridge.lnk', 'Elucidator Brightness Helper.lnk')) {
   $startupShortcut = Join-Path $startupDirectory $shortcutName
