@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSPro
 import { siGooglechrome, siNetflix, siRoblox, type SimpleIcon } from 'simple-icons'
 import { BootSequence } from './BootSequence'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
-import { changeBrightness, checkBrightnessHelperHealth, getBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readDisplayGeometry, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, validateBrightnessToken, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
+import { launchWindowsApp, type LaunchAppId, changeBrightness, checkBrightnessHelperHealth, getBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readDisplayGeometry, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, validateBrightnessToken, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
 import './App.css'
 
@@ -541,6 +541,16 @@ async function detectSequenceViewports(token: string): Promise<SequenceViewport[
 
 
 const COMMAND_COMPLETIONS = [
+  'sys launch',
+  'sys launch list',
+  'sys launch status',
+  'sys launch warframe',
+  'sys launch vscode',
+  'sys launch chrome',
+  'sys launch roblox',
+  'sys launch netflix',
+  'sys launch alecaframe',
+
   'admin sys config save',
   'sys status', 'sys wallpaper', 'sys wallpaper current', 'sys wallpaper select', 'sys wallpaper list',
   'sys storage status',
@@ -1391,10 +1401,75 @@ return 'rejected'
   }
 
   const report = (lines: string[]) => setConsoleLines(lines)
-  const onLaunchShortcut = (shortcut: QuickShortcut) => {
-    report(['QUICK LAUNCH', `${shortcut.label.toUpperCase()} ............ PLACEHOLDER`, 'LAUNCH INTEGRATION COMING SOON'])
-    setStatus(`QUICK LAUNCH · ${shortcut.label.toUpperCase()} · COMING SOON`)
+
+  const launchBusyRef = useRef(false)
+
+  const launchShortcut = async (app: string, label: string) => {
+    const allowed: LaunchAppId[] = [
+      'warframe',
+      'vscode',
+      'chrome',
+      'roblox',
+      'netflix',
+      'alecaframe',
+    ]
+
+    if (!allowed.includes(app as LaunchAppId)) {
+      report([
+        'QUICK LAUNCH ERROR',
+        `UNKNOWN APP · ${app.toUpperCase()}`,
+      ])
+      return
+    }
+
+    if (launchBusyRef.current) return
+    launchBusyRef.current = true
+
+    try {
+      report([
+        'QUICK LAUNCH',
+        `REQUESTING ........ ${label.toUpperCase()}`,
+      ])
+
+      const token = brightnessToken || getBrightnessToken()
+
+      if (!token) {
+        throw new Error('WINDOWS HELPER NOT PAIRED')
+      }
+
+      const result = await launchWindowsApp(
+        token,
+        app as LaunchAppId
+      )
+
+      report([
+        'QUICK LAUNCH',
+        result.message,
+      ])
+
+      setStatus(`QUICK LAUNCH · ${label.toUpperCase()}`)
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'UNKNOWN LAUNCH ERROR'
+
+      report([
+        'QUICK LAUNCH FAILED',
+        message,
+      ])
+
+      setStatus(
+        `QUICK LAUNCH · ${label.toUpperCase()} · FAILED`
+      )
+    } finally {
+      launchBusyRef.current = false
+    }
   }
+
+  const onLaunchShortcut = (shortcut: QuickShortcut) => {
+    void launchShortcut(shortcut.id, shortcut.label)
+  }
+
   const activateVisualEffect = (selected: VisualTheme) => {
     setVisualTheme(selected)
     report(selected === 'off' ? ['VISUAL EFFECTS', 'ALL ATMOSPHERIC LAYERS .... OFF'] : ['VISUAL EFFECT UPDATED', `ACTIVE ................. ${selected.toUpperCase()}`, 'WALLPAPER AND SYSTEM THEME .. UNCHANGED'])
@@ -1918,8 +1993,49 @@ return 'rejected'
           setStatus(`SEQUENCE MIRROR · ${state}`)
         }
       }
+      
+    } else if (domain === 'launch') {
+      const appIds: LaunchAppId[] = [
+        'warframe',
+        'vscode',
+        'chrome',
+        'roblox',
+        'netflix',
+        'alecaframe',
+      ]
+
+      if (!action || action === 'list') {
+        report([
+          'QUICK LAUNCH · AVAILABLE APPLICATIONS',
+          ...appIds.map(id => `SYS LAUNCH ${id.toUpperCase()}`),
+        ])
+      } else if (action === 'status') {
+        const health = await getBrightnessHelperHealth()
+
+        report([
+          'QUICK LAUNCH STATUS',
+          `WINDOWS HELPER ........ ${health.state.toUpperCase()}`,
+          `APP LAUNCH ............ ${
+            health.capabilities?.includes('app-launch')
+              ? 'SUPPORTED'
+              : 'UNAVAILABLE'
+          }`,
+        ])
+      } else if (
+        args.length === 2 &&
+        appIds.includes(action as LaunchAppId)
+      ) {
+        await launchShortcut(action, action)
+      } else {
+        report([
+          'QUICK LAUNCH ERROR',
+          'USAGE · SYS LAUNCH <APP>',
+          'RUN SYS LAUNCH LIST',
+        ])
+      }
+
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS TEST · REPLAY THE SYSTEM BOOT SEQUENCE', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS SEQUENCE MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS TEST · REPLAY THE SYSTEM BOOT SEQUENCE', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS LAUNCH [LIST|STATUS|WARFRAME|VSCODE|CHROME|ROBLOX|NETFLIX|ALECAFRAME]', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS SEQUENCE MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       activateTheme('dragon', 'night-fury-stealth')
@@ -2932,8 +3048,8 @@ return 'rejected'
           <article data-widget-id="3" className={`system-widget widget-3${leavingWidgetIds.includes(3) ? ' widget-leaving' : ''}${consoleEntry?.theme === theme || openingWidgetIds.includes(3) ? ` widget-entering widget-entering-${theme}` : ''}`} aria-hidden={leavingWidgetIds.includes(3)} style={positionWidget(3)}>
             {theme === 'sao' && <SaoWidgetFrame />}
             <ThemeWidgetFrame theme={theme} />
-            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={3} title="QUICK LAUNCH" /> : theme === 'grimoire' ? <span className="grimoire-widget-title"><b>03</b><strong>QUICK LAUNCH</strong></span> : theme === 'demon-mode' ? <span className="demon-widget-title"><b>03</b><strong>QUICK LAUNCH</strong></span> : <span>03 / QUICK LAUNCH</span>}<i>PLACEHOLDER</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close quick launch widget">×</button></header>
-            <div className="quick-launch-grid">{quickShortcuts.map((shortcut) => <button key={shortcut.id} className={`quick-launch-tile shortcut-${shortcut.id}`} onClick={() => onLaunchShortcut(shortcut)} title={`${shortcut.label} · launch integration coming soon`}><span className="quick-launch-icon" aria-hidden="true">{typeof shortcut.icon === 'string' ? shortcut.icon : <svg viewBox="0 0 24 24" focusable="false"><path d={shortcut.icon.path} /></svg>}</span><b>{shortcut.label}</b></button>)}</div>
+            <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={3} title="QUICK LAUNCH" /> : theme === 'grimoire' ? <span className="grimoire-widget-title"><b>03</b><strong>QUICK LAUNCH</strong></span> : theme === 'demon-mode' ? <span className="demon-widget-title"><b>03</b><strong>QUICK LAUNCH</strong></span> : <span>03 / QUICK LAUNCH</span>}<i>READY</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close quick launch widget">×</button></header>
+            <div className="quick-launch-grid">{quickShortcuts.map((shortcut) => <button key={shortcut.id} className={`quick-launch-tile shortcut-${shortcut.id}`} onClick={() => onLaunchShortcut(shortcut)} title={`Launch ${shortcut.label}`}><span className="quick-launch-icon" aria-hidden="true">{typeof shortcut.icon === 'string' ? shortcut.icon : <svg viewBox="0 0 24 24" focusable="false"><path d={shortcut.icon.path} /></svg>}</span><b>{shortcut.label}</b></button>)}</div>
           </article>
         )}
         {renderedWidgets.includes(4) && (

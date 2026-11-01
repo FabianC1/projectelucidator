@@ -188,6 +188,28 @@ export async function lockWindowsSession(token: string) {
   })
 }
 
+export type LaunchAppId =
+  | 'warframe'
+  | 'vscode'
+  | 'chrome'
+  | 'roblox'
+  | 'netflix'
+  | 'alecaframe'
+
+export async function launchWindowsApp(
+  token: string,
+  app: LaunchAppId
+) {
+  return request<{
+    ok: boolean
+    app: LaunchAppId
+    message: string
+  }>('/api/launch', token, {
+    method: 'POST',
+    body: JSON.stringify({ app }),
+  })
+}
+
 export async function readDurableStartupConfiguration() {
   let response: Response
   try { response = await fetch(`${HELPER_URL}/api/startup-config`, { cache: 'no-store' }) }

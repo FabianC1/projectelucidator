@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 $script:SkipLivelyReload = [bool]$SkipLivelyReload
 $script:LivelyRoot = $LivelyRoot
 $script:HelperVersion = '2.2.0'
-$script:HelperCapabilities = @('brightness','lock','startup-config','credential-bootstrap','installation-update','display-geometry')
+$script:HelperCapabilities = @('brightness','lock','startup-config','credential-bootstrap','installation-update','display-geometry','app-launch')
 
 $nativeSource = @'
 using System;
@@ -686,6 +686,73 @@ function Update-ActiveElucidatorPackage {
   }
 }
 
+
+function Invoke-ElucidatorLaunch {
+  param([string]$AppId)
+
+  $allowed = @(
+    'warframe', 'vscode', 'chrome',
+    'roblox', 'netflix', 'alecaframe'
+  )
+
+  if ($AppId -cnotin $allowed) {
+    throw 'UNKNOWN APPLICATION ID'
+  }
+
+  $configPath = Join-Path $env:LOCALAPPDATA 'ProjectElucidator\launch-apps.json'
+
+  if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
+    throw "LAUNCH CONFIGURATION MISSING: $configPath"
+  }
+
+  $config = Get-Content -LiteralPath $configPath -Raw |
+    ConvertFrom-Json
+
+  $entry = $config.PSObject.Properties[$AppId]
+  if ($null -eq $entry) {
+    throw "APPLICATION NOT CONFIGURED: $AppId"
+  }
+
+  $target = [string]$entry.Value.target
+  if ([string]::IsNullOrWhiteSpace($target)) {
+    throw "EMPTY APPLICATION TARGET: $AppId"
+  }
+
+  $uri = $null
+  $isUri = [Uri]::TryCreate(
+    $target,
+    [UriKind]::Absolute,
+    [ref]$uri
+  ) -and $uri.Scheme -in @('https', 'steam', 'roblox-player')
+
+  if ($isUri) {
+    # URLs are configured locally, not supplied by the browser.
+    Start-Process -FilePath $target -ErrorAction Stop
+  } else {
+    if (-not [IO.Path]::IsPathRooted($target)) {
+      throw 'EXECUTABLE TARGET MUST BE AN ABSOLUTE PATH'
+    }
+
+    $extension = [IO.Path]::GetExtension($target)
+    if ($extension -ine '.exe') {
+      throw 'ONLY EXECUTABLE FILES ARE SUPPORTED'
+    }
+
+    if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
+      throw "APPLICATION FILE NOT FOUND: $target"
+    }
+
+    Start-Process -FilePath $target -ErrorAction Stop
+  }
+
+  return @{
+    ok = $true
+    app = $AppId
+    message = "LAUNCH REQUEST ACCEPTED: $($AppId.ToUpperInvariant())"
+  }
+}
+
+
 function Handle-Client {
   param($Client)
   $origin = $null
@@ -734,6 +801,35 @@ function Handle-Client {
       Write-HttpResponse $stream 401 '{"message":"NOT PAIRED · USE SYS BRIGHTNESS PAIR <TOKEN>"}' $origin
       return
     }
+
+    
+    if ($request.Method -eq 'POST' -and $request.Path -eq '/api/launch') {
+      try {
+        $data = [Text.Encoding]::UTF8.GetString(
+          $request.Body
+        ) | ConvertFrom-Json
+
+        if ($data.app -isnot [string]) {
+          throw 'APPLICATION ID MUST BE A STRING'
+        }
+
+        $result = Invoke-ElucidatorLaunch -AppId $data.app
+
+        Write-HttpResponse $stream 200 (
+          ConvertTo-Json -InputObject $result -Compress
+        ) $origin
+      } catch {
+        $payload = ConvertTo-Json -InputObject @{
+          ok = $false
+          message = $_.Exception.Message
+        } -Compress
+
+        Write-HttpResponse $stream 400 $payload $origin
+      }
+      return
+    }
+
+    
     if ($request.Method -eq 'POST' -and $request.Path -eq '/api/installation-update') {
       $update = Update-ActiveElucidatorPackage $request.Body
       Write-HttpResponse $stream 200 (ConvertTo-Json -InputObject $update -Compress) $origin
