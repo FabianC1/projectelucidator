@@ -938,6 +938,39 @@ function Get-ElucidatorAppIcon {
   $kind = [string]$Entry.kind
   $target = [string]$Entry.target
 
+    if ($kind -eq 'steam' -and $target -eq 'steam://rungameid/230410') {
+    $steamRoots = @(
+      (Join-Path ${env:ProgramFiles(x86)} 'Steam'),
+      (Join-Path $env:ProgramFiles 'Steam')
+    )
+
+    foreach ($steamRoot in $steamRoots) {
+      $warframeFolder = Join-Path $steamRoot 'steamapps\common\Warframe'
+
+      if (-not (Test-Path -LiteralPath $warframeFolder)) {
+        continue
+      }
+
+      $executables = @(
+        (Join-Path $warframeFolder 'Warframe.x64.exe'),
+        (Join-Path $warframeFolder 'Tools\Launcher.exe'),
+        (Join-Path $warframeFolder 'Warframe.exe')
+      )
+
+      foreach ($exe in $executables) {
+        if (Test-Path -LiteralPath $exe -PathType Leaf) {
+          $file = Get-Item -LiteralPath $exe
+
+          return @{
+            kind = 'exe'
+            path = $file.FullName
+            fingerprint = "$($file.Length):$($file.LastWriteTimeUtc.Ticks)"
+          }
+        }
+      }
+    }
+  }
+
   if ($kind -eq 'exe') {
     if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
       return $null
