@@ -913,6 +913,24 @@ function Get-ElucidatorAppEntry {
 function Get-ElucidatorAppIcon {
   param($Entry)
 
+    if ($Entry -and
+      [string]$Entry.target -match '^overwolf\.([a-z0-9]+)$') {
+
+    $overwolfId = $Matches[1]
+    $iconPath = Join-Path $env:LOCALAPPDATA `
+      "Overwolf\AppShortcutIcons\$overwolfId.ico"
+
+    if (Test-Path -LiteralPath $iconPath -PathType Leaf) {
+      $file = Get-Item -LiteralPath $iconPath
+
+      return @{
+        kind = 'ico'
+        path = $file.FullName
+        fingerprint = "$($file.Length):$($file.LastWriteTimeUtc.Ticks)"
+      }
+    }
+  }
+
   if (-not $Entry -or -not $Entry.installed) {
     return $null
   }
@@ -1026,6 +1044,11 @@ function Convert-ElucidatorIconToDataUri {
   if (-not $IconInfo) { return $null }
 
   try {
+        if ($IconInfo.kind -eq 'ico') {
+      $bytes = [System.IO.File]::ReadAllBytes($IconInfo.path)
+
+      return "data:image/x-icon;base64,$([Convert]::ToBase64String($bytes))"
+    }
     if ($IconInfo.kind -eq 'store') {
       $extension = [IO.Path]::GetExtension($IconInfo.path).ToLowerInvariant()
       $mime = switch ($extension) {
