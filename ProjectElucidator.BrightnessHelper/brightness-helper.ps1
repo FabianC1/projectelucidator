@@ -687,62 +687,269 @@ function Update-ActiveElucidatorPackage {
 }
 
 
+
+function Get-ElucidatorAppCatalog {
+  param([switch]$Refresh)
+
+  $directory = Join-Path $env:LOCALAPPDATA 'ProjectElucidator'
+  $cachePath = Join-Path $directory 'launch-discovery.json'
+  New-Item -ItemType Directory -Path $directory -Force | Out-Null
+
+  if (-not $Refresh -and (Test-Path $cachePath)) {
+    try {
+      $cached = Get-Content $cachePath -Raw | ConvertFrom-Json
+      if ($cached.version -eq 1) {
+        return $cached.apps
+      }
+    } catch {}
+  }
+
+  $apps = [ordered]@{}
+  $ids = @('warframe','vscode','chrome','roblox','netflix','alecaframe')
+
+  foreach ($id in $ids) {
+    $apps[$id] = @{
+      id = $id
+      installed = $false
+      kind = 'missing'
+      target = ''
+      source = ''
+    }
+  }
+
+  # Read Windows Start Menu application identities.
+  $startApps = @(Get-StartApps -ErrorAction SilentlyContinue)
+
+  # Read registered executable locations.
+  $registryRoots = @(
+    'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths',
+    'HKLM:\Software\Microsoft\Windows\CurrentVersion\App Paths',
+    'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths'
+  )
+
+  function Set-FoundApp {
+    param(
+      [string]$Id,
+      [string]$Kind,
+      [string]$Target,
+      [string]$Source
+    )
+
+    if (-not $apps[$Id].installed) {
+      $apps[$Id] = @{
+        id = $Id
+        installed = $true
+        kind = $Kind
+        target = $Target
+        source = $Source
+      }
+    }
+  }
+
+  function Find-Executable {
+    param(
+      [string]$Id,
+      [string[]]$Names,
+      [string[]]$Folders
+    )
+
+    foreach ($folder in $Folders) {
+      if (-not $folder -or -not (Test-Path $folder)) { continue }
+
+      foreach ($name in $Names) {
+        $path = Join-Path $folder $name
+        if (Test-Path -LiteralPath $path -PathType Leaf) {
+          Set-FoundApp $Id 'exe' $path 'installation-folder'
+          return
+        }
+      }
+    }
+
+    foreach ($root in $registryRoots) {
+      foreach ($name in $Names) {
+        $key = Join-Path $root $name
+        if (-not (Test-Path $key)) { continue }
+
+        try {
+          $path = (Get-Item $key).GetValue('')
+          if ($path -and (Test-Path -LiteralPath $path -PathType Leaf)) {
+            Set-FoundApp $Id 'exe' $path 'registry'
+            return
+          }
+        } catch {}
+      }
+    }
+  }
+
+  # Netflix: prefer its installed Windows app identity.
+  $netflix = $startApps |
+    Where-Object { $_.Name -match '^Netflix$' } |
+    Select-Object -First 1
+
+  if ($netflix -and $netflix.AppID) {
+    Set-FoundApp 'netflix' 'store' $netflix.AppID 'start-menu'
+  }
+
+  # Roblox: prefer the installed player, not the website.
+  $robloxRoot = Join-Path $env:LOCALAPPDATA 'Roblox\Versions'
+  if (Test-Path $robloxRoot) {
+    $player = Get-ChildItem $robloxRoot -Filter 'RobloxPlayerBeta.exe' `
+      -File -Recurse -ErrorAction SilentlyContinue |
+      Sort-Object LastWriteTime -Descending |
+      Select-Object -First 1
+
+    if ($player) {
+      Set-FoundApp 'roblox' 'exe' $player.FullName 'roblox-installation'
+    }
+  }
+
+  if (-not $apps.roblox.installed) {
+    $robloxApp = $startApps |
+      Where-Object { $_.Name -match '^Roblox' } |
+      Select-Object -First 1
+
+    if ($robloxApp -and $robloxApp.AppID) {
+      Set-FoundApp 'roblox' 'store' $robloxApp.AppID 'start-menu'
+    }
+  }
+
+  # VS Code.
+  Find-Executable 'vscode' @('Code.exe') @(
+    (Join-Path $env:LOCALAPPDATA 'Programs\Microsoft VS Code'),
+    (Join-Path $env:ProgramFiles 'Microsoft VS Code')
+  )
+
+  # Chrome.
+  Find-Executable 'chrome' @('chrome.exe') @(
+    (Join-Path $env:ProgramFiles 'Google\Chrome\Application'),
+    (Join-Path ${env:ProgramFiles(x86)} 'Google\Chrome\Application')
+  )
+
+  # AlecaFrame: search likely installation directories.
+  $alecaFolders = @(
+    (Join-Path $env:LOCALAPPDATA 'Programs\AlecaFrame'),
+    (Join-Path $env:LOCALAPPDATA 'AlecaFrame'),
+    (Join-Path $env:ProgramFiles 'AlecaFrame'),
+    (Join-Path ${env:ProgramFiles(x86)} 'AlecaFrame')
+  )
+
+  Find-Executable 'alecaframe' @('AlecaFrame.exe') $alecaFolders
+
+  if (-not $apps.alecaframe.installed) {
+    $alecaApp = $startApps |
+      Where-Object { $_.Name -match 'AlecaFrame' } |
+      Select-Object -First 1
+
+    if ($alecaApp -and $alecaApp.AppID) {
+      Set-FoundApp 'alecaframe' 'store' $alecaApp.AppID 'start-menu'
+    }
+  }
+
+  # Warframe: launch through Steam.
+  $steamLocations = @(
+    (Join-Path ${env:ProgramFiles(x86)} 'Steam\steam.exe'),
+    (Join-Path $env:ProgramFiles 'Steam\steam.exe')
+  )
+
+  foreach ($steam in $steamLocations) {
+    if (Test-Path $steam) {
+      Set-FoundApp 'warframe' 'steam' 'steam://rungameid/230410' 'steam'
+      break
+    }
+  }
+
+  # Preserve configured executable overrides, but ignore web URLs
+  # for Roblox and Netflix so they cannot open browser tabs.
+  $manualPath = Join-Path $directory 'launch-apps.json'
+
+  if (Test-Path $manualPath) {
+    try {
+      $manual = Get-Content $manualPath -Raw | ConvertFrom-Json
+
+      foreach ($id in $ids) {
+        $property = $manual.PSObject.Properties[$id]
+        if (-not $property) { continue }
+
+        $target = [string]$property.Value.target
+
+        if ($target -match '^[a-zA-Z]:\\' -and
+            $target.EndsWith('.exe') -and
+            (Test-Path -LiteralPath $target -PathType Leaf)) {
+          $apps[$id] = @{
+            id = $id
+            installed = $true
+            kind = 'exe'
+            target = $target
+            source = 'manual-override'
+          }
+        }
+      }
+    } catch {}
+  }
+
+  $result = [PSCustomObject]@{
+    version = 1
+    apps = $apps
+  }
+
+  $result | ConvertTo-Json -Depth 8 |
+    Set-Content -LiteralPath $cachePath -Encoding UTF8
+
+  return $apps
+}
+
 function Invoke-ElucidatorLaunch {
   param([string]$AppId)
 
   $allowed = @(
-    'warframe', 'vscode', 'chrome',
-    'roblox', 'netflix', 'alecaframe'
+    'warframe','vscode','chrome',
+    'roblox','netflix','alecaframe'
   )
 
   if ($AppId -cnotin $allowed) {
     throw 'UNKNOWN APPLICATION ID'
   }
 
-  $configPath = Join-Path $env:LOCALAPPDATA 'ProjectElucidator\launch-apps.json'
+  $catalog = Get-ElucidatorAppCatalog
+  $entry = $catalog[$AppId]
 
-  if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
-    throw "LAUNCH CONFIGURATION MISSING: $configPath"
+  if (-not $entry.installed) {
+    # Try discovery again if an app was installed after caching.
+    $catalog = Get-ElucidatorAppCatalog -Refresh
+    $entry = $catalog[$AppId]
   }
 
-  $config = Get-Content -LiteralPath $configPath -Raw |
-    ConvertFrom-Json
-
-  $entry = $config.PSObject.Properties[$AppId]
-  if ($null -eq $entry) {
-    throw "APPLICATION NOT CONFIGURED: $AppId"
+  if (-not $entry.installed) {
+    throw "APPLICATION NOT FOUND: $AppId. RUN SYS LAUNCH REFRESH"
   }
 
-  $target = [string]$entry.Value.target
-  if ([string]::IsNullOrWhiteSpace($target)) {
-    throw "EMPTY APPLICATION TARGET: $AppId"
-  }
+  switch ($entry.kind) {
+    'exe' {
+      if (-not (Test-Path -LiteralPath $entry.target -PathType Leaf)) {
+        throw "EXECUTABLE MISSING: $($entry.target)"
+      }
 
-  $uri = $null
-  $isUri = [Uri]::TryCreate(
-    $target,
-    [UriKind]::Absolute,
-    [ref]$uri
-  ) -and $uri.Scheme -in @('https', 'steam', 'roblox-player')
-
-  if ($isUri) {
-    # URLs are configured locally, not supplied by the browser.
-    Start-Process -FilePath $target -ErrorAction Stop
-  } else {
-    if (-not [IO.Path]::IsPathRooted($target)) {
-      throw 'EXECUTABLE TARGET MUST BE AN ABSOLUTE PATH'
+      Start-Process -FilePath $entry.target -ErrorAction Stop
     }
 
-    $extension = [IO.Path]::GetExtension($target)
-    if ($extension -ine '.exe') {
-      throw 'ONLY EXECUTABLE FILES ARE SUPPORTED'
+    'store' {
+      # Activate the installed Windows app by its registered identity.
+      if ($entry.target -notmatch '^[A-Za-z0-9_.!+-]+$') {
+        throw 'INVALID WINDOWS APPLICATION IDENTITY'
+      }
+
+      Start-Process -FilePath 'explorer.exe' `
+        -ArgumentList "shell:AppsFolder\$($entry.target)" `
+        -ErrorAction Stop
     }
 
-    if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
-      throw "APPLICATION FILE NOT FOUND: $target"
+    'steam' {
+      Start-Process -FilePath $entry.target -ErrorAction Stop
     }
 
-    Start-Process -FilePath $target -ErrorAction Stop
+    default {
+      throw "UNSUPPORTED LAUNCH TYPE: $($entry.kind)"
+    }
   }
 
   return @{
@@ -802,6 +1009,48 @@ function Handle-Client {
       return
     }
 
+        if ($request.Method -eq 'POST' -and $request.Path -eq '/api/launch/refresh') {
+      try {
+        $catalog = Get-ElucidatorAppCatalog -Refresh
+
+        $payload = ConvertTo-Json -InputObject @{
+          ok = $true
+          apps = $catalog
+          message = 'APPLICATION DISCOVERY COMPLETE'
+        } -Depth 8 -Compress
+
+        Write-HttpResponse $stream 200 $payload $origin
+      } catch {
+        $payload = ConvertTo-Json -InputObject @{
+          ok = $false
+          message = $_.Exception.Message
+        } -Compress
+
+        Write-HttpResponse $stream 500 $payload $origin
+      }
+      return
+    }
+
+    if ($request.Method -eq 'GET' -and $request.Path -eq '/api/launch/apps') {
+      try {
+        $catalog = Get-ElucidatorAppCatalog
+
+        $payload = ConvertTo-Json -InputObject @{
+          ok = $true
+          apps = $catalog
+        } -Depth 8 -Compress
+
+        Write-HttpResponse $stream 200 $payload $origin
+      } catch {
+        $payload = ConvertTo-Json -InputObject @{
+          ok = $false
+          message = $_.Exception.Message
+        } -Compress
+
+        Write-HttpResponse $stream 500 $payload $origin
+      }
+      return
+    }
     
     if ($request.Method -eq 'POST' -and $request.Path -eq '/api/launch') {
       try {
