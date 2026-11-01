@@ -3558,18 +3558,26 @@
 }
 
 .sao-console.sao-starting .sao-frame-outer,
-.sao-console.sao-starting .sao-frame-inner {
+.sao-console.sao-starting .sao-frame-inner,
+.sao-widgets-starting .sao-frame-outer,
+.sao-widgets-starting .sao-frame-inner,
+.widget-entering-sao .sao-frame-outer,
+.widget-entering-sao .sao-frame-inner {
   stroke-dasharray: 3000;
   stroke-dashoffset: 3000;
   animation: sao-console-frame-on 760ms ease-out both;
 }
 
-.sao-console.sao-starting .sao-frame-outer {
+.sao-console.sao-starting .sao-frame-outer,
+.sao-widgets-starting .sao-frame-outer,
+.widget-entering-sao .sao-frame-outer {
   filter: none;
   animation-delay: 100ms;
 }
 
-.sao-console.sao-starting .sao-frame-inner {
+.sao-console.sao-starting .sao-frame-inner,
+.sao-widgets-starting .sao-frame-inner,
+.widget-entering-sao .sao-frame-inner {
   animation-delay: 180ms;
 }
 
@@ -9916,12 +9924,6 @@
   animation-delay: 360ms
 }
 
-.wallpaper-experience.theme-sao .sao-widgets-starting .sao-widget-frame-outer,
-.wallpaper-experience.theme-sao .sao-widgets-starting .sao-widget-frame-inner {
-  stroke-dasharray: 3000;
-  stroke-dashoffset: 3000;
-  animation: sao-console-frame-on 760ms ease-out both
-}
 
 .wallpaper-experience.theme-sao .sao-widgets-starting .sao-widget-frame-inner {
   animation-delay: 90ms
@@ -13658,13 +13660,7 @@
   will-change: opacity, transform, filter, clip-path
 }
 
-/* Aincrad / Link Start: trace the same double frame, then reveal details. */
-.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-frame-outer,
-.system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-frame-inner {
-  stroke-dasharray: 3000;
-  stroke-dashoffset: 3000;
-  animation: sao-console-frame-on 760ms ease-out both
-}
+
 
 .system-widgets:not(.sao-widgets-starting) .widget-entering-sao .sao-widget-frame-inner {
   animation-delay: 90ms

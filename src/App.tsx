@@ -312,12 +312,12 @@ function SaoWidgetFrame() {
         aria-hidden="true"
       >
         <path
-          className="sao-widget-frame-outer"
+          className="sao-widget-frame-outer sao-frame-outer"
           d="M24 2H955L998 43V354L955 398H43L2 357V25Z"
         />
 
         <path
-          className="sao-widget-frame-inner"
+          className="sao-widget-frame-inner sao-frame-inner"
           d="M33 10H949L989 49V350L951 390H48L11 352V33Z"
         />
 
