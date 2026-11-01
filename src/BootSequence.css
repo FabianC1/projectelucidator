@@ -1522,3 +1522,726 @@
 
    filter: drop-shadow(0 0 4px rgba(140, 215, 255, 0.65));
 }
+
+/* SAO LINK START — compact widget proportions */
+.wallpaper-experience.theme-sao
+.system-widgets:not(.widgets-compact):not(.widget-layout-free)
+.system-widget {
+  width: min(16rem, calc(100vw - 1.5rem)) !important;
+  max-width: 100% !important;
+  min-height: 0 !important;
+  padding: 0.45rem 0.55rem 0.55rem !important;
+}
+
+.wallpaper-experience.theme-sao
+.system-widgets:not(.widgets-compact):not(.widget-layout-free) {
+  gap: 0.35rem !important;
+}
+
+.wallpaper-experience.theme-sao
+.widget-3 .quick-launch-grid {
+  gap: 0.3rem !important;
+}
+
+.wallpaper-experience.theme-sao
+.widget-3 .quick-launch-tile {
+  min-height: 3rem !important;
+  padding: 0.3rem 0.15rem !important;
+}
+
+.wallpaper-experience.theme-sao
+.widget-5 .effect-tile-grid button {
+  min-height: 1.9rem !important;
+  padding: 0.3rem 0.35rem !important;
+}
+
+.wallpaper-experience.theme-sao
+.sao-control-emblem {
+  width: 2.4rem !important;
+  height: 2rem !important;
+  flex-basis: 2.4rem !important;
+}
+
+/* =====================================================
+   AINCRAD SYSTEM INTERFACE V2
+   Link Start — holographic frames and module headers
+   ===================================================== */
+
+.wallpaper-experience.theme-sao .system-widget {
+  --sao-v2-cyan: #69eaff;
+  --sao-v2-ice: #c9f8ff;
+  --sao-v2-blue: #237ba7;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgb(9 28 45 / 88%),
+      rgb(3 13 25 / 89%)
+    ) !important;
+
+  border: 1px solid rgb(113 226 255 / 26%) !important;
+
+  box-shadow:
+    0 6px 24px rgb(0 0 0 / 24%),
+    inset 0 0 16px rgb(45 172 220 / 5%) !important;
+
+  isolation: isolate;
+}
+
+/* Transparent holographic surface */
+
+.wallpaper-experience.theme-sao .sao-widget-surface {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 7px,
+      rgb(87 207 255 / 2%) 8px
+    ),
+    linear-gradient(
+      120deg,
+      rgb(68 171 221 / 7%),
+      transparent 48%,
+      rgb(30 105 158 / 6%)
+    ) !important;
+
+  pointer-events: none;
+}
+
+/* Double-layer frame */
+
+.wallpaper-experience.theme-sao .sao-widget-frame {
+  filter: drop-shadow(0 0 3px rgb(62 206 255 / 20%));
+  pointer-events: none;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-frame-outer {
+  stroke: rgb(171 241 255 / 90%) !important;
+  stroke-width: 2 !important;
+  fill: none;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-frame-inner {
+  stroke: rgb(48 167 213 / 45%) !important;
+  stroke-width: 1.5 !important;
+  fill: none;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-corner-plate {
+  fill: rgb(56 193 239 / 23%) !important;
+  stroke: rgb(174 241 255 / 75%) !important;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-detail-line,
+.wallpaper-experience.theme-sao .sao-widget-ticks,
+.wallpaper-experience.theme-sao .sao-widget-circuit {
+  stroke: rgb(111 227 255 / 70%);
+  stroke-width: 2;
+  fill: none;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-circuit-node {
+  stroke: #d7faff;
+  stroke-width: 3;
+  fill: none;
+}
+
+/* Small system indicator */
+
+.wallpaper-experience.theme-sao .sao-widget-status-light {
+  position: absolute;
+  right: 1.15rem;
+  bottom: 0.35rem;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #8af6ff;
+  box-shadow: 0 0 7px #5beaff;
+  pointer-events: none;
+}
+
+/* Very subtle internal scanning light */
+
+.wallpaper-experience.theme-sao .sao-widget-scanline {
+  position: absolute;
+  inset: 2px;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgb(84 204 255 / 3%) 49%,
+    transparent 52%
+  );
+  background-size: 100% 250%;
+  animation: sao-v2-scan 12s linear infinite;
+}
+
+@keyframes sao-v2-scan {
+  from { background-position: 0 0; }
+  to { background-position: 0 250%; }
+}
+
+/* SAO module title plates */
+
+.wallpaper-experience.theme-sao .sao-widget-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  max-width: 100%;
+  min-width: 0;
+  height: 1.25rem;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgb(32 102 143 / 85%),
+    rgb(10 39 65 / 65%)
+  ) !important;
+  clip-path: polygon(
+    0 0,
+    calc(100% - 9px) 0,
+    100% 50%,
+    calc(100% - 9px) 100%,
+    0 100%
+  );
+}
+
+.wallpaper-experience.theme-sao .sao-widget-title > b {
+  display: grid;
+  place-items: center;
+  flex: 0 0 1.65rem;
+  height: 100%;
+  color: #071824 !important;
+  background: #a8efff !important;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-title > span {
+  padding: 0 0.65rem;
+  color: #e6faff !important;
+  font-size: 0.6rem !important;
+  font-weight: 700;
+  letter-spacing: 0.095em;
+  white-space: nowrap;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-title > i {
+  width: 15px;
+  height: 1px;
+  margin-right: 0.4rem;
+  background: #76dcf5;
+  box-shadow: 0 0 5px #55cfff;
+}
+
+/* Unified internal separators */
+
+.wallpaper-experience.theme-sao
+.system-widget > header {
+  border-bottom: 1px solid rgb(92 202 242 / 20%) !important;
+  padding-bottom: 0.35rem !important;
+  margin-bottom: 0.4rem !important;
+}
+
+/* Quick Launch menu slots */
+
+.wallpaper-experience.theme-sao .quick-launch-tile {
+  background: linear-gradient(
+    145deg,
+    rgb(14 51 77 / 75%),
+    rgb(4 20 36 / 78%)
+  ) !important;
+
+  border: 1px solid rgb(87 195 235 / 38%) !important;
+  box-shadow: inset 0 1px rgb(185 243 255 / 8%);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.wallpaper-experience.theme-sao .quick-launch-tile:hover {
+  border-color: rgb(173 241 255 / 90%) !important;
+  box-shadow:
+    0 0 10px rgb(62 199 255 / 18%),
+    inset 0 0 10px rgb(60 181 230 / 12%);
+}
+
+/* Reduced motion accessibility */
+
+@media (prefers-reduced-motion: reduce) {
+  .wallpaper-experience.theme-sao .sao-widget-scanline {
+    animation: none;
+  }
+}
+
+/* =====================================================
+   SAO LINK START V3 — AINCRAD MENU INTERFACE
+   Compact translucent menu styling
+   ===================================================== */
+
+/* Softer translucent panels, less industrial framing */
+
+.wallpaper-experience.theme-sao .system-widget {
+  background:
+    linear-gradient(
+      135deg,
+      rgb(17 49 78 / 82%),
+      rgb(5 21 41 / 85%)
+    ) !important;
+
+  border: 1px solid rgb(150 225 255 / 35%) !important;
+
+  box-shadow:
+    0 5px 20px rgb(0 0 0 / 22%),
+    inset 0 1px rgb(220 249 255 / 12%) !important;
+}
+
+/* Reduce frame brightness and decoration */
+
+.wallpaper-experience.theme-sao .sao-widget-frame {
+  opacity: 0.55;
+  filter: none !important;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-scanline {
+  opacity: 0.35;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-status-light {
+  opacity: 0.6;
+}
+
+/* Slim SAO menu headers */
+
+.wallpaper-experience.theme-sao .sao-widget-title {
+  height: 1.1rem !important;
+  background:
+    linear-gradient(
+      90deg,
+      rgb(64 142 191 / 75%),
+      rgb(20 65 106 / 35%)
+    ) !important;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-title > b {
+  flex-basis: 1.45rem !important;
+  background: rgb(178 234 255 / 90%) !important;
+  font-size: 0.52rem !important;
+}
+
+.wallpaper-experience.theme-sao .sao-widget-title > span {
+  padding-inline: 0.45rem !important;
+  font-size: 0.57rem !important;
+  letter-spacing: 0.07em !important;
+}
+
+.wallpaper-experience.theme-sao .system-widget > header {
+  min-height: 1.35rem !important;
+  margin-bottom: 0.3rem !important;
+  padding-bottom: 0.25rem !important;
+  border-bottom-color: rgb(150 225 255 / 13%) !important;
+}
+
+/* Clock: one clean line with small seconds */
+
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 0.12rem !important;
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.wallpaper-experience.theme-sao .widget-2 .widget-clock {
+  display: flex !important;
+  align-items: baseline !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  font-size: clamp(1.5rem, 7.5cqi, 2rem) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.045em !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallpaper-experience.theme-sao .widget-2 .widget-clock em {
+  margin-left: 0.15rem !important;
+  font-size: 0.48em !important;
+  font-style: normal;
+  letter-spacing: 0 !important;
+  opacity: 0.72;
+}
+
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy p {
+  margin: 0.15rem 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: 0.55rem !important;
+  letter-spacing: 0.055em !important;
+}
+
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy small {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: 0.45rem !important;
+  letter-spacing: 0.035em !important;
+}
+
+/* Hardware: smaller telemetry without losing readability */
+
+.wallpaper-experience.theme-sao .widget-1 .diagnostic-meter {
+  padding: 0.2rem 0.25rem !important;
+}
+
+.wallpaper-experience.theme-sao .widget-1 .diagnostic-meter-label strong {
+  font-size: 1.15rem !important;
+}
+
+.wallpaper-experience.theme-sao .widget-1 .diagnostic-meter-history {
+  height: 15px !important;
+  opacity: 0.75;
+}
+
+/* Quick Launch: lighter SAO menu cells */
+
+.wallpaper-experience.theme-sao .widget-3 .quick-launch-grid {
+  gap: 0.22rem !important;
+}
+
+.wallpaper-experience.theme-sao .widget-3 .quick-launch-tile {
+  min-height: 2.8rem !important;
+  padding: 0.25rem 0.1rem !important;
+  border: 1px solid rgb(135 212 249 / 23%) !important;
+  border-radius: 3px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgb(58 125 169 / 15%),
+      rgb(7 29 52 / 30%)
+    ) !important;
+  box-shadow: none !important;
+}
+
+.wallpaper-experience.theme-sao .widget-3 .quick-launch-tile:hover {
+  border-color: rgb(190 241 255 / 75%) !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgb(93 174 218 / 24%),
+      rgb(20 65 105 / 30%)
+    ) !important;
+  box-shadow: 0 0 9px rgb(78 184 240 / 13%) !important;
+}
+
+.wallpaper-experience.theme-sao .widget-3 .quick-launch-tile b {
+  font-size: 0.48rem !important;
+  font-weight: 550 !important;
+  letter-spacing: 0 !important;
+}
+
+/* Now Playing: reduce nested boxes */
+
+.wallpaper-experience.theme-sao .widget-4 .audio-now-playing {
+  border-color: rgb(145 220 255 / 16%) !important;
+  background: rgb(9 36 60 / 18%) !important;
+  box-shadow: none !important;
+}
+
+/* System Control: compact menu buttons */
+
+.wallpaper-experience.theme-sao .widget-5 .effect-tile-grid {
+  gap: 0.25rem !important;
+}
+
+.wallpaper-experience.theme-sao .widget-5 .effect-tile-grid button {
+  min-height: 1.8rem !important;
+  padding: 0.3rem 0.4rem !important;
+  border: 1px solid rgb(134 213 246 / 24%) !important;
+  background: rgb(34 90 129 / 12%) !important;
+}
+
+.wallpaper-experience.theme-sao .widget-5 .effect-tile-grid button:hover {
+  border-color: rgb(185 239 255 / 70%) !important;
+  background: rgb(69 153 197 / 20%) !important;
+}
+
+/* SAO — one consistent angular frame, no rectangular outline */
+
+.wallpaper-experience.theme-sao .system-widget {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: 0 7px 20px rgb(0 0 0 / 18%) !important;
+}
+
+/* Match the background to the SVG frame's angled corners */
+
+.wallpaper-experience.theme-sao .sao-widget-surface {
+  inset: 1px !important;
+  clip-path: polygon(
+    24px 0,
+    calc(100% - 45px) 0,
+    100% 43px,
+    100% calc(100% - 46px),
+    calc(100% - 45px) 100%,
+    43px 100%,
+    0 calc(100% - 43px),
+    0 24px
+  ) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgb(18 55 85 / 88%),
+      rgb(4 17 33 / 90%)
+    ) !important;
+}
+
+/* The SVG is the only visible border */
+
+.wallpaper-experience.theme-sao .sao-widget-frame {
+  opacity: 0.85 !important;
+  overflow: visible;
+}
+
+/* Remove competing rectangular pseudo-element outlines */
+
+.wallpaper-experience.theme-sao .system-widget::before,
+.wallpaper-experience.theme-sao .system-widget::after {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* SAO — remove the close button's blue hover square */
+.wallpaper-experience.theme-sao .system-widget .widget-close:hover,
+.wallpaper-experience.theme-sao .system-widget .widget-close:focus-visible {
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  color: #d9f8ff !important;
+}
+
+/* SAO — hardware widget spacing correction */
+
+.wallpaper-experience.theme-sao .system-widget.widget-1 {
+  min-height: 11.5rem !important;
+  padding: 0.55rem 0.65rem 0.7rem !important;
+}
+
+.wallpaper-experience.theme-sao .widget-1 .diagnostic-meter {
+  padding: 0.4rem 0.3rem !important;
+}
+
+.wallpaper-experience.theme-sao .widget-1 .diagnostic-meter-history {
+  height: 21px !important;
+}
+
+.wallpaper-experience.theme-sao .widget-1 .diagnostic-meter-label strong {
+  font-size: 1.35rem !important;
+  line-height: 1.15 !important;
+}
+
+/* Give the network telemetry room at the bottom */
+.wallpaper-experience.theme-sao .widget-1 .hardware-network {
+  margin-top: 0.5rem !important;
+}
+
+/* SAO — clean, centred digital chronometer */
+
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-display {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-height: 4.5rem !important;
+}
+
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+
+.wallpaper-experience.theme-sao .widget-2 .widget-clock {
+  justify-content: center !important;
+  white-space: nowrap !important;
+  font-size: 2.2rem !important;
+  line-height: 1.1 !important;
+}
+
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy p,
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy small {
+  text-align: center !important;
+  width: 100% !important;
+  justify-content: center !important;
+}
+
+/* =====================================================
+   SAO — AINCRAD HOLOGRAPHIC CHRONOMETER
+   ===================================================== */
+
+/* Two-column clock layout */
+
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-display {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 4.6rem !important;
+  align-items: center !important;
+  column-gap: 0.3rem !important;
+  min-height: 5rem !important;
+  width: 100% !important;
+}
+
+/* Digital time on the left */
+
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  text-align: left !important;
+}
+
+.wallpaper-experience.theme-sao .widget-2 .widget-clock {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: flex-start !important;
+  white-space: nowrap !important;
+  font-size: 1.65rem !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.04em !important;
+}
+
+.wallpaper-experience.theme-sao .widget-2 .widget-clock em {
+  font-size: 0.46em !important;
+  font-style: normal;
+  margin-left: 0.08rem;
+  opacity: 0.75;
+}
+
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy p,
+.wallpaper-experience.theme-sao .widget-2 .clock-widget-copy small {
+  width: 100% !important;
+  text-align: left !important;
+  font-size: 0.48rem !important;
+  margin: 0.15rem 0 0 !important;
+  padding: 0 !important;
+}
+
+/* Holographic dial on the right */
+
+.wallpaper-experience.theme-sao .sao-chronometer {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  min-width: 0;
+  justify-self: end;
+  isolation: isolate;
+}
+
+.wallpaper-experience.theme-sao .sao-chronometer-ring {
+  position: relative;
+  width: 3.7rem;
+  height: 3.7rem;
+  border: 1px solid rgb(142 229 255 / 70%);
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      rgb(9 31 51 / 45%) 0 47%,
+      transparent 48%
+    ),
+    repeating-conic-gradient(
+      from 0deg,
+      rgb(150 230 255 / 65%) 0deg 1deg,
+      transparent 1deg 30deg
+    );
+  box-shadow:
+    0 0 10px rgb(59 194 245 / 16%),
+    inset 0 0 10px rgb(65 178 230 / 10%);
+}
+
+.wallpaper-experience.theme-sao .sao-chronometer-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0.35rem;
+  border: 1px dashed rgb(105 208 246 / 45%);
+  border-radius: 50%;
+}
+
+.wallpaper-experience.theme-sao .sao-chronometer-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0.7rem;
+  border: 1px solid rgb(99 197 234 / 22%);
+  border-radius: 50%;
+}
+
+/* Hands rotate using the existing clockStyle variables */
+
+.wallpaper-experience.theme-sao .sao-chronometer-hand {
+  position: absolute;
+  left: calc(50% - 1px);
+  bottom: 50%;
+  width: 2px;
+  transform-origin: bottom center;
+  border-radius: 2px;
+  z-index: 2;
+}
+
+.wallpaper-experience.theme-sao .sao-chronometer-hour {
+  height: 0.95rem;
+  background: #e3faff;
+  transform: rotate(var(--clock-hour-angle));
+}
+
+.wallpaper-experience.theme-sao .sao-chronometer-minute {
+  height: 1.35rem;
+  background: #65d7ff;
+  transform: rotate(var(--clock-minute-angle));
+}
+
+.wallpaper-experience.theme-sao .sao-chronometer-second {
+  left: calc(50% - 0.5px);
+  width: 1px;
+  height: 1.55rem;
+  background: #a4f4ff;
+  transform: rotate(var(--clock-second-angle));
+}
+
+.wallpaper-experience.theme-sao .sao-chronometer-pin {
+  position: absolute;
+  left: calc(50% - 3px);
+  top: calc(50% - 3px);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d5faff;
+  box-shadow: 0 0 6px #6bdfff;
+  z-index: 3;
+}
+
+.wallpaper-experience.theme-sao .sao-chronometer-label {
+  position: absolute;
+  bottom: -0.15rem;
+  color: #83d9f4;
+  font-size: 0.36rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 5px rgb(81 206 255 / 35%);
+}

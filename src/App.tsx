@@ -301,21 +301,77 @@ function ThemeEmblem({ src, title, className }: { src: string; title: string; cl
 }
 
 function SaoWidgetFrame() {
-  return <>
-    <span className="sao-widget-surface" aria-hidden="true" />
-    <svg className="sao-widget-frame" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true">
-      <path className="sao-widget-frame-outer" d="M28 2H972L998 28V372L970 398H28L2 372V28Z" />
-      <path className="sao-widget-frame-inner" d="M37 10H963L990 37V363L961 390H37L10 363V37Z" />
-      <path className="sao-widget-corner-plate sao-widget-corner-plate-top" d="M944 2H974L998 28V58Z" />
-      <path className="sao-widget-corner-plate sao-widget-corner-plate-bottom" d="M2 342L58 398H28L2 372Z" />
-      <path className="sao-widget-detail-line" d="M35 2H152M848 398H964" />
-      <path className="sao-widget-ticks" d="M900 382L916 366M922 382L938 366M944 382L960 366" />
-    </svg>
-  </>
+  return (
+    <>
+      <span className="sao-widget-surface" aria-hidden="true" />
+
+      <svg
+        className="sao-widget-frame"
+        viewBox="0 0 1000 400"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path
+          className="sao-widget-frame-outer"
+          d="M24 2H955L998 43V354L955 398H43L2 357V25Z"
+        />
+
+        <path
+          className="sao-widget-frame-inner"
+          d="M33 10H949L989 49V350L951 390H48L11 352V33Z"
+        />
+
+        <path
+          className="sao-widget-corner-plate sao-widget-corner-plate-top"
+          d="M947 2H955L998 43V74L967 44Z"
+        />
+
+        <path
+          className="sao-widget-corner-plate sao-widget-corner-plate-bottom"
+          d="M2 329V357L43 398H76L45 367Z"
+        />
+
+        <path
+          className="sao-widget-detail-line"
+          d="M42 3H185M813 397H951"
+        />
+
+        <path
+          className="sao-widget-ticks"
+          d="M870 378L882 366M893 378L905 366M916 378L928 366"
+        />
+
+        <path
+          className="sao-widget-circuit"
+          d="M35 52V95M35 105V120M965 280V315M965 325V340"
+        />
+
+        <path
+          className="sao-widget-circuit-node"
+          d="M35 95h8M965 315h-8"
+        />
+      </svg>
+
+      <span className="sao-widget-scanline" aria-hidden="true" />
+      <span className="sao-widget-status-light" aria-hidden="true" />
+    </>
+  )
 }
 
-function SaoWidgetTitle({ id, title }: { id: number; title: string }) {
-  return <span className="sao-widget-title"><b>{String(id).padStart(2, '0')}</b><span>{title}</span><i aria-hidden="true" /></span>
+function SaoWidgetTitle({
+  id,
+  title,
+}: {
+  id: number
+  title: string
+}) {
+  return (
+    <span className="sao-widget-title">
+      <b>{String(id).padStart(2, '0')}</b>
+      <span>{title}</span>
+      <i aria-hidden="true" />
+    </span>
+  )
 }
 
 function ThemeWidgetFrame({ theme }: { theme: ThemeId }) {
@@ -2038,48 +2094,48 @@ function App() {
           ...appIds.map(id => `SYS LAUNCH ${id.toUpperCase()}`),
         ])
 
-        } else if (action === 'refresh' && args.length === 2) {
-  const token = brightnessToken || getBrightnessToken()
+      } else if (action === 'refresh' && args.length === 2) {
+        const token = brightnessToken || getBrightnessToken()
 
-  if (!token) {
-    report([
-      'QUICK LAUNCH · REFRESH FAILED',
-      'WINDOWS HELPER NOT PAIRED',
-    ])
-  } else {
-    try {
-      report([
-        'QUICK LAUNCH',
-        'SCANNING INSTALLED APPLICATIONS...',
-      ])
+        if (!token) {
+          report([
+            'QUICK LAUNCH · REFRESH FAILED',
+            'WINDOWS HELPER NOT PAIRED',
+          ])
+        } else {
+          try {
+            report([
+              'QUICK LAUNCH',
+              'SCANNING INSTALLED APPLICATIONS...',
+            ])
 
-      const result = await refreshLaunchCatalog(token)
+            const result = await refreshLaunchCatalog(token)
 
-      setLaunchIcons(result.icons ?? {})
+            setLaunchIcons(result.icons ?? {})
 
-      const installed = Object.values(result.apps).filter(
-        (app) => app.installed
-      ).length
+            const installed = Object.values(result.apps).filter(
+              (app) => app.installed
+            ).length
 
-      const icons = Object.values(result.icons ?? {}).filter(
-        Boolean
-      ).length
+            const icons = Object.values(result.icons ?? {}).filter(
+              Boolean
+            ).length
 
-      report([
-        'QUICK LAUNCH · DISCOVERY COMPLETE',
-        `APPLICATIONS FOUND ...... ${installed}`,
-        `ICONS LOADED ............ ${icons}`,
-        'ICON CACHE ............. UPDATED',
-      ])
+            report([
+              'QUICK LAUNCH · DISCOVERY COMPLETE',
+              `APPLICATIONS FOUND ...... ${installed}`,
+              `ICONS LOADED ............ ${icons}`,
+              'ICON CACHE ............. UPDATED',
+            ])
 
-      setStatus('QUICK LAUNCH · REFRESH COMPLETE')
-    } catch (error) {
-      report([
-        'QUICK LAUNCH · REFRESH FAILED',
-        error instanceof Error ? error.message : String(error),
-      ])
-    }
-  }
+            setStatus('QUICK LAUNCH · REFRESH COMPLETE')
+          } catch (error) {
+            report([
+              'QUICK LAUNCH · REFRESH FAILED',
+              error instanceof Error ? error.message : String(error),
+            ])
+          }
+        }
 
       } else if (action === 'status') {
         const health = await getBrightnessHelperHealth()
@@ -3106,9 +3162,52 @@ function App() {
                 <span className="clock-hand clock-hand-second" />
                 <span className="clock-pin" />
               </div>}
+              {theme === 'sao' && (
+                <div className="sao-chronometer" style={clockStyle} aria-hidden="true">
+                  <div className="sao-chronometer-ring">
+                    <span className="sao-chronometer-hand sao-chronometer-hour" />
+                    <span className="sao-chronometer-hand sao-chronometer-minute" />
+                    <span className="sao-chronometer-hand sao-chronometer-second" />
+                    <span className="sao-chronometer-pin" />
+                  </div>
+                  <span className="sao-chronometer-label">AINCRAD</span>
+                </div>
+              )}
               {theme === 'demon-mode' && <img className="demon-clock-gem" src="./assets/emblems/demon-seal-gem-trimmed.png" alt="" aria-hidden="true" />}
               <div className="clock-widget-copy">
-                <strong className="widget-clock">{clockNow.toLocaleTimeString(undefined, theme === 'tokyo-ghoul' || theme === 'grimoire' || theme === 'demon-mode' || theme === 'limitless' ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } : theme === 'sao' || theme === 'dragon' ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{(theme === 'sao' || theme === 'demon-mode' || theme === 'tokyo-ghoul' || theme === 'dragon' || theme === 'grimoire' || theme === 'limitless') && <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>}</strong>
+                <strong className="widget-clock">
+                  {theme === 'sao' ? (
+                    <>
+                      {clockNow.toLocaleTimeString('en-GB', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hourCycle: 'h23',
+                      })}
+                      <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>
+                    </>
+                  ) : (
+                    <>
+                      {clockNow.toLocaleTimeString(
+                        undefined,
+                        theme === 'tokyo-ghoul' ||
+                          theme === 'grimoire' ||
+                          theme === 'demon-mode' ||
+                          theme === 'limitless'
+                          ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
+                          : theme === 'dragon'
+                            ? { hour: '2-digit', minute: '2-digit' }
+                            : { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+                      )}
+                      {(theme === 'demon-mode' ||
+                        theme === 'tokyo-ghoul' ||
+                        theme === 'dragon' ||
+                        theme === 'grimoire' ||
+                        theme === 'limitless') && (
+                          <em>:{String(clockNow.getSeconds()).padStart(2, '0')}</em>
+                        )}
+                    </>
+                  )}
+                </strong>
                 <p>{clockNow.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase()}</p>
                 <small>{theme === 'tokyo-ghoul' || theme === 'grimoire' || theme === 'demon-mode' || theme === 'limitless' ? clockZone.toUpperCase() : `LOCAL CHRONOMETER · ${clockZone.toUpperCase()}`}</small>
               </div>
@@ -3121,41 +3220,41 @@ function App() {
             <ThemeWidgetFrame theme={theme} />
             <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={3} title="QUICK LAUNCH" /> : theme === 'grimoire' ? <span className="grimoire-widget-title"><b>03</b><strong>QUICK LAUNCH</strong></span> : theme === 'demon-mode' ? <span className="demon-widget-title"><b>03</b><strong>QUICK LAUNCH</strong></span> : <span>03 / QUICK LAUNCH</span>}<i>READY</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close quick launch widget">×</button></header>
             <div className="quick-launch-grid">
-  {quickShortcuts.map((shortcut) => {
-    const installedIcon = launchIcons[shortcut.id as LaunchAppId]
+              {quickShortcuts.map((shortcut) => {
+                const installedIcon = launchIcons[shortcut.id as LaunchAppId]
 
-    return (
-      <button
-        key={shortcut.id}
-        className={`quick-launch-tile shortcut-${shortcut.id}`}
-        onClick={() => onLaunchShortcut(shortcut)}
-        title={`Launch ${shortcut.label}`}
-      >
-        <span className="quick-launch-icon" aria-hidden="true">
-          {installedIcon ? (
-            <img
-              src={installedIcon}
-              alt=""
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-                display: 'block',
-              }}
-            />
-          ) : typeof shortcut.icon === 'string' ? (
-            shortcut.icon
-          ) : (
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d={shortcut.icon.path} />
-            </svg>
-          )}
-        </span>
-        <b>{shortcut.label}</b>
-      </button>
-    )
-  })}
-</div>
+                return (
+                  <button
+                    key={shortcut.id}
+                    className={`quick-launch-tile shortcut-${shortcut.id}`}
+                    onClick={() => onLaunchShortcut(shortcut)}
+                    title={`Launch ${shortcut.label}`}
+                  >
+                    <span className="quick-launch-icon" aria-hidden="true">
+                      {installedIcon ? (
+                        <img
+                          src={installedIcon}
+                          alt=""
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            display: 'block',
+                          }}
+                        />
+                      ) : typeof shortcut.icon === 'string' ? (
+                        shortcut.icon
+                      ) : (
+                        <svg viewBox="0 0 24 24" focusable="false">
+                          <path d={shortcut.icon.path} />
+                        </svg>
+                      )}
+                    </span>
+                    <b>{shortcut.label}</b>
+                  </button>
+                )
+              })}
+            </div>
           </article>
         )}
         {renderedWidgets.includes(4) && (
