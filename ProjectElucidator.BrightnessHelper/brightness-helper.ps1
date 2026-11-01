@@ -898,6 +898,245 @@ function Get-ElucidatorAppCatalog {
   return $apps
 }
 
+function Get-ElucidatorAppEntry {
+  param($Catalog, [string]$Id)
+
+  if ($Catalog -is [System.Collections.IDictionary]) {
+    return $Catalog[$Id]
+  }
+
+  $property = $Catalog.PSObject.Properties[$Id]
+  if ($property) { return $property.Value }
+  return $null
+}
+
+function Get-ElucidatorAppIcon {
+  param($Entry)
+
+  if (-not $Entry -or -not $Entry.installed) {
+    return $null
+  }
+
+  $kind = [string]$Entry.kind
+  $target = [string]$Entry.target
+
+  if ($kind -eq 'exe') {
+    if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
+      return $null
+    }
+
+    $file = Get-Item -LiteralPath $target
+
+    return @{
+      kind = 'exe'
+      path = $target
+      fingerprint = "$($file.Length):$($file.LastWriteTimeUtc.Ticks)"
+    }
+  }
+
+  if ($kind -eq 'store') {
+    $family = ($target -split '!')[0]
+
+    $package = Get-AppxPackage -ErrorAction SilentlyContinue |
+      Where-Object { $_.PackageFamilyName -eq $family } |
+      Select-Object -First 1
+
+    if (-not $package) { return $null }
+
+    $manifestPath = Join-Path $package.InstallLocation 'AppxManifest.xml'
+    if (-not (Test-Path -LiteralPath $manifestPath)) {
+      return $null
+    }
+
+    try {
+      [xml]$manifest = Get-Content -LiteralPath $manifestPath -Raw
+
+      $applicationId = ($target -split '!', 2)[1]
+      $application = @($manifest.Package.Applications.Application) |
+        Where-Object { $_.Id -eq $applicationId } |
+        Select-Object -First 1
+
+      if (-not $application) { return $null }
+
+      $visual = $application.VisualElements
+
+      if (-not $visual) {
+        $visual = $application.ChildNodes |
+          Where-Object { $_.LocalName -eq 'VisualElements' } |
+          Select-Object -First 1
+      }
+
+      if (-not $visual) { return $null }
+
+      $logo = [string]$visual.GetAttribute('Square44x44Logo')
+
+      if (-not $logo) {
+        $logo = [string]$visual.GetAttribute('Square150x150Logo')
+      }
+
+      if (-not $logo) { return $null }
+
+      $relative = $logo.Replace('/', '\')
+      $basePath = Join-Path $package.InstallLocation $relative
+      $directory = Split-Path $basePath
+      $baseName = [IO.Path]::GetFileNameWithoutExtension($basePath)
+      $extension = [IO.Path]::GetExtension($basePath)
+
+      $candidates = @(
+        (Join-Path $directory "$baseName.scale-200$extension"),
+        (Join-Path $directory "$baseName.scale-150$extension"),
+        (Join-Path $directory "$baseName.scale-100$extension"),
+        $basePath
+      )
+
+      $iconFile = $candidates |
+        Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+        Select-Object -First 1
+
+      if (-not $iconFile) {
+        $iconFile = Get-ChildItem -LiteralPath $directory `
+          -File -ErrorAction SilentlyContinue |
+          Where-Object {
+            $_.BaseName -like "$baseName.*" -and
+            $_.Extension -match '^\.(png|jpg|jpeg)$'
+          } |
+          Select-Object -First 1 -ExpandProperty FullName
+      }
+
+      if (-not $iconFile) { return $null }
+
+      $file = Get-Item -LiteralPath $iconFile
+
+      return @{
+        kind = 'store'
+        path = $iconFile
+        fingerprint = "$($package.Version):$($file.Length):$($file.LastWriteTimeUtc.Ticks)"
+      }
+    } catch {
+      return $null
+    }
+  }
+
+  return $null
+}
+
+function Convert-ElucidatorIconToDataUri {
+  param($IconInfo)
+
+  if (-not $IconInfo) { return $null }
+
+  try {
+    if ($IconInfo.kind -eq 'store') {
+      $extension = [IO.Path]::GetExtension($IconInfo.path).ToLowerInvariant()
+      $mime = switch ($extension) {
+        '.jpg'  { 'image/jpeg' }
+        '.jpeg' { 'image/jpeg' }
+        '.png'  { 'image/png' }
+        default { return $null }
+      }
+
+      $bytes = [IO.File]::ReadAllBytes($IconInfo.path)
+      return "data:$mime;base64,$([Convert]::ToBase64String($bytes))"
+    }
+
+    if ($IconInfo.kind -eq 'exe') {
+      Add-Type -AssemblyName System.Drawing
+
+      $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($IconInfo.path)
+      if (-not $icon) { return $null }
+
+      $bitmap = $null
+      $stream = $null
+
+      try {
+        $bitmap = $icon.ToBitmap()
+        $stream = New-Object System.IO.MemoryStream
+
+        $bitmap.Save(
+          $stream,
+          [System.Drawing.Imaging.ImageFormat]::Png
+        )
+
+        $bytes = $stream.ToArray()
+        return "data:image/png;base64,$([Convert]::ToBase64String($bytes))"
+      } finally {
+        if ($stream) { $stream.Dispose() }
+        if ($bitmap) { $bitmap.Dispose() }
+        $icon.Dispose()
+      }
+    }
+  } catch {
+    return $null
+  }
+
+  return $null
+}
+
+function Get-ElucidatorAppIcons {
+  param([switch]$Refresh)
+
+  $directory = Join-Path $env:LOCALAPPDATA 'ProjectElucidator'
+  $cachePath = Join-Path $directory 'launch-icons.json'
+
+  $catalog = Get-ElucidatorAppCatalog -Refresh:$Refresh
+
+  $cache = @{}
+
+  if (Test-Path -LiteralPath $cachePath) {
+    try {
+      $stored = Get-Content -LiteralPath $cachePath -Raw |
+        ConvertFrom-Json
+
+      foreach ($property in $stored.PSObject.Properties) {
+        $cache[$property.Name] = $property.Value
+      }
+    } catch {}
+  }
+
+  $result = @{}
+
+  foreach ($id in @(
+    'warframe', 'vscode', 'chrome',
+    'roblox', 'netflix', 'alecaframe'
+  )) {
+    $entry = Get-ElucidatorAppEntry $catalog $id
+    $iconInfo = Get-ElucidatorAppIcon $entry
+
+    if (-not $iconInfo) {
+      $result[$id] = $null
+      continue
+    }
+
+    $signature = "$($iconInfo.path)|$($iconInfo.fingerprint)"
+    $cached = $cache[$id]
+
+    if (-not $Refresh -and
+        $cached -and
+        $cached.signature -eq $signature) {
+      $result[$id] = $cached.icon
+      continue
+    }
+
+    $icon = Convert-ElucidatorIconToDataUri $iconInfo
+
+    if ($icon) {
+      $cache[$id] = @{
+        signature = $signature
+        icon = $icon
+      }
+    } else {
+      [void]$cache.Remove($id)
+    }
+
+    $result[$id] = $icon
+  }
+
+  $cache | ConvertTo-Json -Depth 5 |
+    Set-Content -LiteralPath $cachePath -Encoding UTF8
+
+  return $result
+}
+
 function Invoke-ElucidatorLaunch {
   param([string]$AppId)
 
@@ -1013,9 +1252,12 @@ function Handle-Client {
       try {
         $catalog = Get-ElucidatorAppCatalog -Refresh
 
+        $icons = Get-ElucidatorAppIcons -Refresh
+
         $payload = ConvertTo-Json -InputObject @{
           ok = $true
           apps = $catalog
+          icons = $icons
           message = 'APPLICATION DISCOVERY COMPLETE'
         } -Depth 8 -Compress
 
@@ -1035,9 +1277,12 @@ function Handle-Client {
       try {
         $catalog = Get-ElucidatorAppCatalog
 
+        $icons = Get-ElucidatorAppIcons
+
         $payload = ConvertTo-Json -InputObject @{
           ok = $true
           apps = $catalog
+          icons = $icons
         } -Depth 8 -Compress
 
         Write-HttpResponse $stream 200 $payload $origin
