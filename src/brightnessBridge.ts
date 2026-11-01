@@ -196,6 +196,39 @@ export type LaunchAppId =
   | 'netflix'
   | 'alecaframe'
 
+  export type LaunchAppIcons = Partial<Record<LaunchAppId, string | null>>
+
+export type LaunchCatalogResponse = {
+  ok: boolean
+  apps: Record<string, {
+    id: string
+    installed: boolean
+    kind: string
+    target: string
+    source: string
+  }>
+  icons: LaunchAppIcons
+  message?: string
+}
+
+export async function readLaunchCatalog(token: string) {
+  return request<LaunchCatalogResponse>(
+    '/api/launch/apps',
+    token
+  )
+}
+
+export async function refreshLaunchCatalog(token: string) {
+  return request<LaunchCatalogResponse>(
+    '/api/launch/refresh',
+    token,
+    {
+      method: 'POST',
+      body: '{}',
+    }
+  )
+}
+
 export async function launchWindowsApp(
   token: string,
   app: LaunchAppId

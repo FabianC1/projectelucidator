@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSPro
 import { siGooglechrome, siNetflix, siRoblox, type SimpleIcon } from 'simple-icons'
 import { BootSequence } from './BootSequence'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
-import { launchWindowsApp, type LaunchAppId, changeBrightness, checkBrightnessHelperHealth, getBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readDisplayGeometry, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, validateBrightnessToken, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
+import { readLaunchCatalog, refreshLaunchCatalog, type LaunchAppIcons, launchWindowsApp, type LaunchAppId, changeBrightness, checkBrightnessHelperHealth, getBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readDisplayGeometry, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, validateBrightnessToken, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
 import './App.css'
 
@@ -638,6 +638,7 @@ function App() {
   const [bootToken, setBootToken] = useState(0)
   const [command, setCommand] = useState('')
   const [brightnessToken, setBrightnessToken] = useState('')
+  const [launchIcons, setLaunchIcons] = useState<LaunchAppIcons>({})
   const [credentialBootstrapAvailable, setCredentialBootstrapAvailable] = useState(false)
   const [brightnessHelperOnline, setBrightnessHelperOnline] = useState(false)
   const [status, setStatus] = useState('SYSTEM CONSOLE ONLINE · SYS HELP')
@@ -866,10 +867,10 @@ function App() {
           setStorageIssue('brightness credential validation', new Error('Stored pairing credentials were rejected by the Windows helper'))
         }
         scheduleRetry()
-return 'rejected'
+        return 'rejected'
       } catch (error) {
         if (active) setStorageIssue('brightness credential restore', error)
-          scheduleRetry()
+        scheduleRetry()
         return 'helper-unavailable'
       }
     }
@@ -1402,6 +1403,33 @@ return 'rejected'
 
   const report = (lines: string[]) => setConsoleLines(lines)
 
+  useEffect(() => {
+    if (!brightnessHelperOnline) return
+
+    const token = brightnessToken || getBrightnessToken()
+    if (!token) return
+
+    let cancelled = false
+
+    const loadIcons = async () => {
+      try {
+        const result = await readLaunchCatalog(token)
+
+        if (!cancelled && result.ok) {
+          setLaunchIcons(result.icons ?? {})
+        }
+      } catch {
+        // Keep the existing static icons if the helper is unavailable.
+      }
+    }
+
+    void loadIcons()
+
+    return () => {
+      cancelled = true
+    }
+  }, [brightnessHelperOnline, brightnessToken])
+
   const launchBusyRef = useRef(false)
 
   const launchShortcut = async (app: string, label: string) => {
@@ -1745,10 +1773,10 @@ return 'rejected'
         ? monitors.map((monitor) => `DISPLAY ${monitor.id} · ${monitor.name.toUpperCase()} · ${monitor.supported && monitor.brightness !== null ? `${monitor.brightness}%` : 'DDC/CI UNAVAILABLE'}`)
         : ['NO DDC/CI MONITORS DETECTED']
       const helperInstructions = [
-  'AUTOMATIC CONNECTION · SYS PAIR',
-  'MANUAL RECOVERY · SYS MONITOR PAIR <TOKEN>',
-  'HELPER INSTALLER · scripts/install-brightness-helper.ps1'
-]
+        'AUTOMATIC CONNECTION · SYS PAIR',
+        'MANUAL RECOVERY · SYS MONITOR PAIR <TOKEN>',
+        'HELPER INSTALLER · scripts/install-brightness-helper.ps1'
+      ]
 
       if (action === 'pair' && args.length === 3) {
         const token = submittedCommand.match(
@@ -1993,7 +2021,7 @@ return 'rejected'
           setStatus(`SEQUENCE MIRROR · ${state}`)
         }
       }
-      
+
     } else if (domain === 'launch') {
       const appIds: LaunchAppId[] = [
         'warframe',
@@ -2009,16 +2037,59 @@ return 'rejected'
           'QUICK LAUNCH · AVAILABLE APPLICATIONS',
           ...appIds.map(id => `SYS LAUNCH ${id.toUpperCase()}`),
         ])
+
+        } else if (action === 'refresh' && args.length === 2) {
+  const token = brightnessToken || getBrightnessToken()
+
+  if (!token) {
+    report([
+      'QUICK LAUNCH · REFRESH FAILED',
+      'WINDOWS HELPER NOT PAIRED',
+    ])
+  } else {
+    try {
+      report([
+        'QUICK LAUNCH',
+        'SCANNING INSTALLED APPLICATIONS...',
+      ])
+
+      const result = await refreshLaunchCatalog(token)
+
+      setLaunchIcons(result.icons ?? {})
+
+      const installed = Object.values(result.apps).filter(
+        (app) => app.installed
+      ).length
+
+      const icons = Object.values(result.icons ?? {}).filter(
+        Boolean
+      ).length
+
+      report([
+        'QUICK LAUNCH · DISCOVERY COMPLETE',
+        `APPLICATIONS FOUND ...... ${installed}`,
+        `ICONS LOADED ............ ${icons}`,
+        'ICON CACHE ............. UPDATED',
+      ])
+
+      setStatus('QUICK LAUNCH · REFRESH COMPLETE')
+    } catch (error) {
+      report([
+        'QUICK LAUNCH · REFRESH FAILED',
+        error instanceof Error ? error.message : String(error),
+      ])
+    }
+  }
+
       } else if (action === 'status') {
         const health = await getBrightnessHelperHealth()
 
         report([
           'QUICK LAUNCH STATUS',
           `WINDOWS HELPER ........ ${health.state.toUpperCase()}`,
-          `APP LAUNCH ............ ${
-            health.capabilities?.includes('app-launch')
-              ? 'SUPPORTED'
-              : 'UNAVAILABLE'
+          `APP LAUNCH ............ ${health.capabilities?.includes('app-launch')
+            ? 'SUPPORTED'
+            : 'UNAVAILABLE'
           }`,
         ])
       } else if (
@@ -3049,7 +3120,42 @@ return 'rejected'
             {theme === 'sao' && <SaoWidgetFrame />}
             <ThemeWidgetFrame theme={theme} />
             <header onPointerDown={(event) => startWidgetDrag(event, 3)} onPointerMove={moveWidgetDrag} onPointerUp={finishWidgetDrag} onPointerCancel={finishWidgetDrag} onLostPointerCapture={finishWidgetDrag}>{theme === 'sao' ? <SaoWidgetTitle id={3} title="QUICK LAUNCH" /> : theme === 'grimoire' ? <span className="grimoire-widget-title"><b>03</b><strong>QUICK LAUNCH</strong></span> : theme === 'demon-mode' ? <span className="demon-widget-title"><b>03</b><strong>QUICK LAUNCH</strong></span> : <span>03 / QUICK LAUNCH</span>}<i>READY</i><button className="widget-close" onClick={() => closeWidget(3)} aria-label="Close quick launch widget">×</button></header>
-            <div className="quick-launch-grid">{quickShortcuts.map((shortcut) => <button key={shortcut.id} className={`quick-launch-tile shortcut-${shortcut.id}`} onClick={() => onLaunchShortcut(shortcut)} title={`Launch ${shortcut.label}`}><span className="quick-launch-icon" aria-hidden="true">{typeof shortcut.icon === 'string' ? shortcut.icon : <svg viewBox="0 0 24 24" focusable="false"><path d={shortcut.icon.path} /></svg>}</span><b>{shortcut.label}</b></button>)}</div>
+            <div className="quick-launch-grid">
+  {quickShortcuts.map((shortcut) => {
+    const installedIcon = launchIcons[shortcut.id as LaunchAppId]
+
+    return (
+      <button
+        key={shortcut.id}
+        className={`quick-launch-tile shortcut-${shortcut.id}`}
+        onClick={() => onLaunchShortcut(shortcut)}
+        title={`Launch ${shortcut.label}`}
+      >
+        <span className="quick-launch-icon" aria-hidden="true">
+          {installedIcon ? (
+            <img
+              src={installedIcon}
+              alt=""
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          ) : typeof shortcut.icon === 'string' ? (
+            shortcut.icon
+          ) : (
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d={shortcut.icon.path} />
+            </svg>
+          )}
+        </span>
+        <b>{shortcut.label}</b>
+      </button>
+    )
+  })}
+</div>
           </article>
         )}
         {renderedWidgets.includes(4) && (
