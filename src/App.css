@@ -9768,18 +9768,6 @@
   outline-offset: 2px
 }
 
-.wallpaper-experience.theme-sao .system-widgets.widget-layout-right {
-  --widget-stack-fit: 1;
-  justify-content: flex-start;
-  gap: .65rem;
-  padding-top: 1rem;
-  padding-bottom: 1rem
-}
-
-.wallpaper-experience.theme-sao .system-widgets.widget-layout-right .system-widget {
-  flex: 0 0 auto
-}
-
 .wallpaper-experience.theme-sao .system-widget.widget-1 {
   animation: sao-hardware-arrive 420ms cubic-bezier(.18, .68, .25, 1) both
 }
