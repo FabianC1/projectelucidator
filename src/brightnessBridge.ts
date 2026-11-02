@@ -11,6 +11,14 @@ type MonitorResponse = { monitors: BrightnessMonitor[] }
 type ChangeResponse = MonitorResponse & { ok: boolean; message: string }
 type LockResponse = { ok: boolean; message: string }
 export type HelperHealth = { state: 'online' | 'starting' | 'offline' | 'unsupported'; version?: string; capabilities?: string[]; message: string }
+
+export type StoredMonitorWallpaper = {
+  monitorId: number
+  name: string
+  type: string
+  data: string
+}
+
 export type StartupConfiguration = {
   wallpaperName: string | null
   wallpaperType: string | null
@@ -18,7 +26,11 @@ export type StartupConfiguration = {
   theme: string | null
   settings?: StartupSettings | null
   installIntoLively?: boolean
+  
   wallpaperError?: string | null
+  wallpaperDisplayMode?: 'span' | 'independent'
+  monitorWallpapers?: StoredMonitorWallpaper[]
+
 }
 
 export type StartupSettings = {

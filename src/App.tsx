@@ -1077,6 +1077,39 @@ function App() {
           setTheme(restoredTheme)
           setDefaultTheme(restoredTheme)
         }
+
+        if (
+          startupConfig?.wallpaperDisplayMode === 'span' ||
+          startupConfig?.wallpaperDisplayMode === 'independent'
+        ) {
+          setWallpaperDisplayMode(startupConfig.wallpaperDisplayMode)
+        }
+
+        if (Array.isArray(startupConfig?.monitorWallpapers)) {
+          const restored: Record<number, MonitorWallpaper> = {}
+
+          for (const item of startupConfig.monitorWallpapers) {
+            if (!Number.isInteger(item.monitorId) || item.monitorId < 1 ||
+              !item.name || !item.data) continue
+
+            const binary = atob(item.data)
+            const bytes = Uint8Array.from(
+              binary,
+              (character) => character.charCodeAt(0)
+            )
+
+            restored[item.monitorId] = {
+              monitorId: item.monitorId,
+              name: item.name,
+              blob: new Blob([bytes], {
+                type: item.type || 'application/octet-stream',
+              }),
+            }
+          }
+
+          setMonitorWallpapers(restored)
+        }
+
         const preferences = startupConfig?.settings
         if (preferences) {
           const enabled = Array.isArray(preferences.enabledWidgets)
@@ -1797,17 +1830,30 @@ function App() {
             compactThemeLayouts,
             layoutPresets,
             wallpaperFit,
+            wallpaperDisplayMode,
             animationMirror,
             sequenceMirror,
             visualTheme,
             consoleFrame,
           }
+
+          const savedMonitorWallpapers = await Promise.all(
+            Object.values(monitorWallpapers).map(async (wallpaper) => ({
+              monitorId: wallpaper.monitorId,
+              name: wallpaper.name,
+              type: wallpaper.blob.type || 'application/octet-stream',
+              data: await blobToBase64(wallpaper.blob),
+            }))
+          )
+
           const saved = await saveDurableStartupConfiguration(brightnessToken, {
             wallpaperName,
             wallpaperType: blob.type || 'application/octet-stream',
             wallpaperData: await blobToBase64(blob),
             theme,
             settings,
+            wallpaperDisplayMode,
+            monitorWallpapers: savedMonitorWallpapers,
             installIntoLively: true,
           })
           if (!saved.saved) throw new Error('HELPER DID NOT CONFIRM THE DURABLE CONFIGURATION SAVE')
