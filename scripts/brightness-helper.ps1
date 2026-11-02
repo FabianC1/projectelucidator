@@ -312,6 +312,54 @@ function Get-StartupConfiguration {
     $config | Add-Member -NotePropertyName wallpaperData -NotePropertyValue $null -Force
     $config | Add-Member -NotePropertyName wallpaperError -NotePropertyValue $null -Force
   }
+
+
+  # Restore independent-monitor wallpaper assignments.
+  $restoredMonitors = @()
+
+  foreach ($entry in @($config.monitorWallpapers | Where-Object { $null -ne $_ })) {
+    if ($entry.file -notmatch '^[a-f0-9]{64}\.bin$') {
+      throw 'Invalid saved monitor wallpaper filename.'
+    }
+
+    $imagePath = Join-Path $script:WallpaperDirectory $entry.file
+
+    if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
+      throw "Saved wallpaper for monitor $($entry.monitorId) is missing."
+    }
+
+    $bytes = [IO.File]::ReadAllBytes($imagePath)
+    $hash = Get-Sha256Hex $bytes
+
+    if ($hash -ne $entry.hash) {
+      throw "Wallpaper integrity check failed for monitor $($entry.monitorId)."
+    }
+
+
+    $restoredMonitors += [PSCustomObject]@{
+      monitorId = [int]$entry.monitorId
+      name = [string]$entry.name
+      type = [string]$entry.type
+      file = [string]$entry.file
+      hash = [string]$entry.hash
+      data = [Convert]::ToBase64String($bytes)
+    }
+
+  }
+
+  $config | Add-Member `
+    -NotePropertyName monitorWallpapers `
+    -NotePropertyValue @($restoredMonitors) `
+    -Force
+
+  if ($config.wallpaperDisplayMode -notin @('span', 'independent')) {
+    $config | Add-Member `
+      -NotePropertyName wallpaperDisplayMode `
+      -NotePropertyValue 'span' `
+      -Force
+  }
+
+
   return $config
 }
 
@@ -330,8 +378,14 @@ function Save-StartupConfiguration {
     wallpaperName = $current.wallpaperName
     wallpaperType = $current.wallpaperType
     wallpaperFile = $current.wallpaperFile
+
     wallpaperHash = $current.wallpaperHash
     settings = $current.settings
+    wallpaperDisplayMode = if ($current.wallpaperDisplayMode) {
+      $current.wallpaperDisplayMode
+    } else { 'span' }
+    monitorWallpapers = @($current.monitorWallpapers | Where-Object { $null -ne $_ })
+
   }
   if ($Patch.PSObject.Properties.Name -contains 'theme') {
     if ($null -ne $Patch.theme -and $Patch.theme -notin @('sao','arise','grimoire','limitless','breathing-sun','demon-mode','dragon','tokyo-ghoul')) { throw 'Unknown theme identifier.' }
@@ -366,6 +420,89 @@ function Save-StartupConfiguration {
       $next.wallpaperHash = $hash
     }
   }
+  
+  if ($Patch.PSObject.Properties.Name -contains 'wallpaperDisplayMode') {
+    if ($Patch.wallpaperDisplayMode -notin @('span', 'independent')) {
+      throw 'Invalid wallpaper display mode.'
+    }
+    $next.wallpaperDisplayMode = [string]$Patch.wallpaperDisplayMode
+  }
+
+  if ($Patch.PSObject.Properties.Name -contains 'monitorWallpapers') {
+    if ($null -eq $Patch.monitorWallpapers) {
+      throw 'Monitor wallpaper assignments must be an array.'
+    }
+
+    $entries = @($Patch.monitorWallpapers)
+    if ($entries.Count -gt 16) {
+      throw 'Too many monitor wallpaper assignments.'
+    }
+
+    $stored = @()
+    $seenIds = @{}
+
+    foreach ($entry in $entries) {
+      $id = 0
+      if (-not [int]::TryParse([string]$entry.monitorId, [ref]$id) -or
+          $id -lt 1 -or $id -gt 64 -or
+          $seenIds.ContainsKey($id)) {
+        throw 'Invalid or duplicate monitor identifier.'
+      }
+      $seenIds[$id] = $true
+
+      $name = [string]$entry.name
+      $type = [string]$entry.type
+      $data = $entry.data
+
+      if ([string]::IsNullOrWhiteSpace($name) -or $name.Length -gt 512) {
+        throw 'Invalid monitor wallpaper name.'
+      }
+      if ([string]::IsNullOrWhiteSpace($type) -or $type.Length -gt 128) {
+        throw 'Invalid monitor wallpaper type.'
+      }
+      if ($data -isnot [string] -or $data.Length -gt 139810132) {
+        throw 'Monitor wallpaper exceeds the 100 MB limit.'
+      }
+
+      $bytes = [Convert]::FromBase64String($data)
+      if ($bytes.Length -eq 0 -or $bytes.Length -gt 104857600) {
+        throw 'Monitor wallpaper is empty or exceeds 100 MB.'
+      }
+
+      $hash = Get-Sha256Hex $bytes
+      $fileName = "$hash.bin"
+      $imagePath = Join-Path $script:WallpaperDirectory $fileName
+
+      if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
+        $imageTemp = "$imagePath.$([guid]::NewGuid().ToString('N')).tmp"
+        try {
+          [IO.File]::WriteAllBytes($imageTemp, $bytes)
+          try {
+            [IO.File]::Move($imageTemp, $imagePath)
+          } catch {
+            if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
+              throw
+            }
+          }
+        } finally {
+          if (Test-Path -LiteralPath $imageTemp) {
+            Remove-Item -LiteralPath $imageTemp -Force
+          }
+        }
+      }
+
+      $stored += [PSCustomObject]@{
+        monitorId = $id
+        name = $name
+        type = $type
+        file = $fileName
+        hash = $hash
+      }
+    }
+
+    $next.monitorWallpapers = @($stored)
+  }
+
   $tempPath = "$($script:ConfigPath).$([guid]::NewGuid().ToString('N')).tmp"
   $json = ConvertTo-Json -InputObject $next -Depth 12 -Compress
   [IO.File]::WriteAllText($tempPath, $json, (New-Object System.Text.UTF8Encoding($false)))
@@ -477,8 +614,18 @@ function Install-StartupConfigurationIntoLively {
     wallpaperName = $Configuration.wallpaperName
     wallpaperType = $Configuration.wallpaperType
     wallpaperFile = $null
+
     wallpaperHash = $null
     settings = $Configuration.settings
+    wallpaperDisplayMode = if (
+      $Configuration.wallpaperDisplayMode -in @('span', 'independent')
+    ) {
+      $Configuration.wallpaperDisplayMode
+    } else {
+      'span'
+    }
+    monitorWallpapers = @()
+
   }
   if ($Configuration.wallpaperFile) {
     $storedWallpaper = Join-Path $script:WallpaperDirectory $Configuration.wallpaperFile
@@ -499,6 +646,64 @@ function Install-StartupConfigurationIntoLively {
     $manifest.wallpaperFile = $projectImageName
     $manifest.wallpaperHash = $Configuration.wallpaperHash
   }
+  
+  $installedMonitors = @()
+
+  foreach ($entry in @(
+    $Configuration.monitorWallpapers |
+      Where-Object { $null -ne $_ }
+  )) {
+    if ($entry.file -notmatch '^[a-f0-9]{64}\.bin$') {
+      throw 'Invalid monitor wallpaper file reference.'
+    }
+
+    $sourcePath = Join-Path $script:WallpaperDirectory $entry.file
+
+    if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+      throw "Monitor $($entry.monitorId) wallpaper file is missing."
+    }
+
+    $bytes = [IO.File]::ReadAllBytes($sourcePath)
+    $hash = Get-Sha256Hex $bytes
+
+    if ($hash -ne $entry.hash) {
+      throw "Monitor $($entry.monitorId) wallpaper hash mismatch."
+    }
+
+    $extension = switch -Regex ([string]$entry.type) {
+      '^image/jpeg$' { '.jpg'; break }
+      '^image/png$'  { '.png'; break }
+      '^image/webp$' { '.webp'; break }
+      '^image/gif$'  { '.gif'; break }
+      '^image/bmp$'  { '.bmp'; break }
+      default       { '.img' }
+    }
+
+    $projectImageName = "elucidator-wallpaper-$hash$extension"
+    $projectImagePath = Join-Path $projectDirectory $projectImageName
+
+    $needsWrite = $true
+
+    if (Test-Path -LiteralPath $projectImagePath -PathType Leaf) {
+      $existingBytes = [IO.File]::ReadAllBytes($projectImagePath)
+      $needsWrite = (Get-Sha256Hex $existingBytes) -ne $hash
+    }
+
+    if ($needsWrite) {
+      Write-AtomicBytes $projectImagePath $bytes
+    }
+
+    $installedMonitors += [PSCustomObject]@{
+      monitorId = [int]$entry.monitorId
+      name = [string]$entry.name
+      type = [string]$entry.type
+      file = $projectImageName
+      hash = $hash
+    }
+  }
+
+  $manifest.monitorWallpapers = @($installedMonitors)
+
   $changedManifest = $true
   Write-AtomicJson $manifestPath $manifest
   $changedCredential = $true
@@ -1289,8 +1494,29 @@ function Handle-Client {
     if ($request.Method -eq 'GET' -and $request.Path -eq '/api/startup-config') {
       try {
         $config = Get-StartupConfiguration
-        $publicConfig = [PSCustomObject]@{ version = 1; theme = $config.theme; wallpaperName = $config.wallpaperName; wallpaperType = $config.wallpaperType; wallpaperData = $config.wallpaperData; settings = $config.settings; wallpaperError = $config.wallpaperError }
-        $payload = ConvertTo-Json -InputObject @{ available = [bool]($config.theme -or $config.wallpaperName); configuration = $publicConfig } -Depth 12 -Compress
+        
+        $publicConfig = [PSCustomObject]@{
+          version = 1
+          theme = $config.theme
+          wallpaperName = $config.wallpaperName
+          wallpaperType = $config.wallpaperType
+          wallpaperData = $config.wallpaperData
+          wallpaperError = $config.wallpaperError
+          settings = $config.settings
+          wallpaperDisplayMode = $config.wallpaperDisplayMode
+          monitorWallpapers = @($config.monitorWallpapers)
+        }
+
+        
+        $payload = ConvertTo-Json -InputObject @{
+          available = [bool](
+            $config.theme -or
+            $config.wallpaperName -or
+            $config.wallpaperDisplayMode -eq 'independent'
+          )
+          configuration = $publicConfig
+        } -Depth 12 -Compress
+
         Write-HttpResponse $stream 200 $payload $origin
       } catch {
         $message = ConvertTo-Json -InputObject ('STARTUP CONFIGURATION ERROR · ' + $_.Exception.Message) -Compress

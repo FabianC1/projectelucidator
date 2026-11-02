@@ -267,21 +267,103 @@ export async function readDurableStartupConfiguration() {
   return result.available ? result.configuration ?? null : null
 }
 
-export async function readWallpaperStartupManifest(): Promise<(StartupConfiguration & { wallpaperBlob?: Blob }) | null> {
-  const response = await fetch(new URL('./elucidator-startup.json', window.location.href), { cache: 'no-store' })
-  if (!response.ok || !response.headers.get('content-type')?.includes('json')) return null
-  const manifest = await response.json() as StartupConfiguration & { wallpaperFile?: string; wallpaperHash?: string }
-  if (!manifest.wallpaperFile || !/^elucidator-wallpaper-[a-f0-9]{64}\.(jpg|png|webp|gif|bmp|img)$/.test(manifest.wallpaperFile)) return manifest
-  const imageResponse = await fetch(new URL(manifest.wallpaperFile, window.location.href), { cache: 'no-store' })
-  if (!imageResponse.ok) throw new Error(`INSTALLED STARTUP IMAGE COULD NOT BE READ · HTTP ${imageResponse.status}`)
-  const blob = await imageResponse.blob()
-  if (globalThis.crypto?.subtle && manifest.wallpaperHash) {
-    const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
-    const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
-    if (hash !== manifest.wallpaperHash) throw new Error('INSTALLED STARTUP IMAGE FAILED ITS INTEGRITY CHECK')
+
+export async function readWallpaperStartupManifest(): Promise<
+  (StartupConfiguration & { wallpaperBlob?: Blob }) | null
+> {
+  const response = await fetch(
+    new URL('./elucidator-startup.json', window.location.href),
+    { cache: 'no-store' }
+  )
+
+  if (!response.ok) return null
+
+  const manifest = await response.json() as StartupConfiguration & {
+    wallpaperFile?: string
+    wallpaperHash?: string
+    monitorWallpapers?: Array<{
+      monitorId: number
+      name: string
+      type: string
+      file: string
+      hash: string
+    }>
   }
-  return { ...manifest, wallpaperBlob: blob }
+
+  const validFile = /^elucidator-wallpaper-[a-f0-9]{64}\.(jpg|png|webp|gif|bmp|img)$/
+
+  const readImage = async (file: string, expectedHash: string): Promise<Blob> => {
+    if (!validFile.test(file)) {
+      throw new Error('INVALID INSTALLED WALLPAPER FILENAME')
+    }
+
+    const imageResponse = await fetch(
+      new URL(file, window.location.href),
+      { cache: 'no-store' }
+    )
+
+    if (!imageResponse.ok) {
+      throw new Error(`INSTALLED WALLPAPER MISSING · HTTP ${imageResponse.status}`)
+    }
+
+    const blob = await imageResponse.blob()
+
+    if (!globalThis.crypto?.subtle) {
+      throw new Error('WALLPAPER INTEGRITY VERIFICATION UNAVAILABLE')
+    }
+
+    const digest = await crypto.subtle.digest(
+      'SHA-256',
+      await blob.arrayBuffer()
+    )
+
+    const hash = Array.from(
+      new Uint8Array(digest),
+      byte => byte.toString(16).padStart(2, '0')
+    ).join('')
+
+    if (hash !== expectedHash) {
+      throw new Error('INSTALLED WALLPAPER FAILED INTEGRITY CHECK')
+    }
+
+    return blob
+  }
+
+  let wallpaperBlob: Blob | undefined
+
+  if (manifest.wallpaperFile) {
+    wallpaperBlob = await readImage(
+      manifest.wallpaperFile,
+      manifest.wallpaperHash ?? ''
+    )
+  }
+
+  const monitorWallpapers: StoredMonitorWallpaper[] = []
+
+  for (const entry of manifest.monitorWallpapers ?? []) {
+    const blob = await readImage(entry.file, entry.hash)
+    const bytes = new Uint8Array(await blob.arrayBuffer())
+
+    let binary = ''
+    for (let i = 0; i < bytes.length; i += 8192) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + 8192))
+    }
+
+    monitorWallpapers.push({
+      monitorId: entry.monitorId,
+      name: entry.name,
+      type: entry.type,
+      data: btoa(binary),
+    })
+  }
+
+  return {
+    ...manifest,
+    wallpaperBlob,
+    monitorWallpapers,
+  }
 }
+
 
 export async function readPrivateCredentialBootstrap(): Promise<string> {
   const filename = 'elucidator-private-bootstrap.json'

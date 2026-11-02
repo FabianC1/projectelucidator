@@ -1857,11 +1857,47 @@ function App() {
             installIntoLively: true,
           })
           if (!saved.saved) throw new Error('HELPER DID NOT CONFIRM THE DURABLE CONFIGURATION SAVE')
+
           const verified = await readDurableStartupConfiguration()
-          if (!verified || verified.theme !== theme || verified.wallpaperName !== wallpaperName ||
-            verified.settings?.animationMirror !== animationMirror || verified.settings?.sequenceMirror !== sequenceMirror) {
-            throw new Error('HELPER CONFIGURATION READBACK DID NOT MATCH THE SAVED STATE')
+
+          if (
+            !verified ||
+            verified.theme !== theme ||
+            verified.wallpaperName !== wallpaperName ||
+            verified.settings?.animationMirror !== animationMirror ||
+            verified.settings?.sequenceMirror !== sequenceMirror ||
+            verified.wallpaperDisplayMode !== wallpaperDisplayMode
+          ) {
+            throw new Error(
+              'HELPER CONFIGURATION READBACK DID NOT MATCH THE SAVED STATE'
+            )
           }
+
+          const restoredMonitors = verified.monitorWallpapers ?? []
+
+          if (restoredMonitors.length !== savedMonitorWallpapers.length) {
+            throw new Error(
+              'SAVED MONITOR WALLPAPER COUNT DOES NOT MATCH'
+            )
+          }
+
+          for (const expected of savedMonitorWallpapers) {
+            const actual = restoredMonitors.find(
+              item => item.monitorId === expected.monitorId
+            )
+
+            if (
+              !actual ||
+              actual.name !== expected.name ||
+              actual.type !== expected.type ||
+              actual.data !== expected.data
+            ) {
+              throw new Error(
+                `MONITOR ${expected.monitorId} WALLPAPER SAVE VERIFICATION FAILED`
+              )
+            }
+          }
+
           try { await writeDefaultWallpaper({ name: wallpaperName, blob }) }
           catch (error) { setStorageIssue('startup wallpaper browser cache write', error) }
           setDefaultWallpaperName(wallpaperName)
