@@ -725,6 +725,57 @@ function App() {
   const [monitorViewports, setMonitorViewports] =
     useState<MonitorViewport[]>([])
 
+
+  const [monitorWallpaperUrls, setMonitorWallpaperUrls] =
+    useState<Record<number, string>>({})
+
+  useEffect(() => {
+    const urls: Record<number, string> = {}
+
+    for (const [id, wallpaper] of Object.entries(monitorWallpapers)) {
+      urls[Number(id)] = URL.createObjectURL(wallpaper.blob)
+    }
+
+    setMonitorWallpaperUrls(urls)
+
+    return () => {
+      for (const url of Object.values(urls)) {
+        URL.revokeObjectURL(url)
+      }
+    }
+  }, [monitorWallpapers])
+
+
+  useEffect(() => {
+    if (wallpaperDisplayMode !== 'independent') {
+      setMonitorViewports([])
+      return
+    }
+
+    let cancelled = false
+
+    const detect = async () => {
+      const token = brightnessToken || getBrightnessToken()
+      const viewports = await detectSequenceViewports(token)
+
+      if (cancelled) return
+
+      setMonitorViewports(
+        (viewports ?? []).map((viewport, index) => ({
+          id: index + 1,
+          ...viewport,
+        }))
+      )
+    }
+
+    void detect()
+
+    return () => {
+      cancelled = true
+    }
+  }, [wallpaperDisplayMode, brightnessToken])
+
+
   const [wallpaperTargetMonitor, setWallpaperTargetMonitor] =
     useState<number | null>(null)
   const [animationMirror, setAnimationMirror] = useState<boolean>(() => {
@@ -2352,6 +2403,50 @@ function App() {
           report(['WALLPAPER FIT UPDATED', `MODE .................. ${requested === 'span' ? 'SPAN / PANORAMIC' : requested.toUpperCase()}`, requested === 'span' ? 'FULL IMAGE FITS THE COMBINED SPAN VIEWPORT.' : 'APPLIES TO THE ACTIVE AND FUTURE WALLPAPERS.'])
           setStatus(`WALLPAPER FIT · ${requested.toUpperCase()}`)
         }
+
+      } else if (action === 'display') {
+        const requested = args[2]
+
+        if (!requested || requested === 'status') {
+          report([
+            'WALLPAPER DISPLAY CONTROL',
+            `MODE .................. ${wallpaperDisplayMode.toUpperCase()}`,
+            `DETECTED REGIONS ...... ${monitorViewports.length}`,
+            ...[1, 2].map((id) =>
+              `MONITOR ${id} ............. ${monitorWallpapers[id]?.name.toUpperCase() ?? 'NOT ASSIGNED'
+              }`
+            ),
+            'MODES · SPAN | INDEPENDENT',
+            'SELECT · SYS WALLPAPER SELECT <MONITOR NUMBER>',
+          ])
+          setStatus(`WALLPAPER DISPLAY · ${wallpaperDisplayMode.toUpperCase()}`)
+        } else if (
+          args.length !== 3 ||
+          !['span', 'independent'].includes(requested)
+        ) {
+          report([
+            'WALLPAPER DISPLAY ERROR',
+            'USE SYS WALLPAPER DISPLAY [SPAN|INDEPENDENT|STATUS]',
+          ])
+          setStatus('INVALID WALLPAPER DISPLAY MODE')
+        } else {
+          setWallpaperDisplayMode(requested as WallpaperDisplayMode)
+          setWallpaperTargetMonitor(null)
+
+          report([
+            'WALLPAPER DISPLAY UPDATED',
+            `MODE .................. ${requested.toUpperCase()}`,
+            requested === 'independent'
+              ? 'EACH MONITOR CAN USE ITS OWN IMAGE.'
+              : 'ONE WALLPAPER ACROSS THE ENTIRE VIEWPORT.',
+            requested === 'independent'
+              ? 'NEXT · SYS WALLPAPER SELECT 1 OR 2'
+              : 'EXISTING GLOBAL WALLPAPER RESTORED.',
+          ])
+
+          setStatus(`WALLPAPER DISPLAY · ${requested.toUpperCase()}`)
+        }
+
       } else if (action === 'scan') {
         if (!wallpaperUrl) {
           report(['WALLPAPER SCAN', 'NO ACTIVE WALLPAPER · USE SYS WALLPAPER SELECT'])
@@ -2363,7 +2458,59 @@ function App() {
           report(['WALLPAPER SCAN', `TARGET ................. ${wallpaperName.toUpperCase()}`, 'IMAGE BUFFER ........... SYNCHRONIZING', 'VISUAL LAYER ........... MATERIALIZING'])
           setStatus('WALLPAPER SCAN STARTED')
         }
+
       } else if (action === 'select') {
+        const target = args[2]
+
+        if (args.length > 3) {
+          report([
+            'WALLPAPER SELECTION ERROR',
+            'USE SYS WALLPAPER SELECT [1|2]',
+          ])
+        } else if (target !== undefined) {
+          const monitorId = Number(target)
+
+          if (
+            !Number.isInteger(monitorId) ||
+            !monitorViewports.some((viewport) => viewport.id === monitorId) ||
+            wallpaperDisplayMode !== 'independent'
+          ) {
+            report([
+              'WALLPAPER MONITOR ERROR',
+              'ENABLE INDEPENDENT MODE FIRST.',
+              'USE SYS WALLPAPER DISPLAY INDEPENDENT',
+              'THEN SYS WALLPAPER SELECT 1 OR 2',
+              `AVAILABLE MONITORS .... ${monitorViewports.length}`,
+            ])
+            setStatus('MONITOR SELECTION UNAVAILABLE')
+          } else {
+            setWallpaperTargetMonitor(monitorId)
+            report([
+              'MONITOR WALLPAPER SELECTION',
+              `TARGET ................ MONITOR ${monitorId}`,
+              'SELECT AN IMAGE FROM YOUR COMPUTER.',
+            ])
+            openFilePicker()
+          }
+        } else if (wallpaperDisplayMode === 'independent') {
+          report([
+            'INDEPENDENT WALLPAPER MODE',
+            'SPECIFY WHICH MONITOR TO UPDATE.',
+            'SYS WALLPAPER SELECT 1',
+            'SYS WALLPAPER SELECT 2',
+          ])
+          setStatus('MONITOR NUMBER REQUIRED')
+        } else {
+          setWallpaperTargetMonitor(null)
+          report([
+            'WALLPAPER CONTROL',
+            `CURRENT ............... ${wallpaperUrl ? wallpaperName.toUpperCase() : 'NONE'
+            }`,
+            'SELECT IMAGE .......... READY',
+          ])
+          openFilePicker()
+        }
+
         report(['WALLPAPER CONTROL', `CURRENT ................ ${wallpaperUrl ? wallpaperName.toUpperCase() : 'NONE'}`, 'SELECT IMAGE ........... READY'])
         openFilePicker()
       } else if (action === 'list') {
@@ -2878,6 +3025,47 @@ function App() {
     event.currentTarget.value = ''
     if (!file) return
 
+
+    const targetMonitor = wallpaperTargetMonitor
+
+    if (
+      wallpaperDisplayMode === 'independent' &&
+      targetMonitor !== null
+    ) {
+      const temporaryUrl = URL.createObjectURL(file)
+
+      setStatus(`DECODING MONITOR ${targetMonitor} WALLPAPER`)
+
+      try {
+        await decodeImage(temporaryUrl)
+
+        setMonitorWallpapers((current) => ({
+          ...current,
+          [targetMonitor]: {
+            monitorId: targetMonitor,
+            name: file.name,
+            blob: file,
+          },
+        }))
+
+        setStatus(
+          `MONITOR ${targetMonitor} WALLPAPER · ${file.name.toUpperCase()}`
+        )
+      } catch (error) {
+        setStatus(
+          error instanceof Error
+            ? error.message.toUpperCase()
+            : 'MONITOR WALLPAPER LOAD FAILED'
+        )
+      } finally {
+        URL.revokeObjectURL(temporaryUrl)
+        setWallpaperTargetMonitor(null)
+      }
+
+      return
+    }
+
+
     const nextUrl = URL.createObjectURL(file)
     setStatus('DECODING WALLPAPER…')
     try {
@@ -3062,16 +3250,64 @@ function App() {
 
   return (
     <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${!ready || !startupConfigHydrated || booting ? ' startup-interface-locked' : ''}${standbyActive ? ' reveal-standby-active' : ''}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
+
       {wallpaperUrl && (
         <img
           key={`wallpaper-${bootToken}`}
-          className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready ? ' is-loading' : booting && !standbyActive ? ' is-booting' : ' is-ready'}`}
+          className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready
+              ? ' is-loading'
+              : booting && !standbyActive
+                ? ' is-booting'
+                : ' is-ready'
+            }`}
           src={wallpaperUrl}
           alt={wallpaperName}
           onLoad={() => setWallpaperMediaReady(true)}
-          onError={() => { setWallpaperMediaReady(true); setRevealComplete(true) }}
+          onError={() => {
+            setWallpaperMediaReady(true)
+            setRevealComplete(true)
+          }}
         />
       )}
+
+      {wallpaperDisplayMode === 'independent' &&
+        monitorViewports.map((viewport) => {
+          const imageUrl = monitorWallpaperUrls[viewport.id]
+
+          if (!imageUrl) return null
+
+          return (
+            <div
+              key={`monitor-region-${viewport.id}`}
+              style={{
+                position: 'absolute',
+                left: viewport.left,
+                top: viewport.top,
+                width: viewport.width,
+                height: viewport.height,
+                overflow: 'hidden',
+                zIndex: 0,
+                pointerEvents: 'none',
+              }}
+            >
+              <img
+                src={imageUrl}
+                alt={`Monitor ${viewport.id} wallpaper`}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '100%',
+                  objectFit:
+                    wallpaperFit === 'stretch'
+                      ? 'fill'
+                      : wallpaperFit === 'contain'
+                        ? 'contain'
+                        : 'cover',
+                }}
+              />
+            </div>
+          )
+        })}
 
       {specialEffect && (
         <div key={specialEffect.id} className={`special-effect effect-${specialEffect.kind}${animationMirrorClass}`} aria-hidden="true">
