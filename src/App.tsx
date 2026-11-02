@@ -717,16 +717,16 @@ function App() {
     } catch (error) { startupStorageErrors['wallpaper fit restore'] = describeStorageError(error); return 'cover' }
   })
   const [wallpaperDisplayMode, setWallpaperDisplayMode] =
-  useState<WallpaperDisplayMode>('span')
+    useState<WallpaperDisplayMode>('span')
 
-const [monitorWallpapers, setMonitorWallpapers] =
-  useState<Record<number, MonitorWallpaper>>({})
+  const [monitorWallpapers, setMonitorWallpapers] =
+    useState<Record<number, MonitorWallpaper>>({})
 
-const [monitorViewports, setMonitorViewports] =
-  useState<MonitorViewport[]>([])
+  const [monitorViewports, setMonitorViewports] =
+    useState<MonitorViewport[]>([])
 
-const [wallpaperTargetMonitor, setWallpaperTargetMonitor] =
-  useState<number | null>(null)
+  const [wallpaperTargetMonitor, setWallpaperTargetMonitor] =
+    useState<number | null>(null)
   const [animationMirror, setAnimationMirror] = useState<boolean>(() => {
     try { return localStorage.getItem(ANIMATION_MIRROR_KEY) === 'true' } catch (error) { startupStorageErrors['animation preference restore'] = describeStorageError(error); return false }
   })
