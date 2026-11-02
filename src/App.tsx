@@ -632,14 +632,49 @@ const COMMAND_COMPLETIONS = [
   'sys grimoire', 'sys limitless',
   'sys hinokami kagura', 'sys demon mode', 'sys httyd', 'sys night fury', 'sys kagune', 'sys stealth', 'sys help', 'help',
   'visual list', 'visual haze', 'visual rain', 'visual lightning', 'visual particles', 'visual vignette', 'visual off', 'visual status',
+
+  'sys wallpaper display',
+  'sys wallpaper display span',
+  'sys wallpaper display independent',
+  'sys wallpaper display status',
+  'sys wallpaper select 1',
+  'sys wallpaper select 2',
+
 ]
 
 function findCommandCompletions(value: string, savedWallpaperCount = 0) {
   const prefix = value.toLowerCase().replace(/\s+/g, ' ')
-  if (/^visual\s+$/.test(prefix)) return COMMAND_COMPLETIONS.filter((candidate) => candidate.startsWith('visual '))
-  if (/^sys wallpaper\s+$/.test(prefix)) {
-    return ['current', 'select', 'list', 'next', 'previous', 'scan', 'fit', 'default'].map((action) => `sys wallpaper ${action}`)
+
+  // Independent monitor wallpaper commands
+  if (/^sys wallpaper display\s+$/.test(prefix)) {
+    return ['span', 'independent', 'status'].map(
+      (mode) => `sys wallpaper display ${mode}`
+    )
   }
+
+  if (/^sys wallpaper select\s+$/.test(prefix)) {
+    return [
+      'sys wallpaper select 1',
+      'sys wallpaper select 2',
+    ]
+  }
+
+  if (/^visual\s+$/.test(prefix)) return COMMAND_COMPLETIONS.filter((candidate) => candidate.startsWith('visual '))
+
+  if (/^sys wallpaper\s+$/.test(prefix)) {
+    return [
+      'current',
+      'select',
+      'display',
+      'list',
+      'next',
+      'previous',
+      'scan',
+      'fit',
+      'default',
+    ].map((action) => `sys wallpaper ${action}`)
+  }
+
   if (/^sys wallpaper default\s+$/.test(prefix)) return ['set', 'select', 'clear'].map((action) => `sys wallpaper default ${action}`)
   if (/^sys wallpaper default select\s+$/.test(prefix)) return Array.from({ length: savedWallpaperCount }, (_, index) => `sys wallpaper default select ${index + 1}`)
   if (/^sys theme\s+$/.test(prefix)) return ['list', 'activate', 'feature', 'default'].map((action) => `sys theme ${action}`)
@@ -2837,7 +2872,7 @@ function App() {
           })
           if (common.length > value.length) completed = common
           else completed = candidates[index]
-          index = candidates.indexOf(completed)
+          index = Math.max(0, candidates.indexOf(completed))
         }
       }
 
@@ -3255,10 +3290,10 @@ function App() {
         <img
           key={`wallpaper-${bootToken}`}
           className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready
-              ? ' is-loading'
-              : booting && !standbyActive
-                ? ' is-booting'
-                : ' is-ready'
+            ? ' is-loading'
+            : booting && !standbyActive
+              ? ' is-booting'
+              : ' is-ready'
             }`}
           src={wallpaperUrl}
           alt={wallpaperName}
