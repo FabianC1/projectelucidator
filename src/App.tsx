@@ -42,6 +42,21 @@ function startupWallpaperFromConfig(configuration: StartupConfiguration): SavedW
 type SystemMode = 'NORMAL' | 'STEALTH' | 'COMBAT' | 'IDLE' | 'DIAGNOSTIC'
 type VisualTheme = 'off' | 'haze' | 'rain' | 'lightning' | 'particles' | 'vignette'
 type WallpaperFit = 'cover' | 'contain' | 'stretch' | 'span'
+type WallpaperDisplayMode = 'span' | 'independent'
+
+type MonitorWallpaper = {
+  monitorId: number
+  name: string
+  blob: Blob
+}
+
+type MonitorViewport = {
+  id: number
+  left: number
+  top: number
+  width: number
+  height: number
+}
 type SpecialEffect = { kind: string; id: number }
 type WidgetPosition = { x: number; y: number; width?: number }
 type WidgetPositions = Record<number, WidgetPosition>
@@ -701,6 +716,17 @@ function App() {
       return saved && WALLPAPER_FITS.includes(saved) ? saved : 'cover'
     } catch (error) { startupStorageErrors['wallpaper fit restore'] = describeStorageError(error); return 'cover' }
   })
+  const [wallpaperDisplayMode, setWallpaperDisplayMode] =
+  useState<WallpaperDisplayMode>('span')
+
+const [monitorWallpapers, setMonitorWallpapers] =
+  useState<Record<number, MonitorWallpaper>>({})
+
+const [monitorViewports, setMonitorViewports] =
+  useState<MonitorViewport[]>([])
+
+const [wallpaperTargetMonitor, setWallpaperTargetMonitor] =
+  useState<number | null>(null)
   const [animationMirror, setAnimationMirror] = useState<boolean>(() => {
     try { return localStorage.getItem(ANIMATION_MIRROR_KEY) === 'true' } catch (error) { startupStorageErrors['animation preference restore'] = describeStorageError(error); return false }
   })
