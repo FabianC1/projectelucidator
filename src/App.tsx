@@ -639,6 +639,7 @@ const COMMAND_COMPLETIONS = [
   'sys wallpaper display status',
   'sys wallpaper select 1',
   'sys wallpaper select 2',
+  'sys wallpaper swap',
 
 ]
 
@@ -666,6 +667,7 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0) {
       'current',
       'select',
       'display',
+      'swap',
       'list',
       'next',
       'previous',
@@ -2349,7 +2351,9 @@ function App() {
       }
 
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS TEST · REPLAY THE SYSTEM BOOT SEQUENCE', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS LAUNCH [LIST|STATUS|WARFRAME|VSCODE|CHROME|ROBLOX|NETFLIX|ALECAFRAME]', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS SEQUENCE MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
+      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS TEST · REPLAY THE SYSTEM BOOT SEQUENCE', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]','SYS WALLPAPER DISPLAY [SPAN|INDEPENDENT|STATUS]',
+'SYS WALLPAPER SELECT [1|2] · ASSIGN MONITOR WALLPAPER',
+'SYS WALLPAPER SWAP · EXCHANGE MONITOR 1 AND 2 IMAGES','SYS WALLPAPER SWAP · EXCHANGE MONITOR 1 AND 2 IMAGES', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS LAUNCH [LIST|STATUS|WARFRAME|VSCODE|CHROME|ROBLOX|NETFLIX|ALECAFRAME]', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS SEQUENCE MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       activateTheme('dragon', 'night-fury-stealth')
@@ -2520,6 +2524,41 @@ function App() {
           report(['WALLPAPER FIT UPDATED', `MODE .................. ${requested === 'span' ? 'SPAN / PANORAMIC' : requested.toUpperCase()}`, requested === 'span' ? 'FULL IMAGE FITS THE COMBINED SPAN VIEWPORT.' : 'APPLIES TO THE ACTIVE AND FUTURE WALLPAPERS.'])
           setStatus(`WALLPAPER FIT · ${requested.toUpperCase()}`)
         }
+
+      } else if (action === 'swap' && args.length === 2) {
+        if (wallpaperDisplayMode !== 'independent') {
+          report([
+            'WALLPAPER SWAP UNAVAILABLE',
+            'ENABLE INDEPENDENT MODE FIRST.',
+            'SYS WALLPAPER DISPLAY INDEPENDENT',
+          ])
+          setStatus('WALLPAPER SWAP REQUIRES INDEPENDENT MODE')
+        } else if (!monitorWallpapers[1] || !monitorWallpapers[2]) {
+          report([
+            'WALLPAPER SWAP UNAVAILABLE',
+            'BOTH MONITORS NEED ASSIGNED WALLPAPERS.',
+            'SYS WALLPAPER SELECT 1 OR 2',
+          ])
+          setStatus('WALLPAPER SWAP · MISSING ASSIGNMENT')
+        } else {
+          const first = monitorWallpapers[1]
+          const second = monitorWallpapers[2]
+
+          setMonitorWallpapers((current) => ({
+            ...current,
+            1: { ...second, monitorId: 1 },
+            2: { ...first, monitorId: 2 },
+          }))
+
+          report([
+            'WALLPAPER ASSIGNMENTS SWAPPED',
+            `MONITOR 1 ............. ${second.name.toUpperCase()}`,
+            `MONITOR 2 ............. ${first.name.toUpperCase()}`,
+            'RUN ADMIN SYS CONFIG SAVE TO KEEP THIS AFTER RESTART.',
+          ])
+          setStatus('MONITOR WALLPAPERS SWAPPED')
+        }
+
 
       } else if (action === 'display') {
         const requested = args[2]
