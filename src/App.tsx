@@ -953,6 +953,20 @@ function App() {
     else storageErrorsRef.current[area] = describeStorageError(error)
   }, [])
   const [consoleLines, setConsoleLines] = useState<string[]>(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
+  // Browser previews can have an unavailable helper or a stalled IndexedDB
+  // request. Never leave the wallpaper in an opaque boot state indefinitely.
+  useEffect(() => {
+    if (startupConfigHydrated) return
+    const timer = window.setTimeout(() => {
+      setStorageIssue('startup hydration', new Error('Startup restore timed out; running with local defaults.'))
+      setWallpaperMediaReady(true)
+      setRevealComplete(true)
+      setStartupConfigHydrated(true)
+      setReady(true)
+      setStatus('STARTUP RECOVERY · LOCAL PREVIEW READY')
+    }, 7000)
+    return () => window.clearTimeout(timer)
+  }, [setStorageIssue, startupConfigHydrated])
   const handleBootStandby = useCallback(() => {
     setRevealComplete(true)
     setStandbyActive(true)
