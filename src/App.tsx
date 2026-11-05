@@ -654,8 +654,47 @@ const COMMAND_COMPLETIONS = [
   'sys wallpaper video select', 'sys wallpaper video select 1', 'sys wallpaper video select 2',
   'sys wallpaper video play', 'sys wallpaper video pause', 'sys wallpaper video mute', 'sys wallpaper video unmute',
   'sys wallpaper video loop on', 'sys wallpaper video loop off', 'sys wallpaper video status',
+  'sys help', 'help', '?',
 
 ]
+
+const HELP_PAGES = [
+  [
+    'ELUCIDATOR // MAINFRAME · HELP 1/2',
+    'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]',
+    'SYS TEST · REPLAY THE SYSTEM BOOT SEQUENCE',
+    'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]',
+    'SYS THEME [LIST|ACTIVATE] · SYS THEME DEFAULT [SET|SELECT]',
+    'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP',
+    'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]',
+    'SYS WALLPAPER DISPLAY [SPAN|INDEPENDENT|STATUS]',
+    'SYS WALLPAPER SELECT [1|2] · ASSIGN MONITOR WALLPAPER',
+    'SYS WALLPAPER SWAP · EXCHANGE MONITOR 1 AND 2 IMAGES',
+    'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME',
+    'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100> · SYS LOCK',
+    'SYS LAUNCH [LIST|STATUS|WARFRAME|VSCODE|CHROME|ROBLOX|NETFLIX|ALECAFRAME]',
+    'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF · SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]',
+    'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS · SYS HINOKAMI KAGURA · SYS DEMON MODE · SYS HTTYD · SYS KAGUNE · SYS STEALTH',
+    'ARROW RIGHT → WALLPAPER VIDEO COMMANDS',
+  ],
+  [
+    'ELUCIDATOR // WALLPAPER VIDEO · HELP 2/2',
+    'VIDEO FILES ........... MP4 OR WEBM · MUTED BY DEFAULT · 100 MB MAXIMUM',
+    'SYS WALLPAPER VIDEO SELECT',
+    '  IMPORT ONE SPAN VIDEO FOR THE WHOLE VIRTUAL DESKTOP.',
+    'SYS WALLPAPER DISPLAY INDEPENDENT',
+    'SYS WALLPAPER VIDEO SELECT 1 · ASSIGN VIDEO TO MONITOR 1',
+    'SYS WALLPAPER VIDEO SELECT 2 · ASSIGN VIDEO TO MONITOR 2',
+    'SYS WALLPAPER SELECT 1|2 · ASSIGN A STATIC IMAGE TO EITHER MONITOR',
+    'MIXED MEDIA ........... IMAGE/VIDEO PER MONITOR IS SUPPORTED',
+    'SYS WALLPAPER VIDEO PLAY | PAUSE',
+    'SYS WALLPAPER VIDEO MUTE | UNMUTE',
+    'SYS WALLPAPER VIDEO LOOP ON | LOOP OFF',
+    'SYS WALLPAPER VIDEO STATUS',
+    'ADMIN SYS CONFIG SAVE · PERSIST FILE-BACKED MEDIA + VIDEO PREFERENCES',
+    'ARROW LEFT → MAIN COMMAND INDEX',
+  ],
+] as const
 
 function findCommandCompletions(value: string, savedWallpaperCount = 0) {
   const prefix = value.toLowerCase().replace(/\s+/g, ' ')
@@ -692,7 +731,7 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0) {
     ].map((action) => `sys wallpaper ${action}`)
   }
   if (/^sys wallpaper video\s+$/.test(prefix)) return ['select', 'play', 'pause', 'mute', 'unmute', 'loop', 'status'].map((action) => `sys wallpaper video ${action}`)
-  if (/^sys wallpaper video select\s+$/.test(prefix)) return ['sys wallpaper video select 1', 'sys wallpaper video select 2']
+  if (/^sys wallpaper video select\s+$/.test(prefix)) return ['sys wallpaper video select', 'sys wallpaper video select 1', 'sys wallpaper video select 2']
   if (/^sys wallpaper video loop\s+$/.test(prefix)) return ['sys wallpaper video loop on', 'sys wallpaper video loop off']
 
   if (/^sys wallpaper default\s+$/.test(prefix)) return ['set', 'select', 'clear'].map((action) => `sys wallpaper default ${action}`)
@@ -953,6 +992,7 @@ function App() {
     else storageErrorsRef.current[area] = describeStorageError(error)
   }, [])
   const [consoleLines, setConsoleLines] = useState<string[]>(['ELUCIDATOR // MAINFRAME', 'SYSTEM ONLINE · WALLPAPER READY', 'ENTER SYS HELP FOR COMMANDS.'])
+  const [helpPage, setHelpPage] = useState<0 | 1 | null>(null)
   // Browser previews can have an unavailable helper or a stalled IndexedDB
   // request. Never leave the wallpaper in an opaque boot state indefinitely.
   useEffect(() => {
@@ -1855,6 +1895,7 @@ function App() {
 
     const args = normalized.replace(/^sys\s*/, '').split(' ').filter(Boolean)
     const [domain, action] = args
+    if (!['help', 'sys help', '?'].includes(normalized)) setHelpPage(null)
     const activateTheme = (nextTheme: ThemeId, effect: SpecialEffect['kind']) => {
       const isThemeChange = theme !== nextTheme
       setTheme(nextTheme)
@@ -2438,11 +2479,9 @@ function App() {
       }
 
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
-      report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS TEST · REPLAY THE SYSTEM BOOT SEQUENCE', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]','SYS WALLPAPER DISPLAY [SPAN|INDEPENDENT|STATUS]',
-'SYS WALLPAPER SELECT [1|2] · ASSIGN MONITOR WALLPAPER',
-'SYS WALLPAPER VIDEO SELECT [MONITOR] · MP4/WEBM IMPORT', 'SYS WALLPAPER VIDEO [PLAY|PAUSE|MUTE|UNMUTE|LOOP ON|OFF|STATUS]',
-'SYS WALLPAPER SWAP · EXCHANGE MONITOR 1 AND 2 IMAGES','SYS WALLPAPER SWAP · EXCHANGE MONITOR 1 AND 2 IMAGES', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS LAUNCH [LIST|STATUS|WARFRAME|VSCODE|CHROME|ROBLOX|NETFLIX|ALECAFRAME]', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS SEQUENCE MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
-      setStatus('SYSTEM HELP · COMMAND INDEX')
+      setHelpPage(0)
+      report([...HELP_PAGES[0]])
+      setStatus('SYSTEM HELP · PAGE 1 OF 2')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
       activateTheme('dragon', 'night-fury-stealth')
       setNightStealth(false)
@@ -3082,6 +3121,14 @@ function App() {
   }
 
   const handleCommandKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && helpPage !== null) {
+      event.preventDefault()
+      const nextPage: 0 | 1 = event.key === 'ArrowRight' ? (helpPage === 0 ? 1 : 0) : (helpPage === 1 ? 0 : 1)
+      setHelpPage(nextPage)
+      setConsoleLines([...HELP_PAGES[nextPage]])
+      setStatus(`SYSTEM HELP · PAGE ${nextPage + 1} OF 2`)
+      return
+    }
     if (event.key === 'Tab' && !event.shiftKey) {
       event.preventDefault()
       const value = event.currentTarget.value
