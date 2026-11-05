@@ -299,11 +299,18 @@ function Get-StartupConfiguration {
       if ($config.wallpaperFile -notmatch '^[a-f0-9]{64}\.bin$') { throw 'Invalid saved wallpaper identifier.' }
       $imagePath = Join-Path $script:WallpaperDirectory $config.wallpaperFile
       if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) { throw 'Saved wallpaper image is missing.' }
-      $bytes = [IO.File]::ReadAllBytes($imagePath)
-      $hash = Get-Sha256Hex $bytes
-      if ($hash -ne $config.wallpaperHash) { throw 'Saved wallpaper image integrity check failed.' }
-      $config | Add-Member -NotePropertyName wallpaperData -NotePropertyValue ([Convert]::ToBase64String($bytes)) -Force
-      $config | Add-Member -NotePropertyName wallpaperError -NotePropertyValue $null -Force
+      if ($config.wallpaperType -like 'video/*') {
+        # The installed manifest verifies the video lazily. Do not hash/read a
+        # large movie just to answer the small startup-config metadata request.
+        $config | Add-Member -NotePropertyName wallpaperData -NotePropertyValue $null -Force
+        $config | Add-Member -NotePropertyName wallpaperError -NotePropertyValue $null -Force
+      } else {
+        $bytes = [IO.File]::ReadAllBytes($imagePath)
+        $hash = Get-Sha256Hex $bytes
+        if ($hash -ne $config.wallpaperHash) { throw 'Saved wallpaper image integrity check failed.' }
+        $config | Add-Member -NotePropertyName wallpaperData -NotePropertyValue ([Convert]::ToBase64String($bytes)) -Force
+        $config | Add-Member -NotePropertyName wallpaperError -NotePropertyValue $null -Force
+      }
     } catch {
       $config | Add-Member -NotePropertyName wallpaperData -NotePropertyValue $null -Force
       $config | Add-Member -NotePropertyName wallpaperError -NotePropertyValue $_.Exception.Message -Force
@@ -328,6 +335,11 @@ function Get-StartupConfiguration {
       throw "Saved wallpaper for monitor $($entry.monitorId) is missing."
     }
 
+    if ($entry.type -like 'video/*') {
+      $restoredMonitors += [PSCustomObject]@{ monitorId = [int]$entry.monitorId; name = [string]$entry.name; type = [string]$entry.type; file = [string]$entry.file; hash = [string]$entry.hash; data = $null }
+      continue
+    }
+
     $bytes = [IO.File]::ReadAllBytes($imagePath)
     $hash = Get-Sha256Hex $bytes
 
@@ -342,7 +354,7 @@ function Get-StartupConfiguration {
       type = [string]$entry.type
       file = [string]$entry.file
       hash = [string]$entry.hash
-      data = [Convert]::ToBase64String($bytes)
+      data = $(if ($entry.type -like 'video/*') { $null } else { [Convert]::ToBase64String($bytes) })
     }
 
   }
@@ -398,7 +410,20 @@ function Save-StartupConfiguration {
       $next.settings = $Patch.settings
     }
   }
-  if ($Patch.PSObject.Properties.Name -contains 'wallpaperData') {
+  if ($Patch.PSObject.Properties.Name -contains 'wallpaperAsset') {
+    $asset = $Patch.wallpaperAsset
+    if ($null -eq $asset) {
+      $next.wallpaperName = $null; $next.wallpaperType = $null; $next.wallpaperFile = $null; $next.wallpaperHash = $null
+    } else {
+      if (-not $Patch.wallpaperName -or $Patch.wallpaperName.Length -gt 512) { throw 'Invalid wallpaper name.' }
+      if ($asset.file -notmatch '^[a-f0-9]{64}\.bin$' -or $asset.hash -notmatch '^[a-f0-9]{64}$' -or $asset.file -ne "$($asset.hash).bin") { throw 'Invalid wallpaper asset reference.' }
+      if (-not (Test-Path -LiteralPath (Join-Path $script:WallpaperDirectory $asset.file) -PathType Leaf)) { throw 'Uploaded wallpaper asset is missing.' }
+      $next.wallpaperName = [string]$Patch.wallpaperName
+      $next.wallpaperType = if ($Patch.wallpaperType -is [string] -and $Patch.wallpaperType.Length -le 128) { [string]$Patch.wallpaperType } else { 'application/octet-stream' }
+      $next.wallpaperFile = [string]$asset.file
+      $next.wallpaperHash = [string]$asset.hash
+    }
+  } elseif ($Patch.PSObject.Properties.Name -contains 'wallpaperData') {
     if ($null -eq $Patch.wallpaperData) {
       $next.wallpaperName = $null; $next.wallpaperType = $null; $next.wallpaperFile = $null; $next.wallpaperHash = $null
     } else {
@@ -460,20 +485,21 @@ function Save-StartupConfiguration {
       if ([string]::IsNullOrWhiteSpace($type) -or $type.Length -gt 128) {
         throw 'Invalid monitor wallpaper type.'
       }
-      if ($data -isnot [string] -or $data.Length -gt 139810132) {
-        throw 'Monitor wallpaper exceeds the 100 MB limit.'
+      $asset = $entry.asset
+      if ($null -ne $asset) {
+        if ($asset.file -notmatch '^[a-f0-9]{64}\.bin$' -or $asset.hash -notmatch '^[a-f0-9]{64}$' -or $asset.file -ne "$($asset.hash).bin") { throw 'Invalid monitor wallpaper asset reference.' }
+        $fileName = [string]$asset.file; $hash = [string]$asset.hash
+        if (-not (Test-Path -LiteralPath (Join-Path $script:WallpaperDirectory $fileName) -PathType Leaf)) { throw 'Uploaded monitor wallpaper asset is missing.' }
+      } else {
+        if ($data -isnot [string] -or $data.Length -gt 139810132) { throw 'Monitor wallpaper exceeds the 100 MB limit.' }
+        $bytes = [Convert]::FromBase64String($data)
+        if ($bytes.Length -eq 0 -or $bytes.Length -gt 104857600) { throw 'Monitor wallpaper is empty or exceeds 100 MB.' }
+        $hash = Get-Sha256Hex $bytes
+        $fileName = "$hash.bin"
       }
-
-      $bytes = [Convert]::FromBase64String($data)
-      if ($bytes.Length -eq 0 -or $bytes.Length -gt 104857600) {
-        throw 'Monitor wallpaper is empty or exceeds 100 MB.'
-      }
-
-      $hash = Get-Sha256Hex $bytes
-      $fileName = "$hash.bin"
       $imagePath = Join-Path $script:WallpaperDirectory $fileName
 
-      if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
+      if ($null -eq $asset -and -not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
         $imageTemp = "$imagePath.$([guid]::NewGuid().ToString('N')).tmp"
         try {
           [IO.File]::WriteAllBytes($imageTemp, $bytes)
@@ -638,6 +664,8 @@ function Install-StartupConfigurationIntoLively {
       '^image/webp$' { '.webp'; break }
       '^image/gif$' { '.gif'; break }
       '^image/bmp$' { '.bmp'; break }
+      '^video/mp4$' { '.mp4'; break }
+      '^video/webm$' { '.webm'; break }
       default { '.img' }
     }
     $projectImageName = "elucidator-wallpaper-$($Configuration.wallpaperHash)$extension"
@@ -676,6 +704,8 @@ function Install-StartupConfigurationIntoLively {
       '^image/webp$' { '.webp'; break }
       '^image/gif$'  { '.gif'; break }
       '^image/bmp$'  { '.bmp'; break }
+      '^video/mp4$'  { '.mp4'; break }
+      '^video/webm$' { '.webm'; break }
       default       { '.img' }
     }
 
@@ -1627,6 +1657,21 @@ function Handle-Client {
       Write-HttpResponse $stream 200 '{"ok":true,"message":"WINDOWS WORKSTATION LOCK REQUEST ACCEPTED"}' $origin
       Start-Sleep -Milliseconds 500
       [void][ElucidatorBrightness.MonitorControl]::LockWindowsSession()
+      return
+    }
+    if ($request.Method -eq 'POST' -and $request.Path -eq '/api/wallpaper-assets') {
+      $name = [uri]::UnescapeDataString([string]$request.Headers['X-Elucidator-Name'])
+      $type = [string]$request.Headers['X-Elucidator-Type']
+      if ([string]::IsNullOrWhiteSpace($name) -or $name.Length -gt 512) { throw 'INVALID WALLPAPER ASSET NAME' }
+      if ($type -notmatch '^(image/(jpeg|png|webp|gif|bmp)|video/(mp4|webm))$') { throw 'UNSUPPORTED WALLPAPER ASSET TYPE' }
+      if ($request.Body.Length -eq 0 -or $request.Body.Length -gt 104857600) { throw 'WALLPAPER ASSET EXCEEDS THE 100 MB LIMIT' }
+      if (-not (Test-Path -LiteralPath $script:WallpaperDirectory)) { New-Item -ItemType Directory -Path $script:WallpaperDirectory -Force | Out-Null }
+      $hash = Get-Sha256Hex $request.Body
+      $file = "$hash.bin"
+      $path = Join-Path $script:WallpaperDirectory $file
+      if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { Write-AtomicBytes $path $request.Body }
+      $payload = ConvertTo-Json -InputObject @{ ok = $true; file = $file; hash = $hash } -Compress
+      Write-HttpResponse $stream 200 $payload $origin
       return
     }
     if ($request.Method -eq 'GET' -and $request.Path -eq '/api/monitors') {

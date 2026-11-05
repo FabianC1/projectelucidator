@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSPro
 import { siGooglechrome, siNetflix, siRoblox, type SimpleIcon } from 'simple-icons'
 import { BootSequence } from './BootSequence'
 import { parseLivelySystemInfo, type LivelySystemInfo } from './livelySystemInfo'
-import { readLaunchCatalog, refreshLaunchCatalog, type LaunchAppIcons, launchWindowsApp, type LaunchAppId, changeBrightness, checkBrightnessHelperHealth, getBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readDisplayGeometry, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, validateBrightnessToken, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
+import { readLaunchCatalog, refreshLaunchCatalog, type LaunchAppIcons, launchWindowsApp, type LaunchAppId, changeBrightness, checkBrightnessHelperHealth, getBrightnessHelperHealth, getBrightnessToken, lockWindowsSession, persistPrivateCredentialBootstrap, readBrightnessMonitors, readDisplayGeometry, readBrightnessTokenBackup, readDurableStartupConfiguration, readPrivateCredentialBootstrap, readWallpaperStartupManifest, removePrivateCredentialBootstrap, saveBrightnessToken, saveDurableStartupConfiguration, uploadWallpaperAsset, validateBrightnessToken, writeBrightnessTokenBackup, type BrightnessMonitor, type StartupConfiguration } from './brightnessBridge'
 import { resolveThemeId, STEALTH_PRESENTATION, THEME_SYSTEMS, type ThemeId, type ThemeActivationPresentation } from './themeSystems'
 import './App.css'
 
@@ -10,6 +10,7 @@ declare global {
   interface Window {
     livelySystemInformation?: (data: unknown) => void
     livelyCurrentTrack?: (data: unknown) => void
+    livelyWallpaperPlayback?: (data: unknown) => void
     // Set only by the Lively host integration when this instance owns the
     // complete virtual desktop. A browser tab must never infer this from the
     // number of connected Windows displays.
@@ -18,18 +19,14 @@ declare global {
 }
 
 type SavedWallpaper = { blob: Blob; name: string }
+type WallpaperMediaKind = 'image' | 'video'
 
-function blobToBase64(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result
-      if (typeof result !== 'string') { reject(new Error('Wallpaper bytes could not be encoded')); return }
-      resolve(result.slice(result.indexOf(',') + 1))
-    }
-    reader.onerror = () => reject(reader.error ?? new Error('Wallpaper bytes could not be read'))
-    reader.readAsDataURL(blob)
-  })
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024
+function wallpaperMediaKind(blob: Blob): WallpaperMediaKind {
+  return /^video\/(mp4|webm)$/i.test(blob.type) ? 'video' : 'image'
+}
+function isSupportedWallpaperFile(file: File) {
+  return /^image\//i.test(file.type) || /^video\/(mp4|webm)$/i.test(file.type) || /\.(mp4|webm)$/i.test(file.name)
 }
 
 function startupWallpaperFromConfig(configuration: StartupConfiguration): SavedWallpaper | null {
@@ -450,7 +447,15 @@ async function saveWallpaper(selection: SavedWallpaper, addToLibrary = true) {
   })
 }
 
-function decodeImage(url: string) {
+function decodeWallpaper(url: string, kind: WallpaperMediaKind) {
+  if (kind === 'video') return new Promise<void>((resolve, reject) => {
+    const video = document.createElement('video')
+    const timeout = window.setTimeout(() => { video.remove(); reject(new Error('Video metadata timed out.')) }, 15000)
+    video.muted = true; video.playsInline = true; video.preload = 'metadata'
+    video.onloadeddata = () => { window.clearTimeout(timeout); video.pause(); video.remove(); resolve() }
+    video.onerror = () => { window.clearTimeout(timeout); video.remove(); reject(new Error('The selected MP4/WebM codec is not supported by this host.')) }
+    video.src = url
+  })
   return new Promise<void>((resolve, reject) => {
     const image = new Image()
     const timeout = window.setTimeout(() => reject(new Error('Wallpaper decoding timed out.')), 10000)
@@ -640,6 +645,9 @@ const COMMAND_COMPLETIONS = [
   'sys wallpaper select 1',
   'sys wallpaper select 2',
   'sys wallpaper swap',
+  'sys wallpaper video select', 'sys wallpaper video select 1', 'sys wallpaper video select 2',
+  'sys wallpaper video play', 'sys wallpaper video pause', 'sys wallpaper video mute', 'sys wallpaper video unmute',
+  'sys wallpaper video loop on', 'sys wallpaper video loop off', 'sys wallpaper video status',
 
 ]
 
@@ -674,8 +682,12 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0) {
       'scan',
       'fit',
       'default',
+      'video',
     ].map((action) => `sys wallpaper ${action}`)
   }
+  if (/^sys wallpaper video\s+$/.test(prefix)) return ['select', 'play', 'pause', 'mute', 'unmute', 'loop', 'status'].map((action) => `sys wallpaper video ${action}`)
+  if (/^sys wallpaper video select\s+$/.test(prefix)) return ['sys wallpaper video select 1', 'sys wallpaper video select 2']
+  if (/^sys wallpaper video loop\s+$/.test(prefix)) return ['sys wallpaper video loop on', 'sys wallpaper video loop off']
 
   if (/^sys wallpaper default\s+$/.test(prefix)) return ['set', 'select', 'clear'].map((action) => `sys wallpaper default ${action}`)
   if (/^sys wallpaper default select\s+$/.test(prefix)) return Array.from({ length: savedWallpaperCount }, (_, index) => `sys wallpaper default select ${index + 1}`)
@@ -709,6 +721,7 @@ function findCommandCompletions(value: string, savedWallpaperCount = 0) {
 
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoRefs = useRef<Set<HTMLVideoElement>>(new Set())
   const objectUrlRef = useRef<string | null>(null)
   const finishingBootRef = useRef(false)
   const wallpaperRequestRef = useRef(0)
@@ -728,6 +741,11 @@ function App() {
   const hardwareLastPublishedRef = useRef(0)
   const [wallpaperUrl, setWallpaperUrl] = useState('')
   const [wallpaperName, setWallpaperName] = useState('NO WALLPAPER SELECTED')
+  const [wallpaperKind, setWallpaperKind] = useState<WallpaperMediaKind>('image')
+  const [videoPausedByUser, setVideoPausedByUser] = useState(false)
+  const [videoMuted, setVideoMuted] = useState(true)
+  const [videoLoop, setVideoLoop] = useState(true)
+  const [hostPlaybackSuspended, setHostPlaybackSuspended] = useState(false)
   const [defaultWallpaperName, setDefaultWallpaperName] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const storageErrorsRef = useRef<Record<string, string>>({})
@@ -782,6 +800,40 @@ function App() {
     }
   }, [monitorWallpapers])
 
+  // Lively does not expose a stable playback callback on every CEF build.  We
+  // honour a host event/callback when supplied and always stop decoding while
+  // this document is hidden.  The user pause intent wins when the host resumes.
+  useEffect(() => {
+    const sync = () => {
+      const shouldPlay = !videoPausedByUser && !hostPlaybackSuspended && !document.hidden
+      for (const video of videoRefs.current) {
+        video.muted = videoMuted
+        video.loop = videoLoop
+        if (shouldPlay) void video.play().catch(() => undefined)
+        else video.pause()
+      }
+    }
+    sync()
+    const visibility = () => { setHostPlaybackSuspended(document.hidden) }
+    const host = (event: Event) => {
+      const detail = (event as CustomEvent<{ playing?: boolean; paused?: boolean }>).detail
+      if (detail && typeof detail.playing === 'boolean') setHostPlaybackSuspended(!detail.playing)
+      else if (detail && typeof detail.paused === 'boolean') setHostPlaybackSuspended(detail.paused)
+    }
+    const priorHostCallback = window.livelyWallpaperPlayback
+    window.livelyWallpaperPlayback = (data: unknown) => {
+      if (typeof data === 'boolean') setHostPlaybackSuspended(!data)
+      else if (data && typeof data === 'object') {
+        const value = data as { playing?: unknown; paused?: unknown }
+        if (typeof value.playing === 'boolean') setHostPlaybackSuspended(!value.playing)
+        else if (typeof value.paused === 'boolean') setHostPlaybackSuspended(value.paused)
+      }
+    }
+    document.addEventListener('visibilitychange', visibility)
+    window.addEventListener('lively:playback', host as EventListener)
+    return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('lively:playback', host as EventListener); window.livelyWallpaperPlayback = priorHostCallback }
+  }, [videoMuted, videoLoop, videoPausedByUser, hostPlaybackSuspended, wallpaperUrl, monitorWallpaperUrls])
+
 
   useEffect(() => {
     if (wallpaperDisplayMode !== 'independent') {
@@ -815,6 +867,7 @@ function App() {
 
   const [wallpaperTargetMonitor, setWallpaperTargetMonitor] =
     useState<number | null>(null)
+  const [wallpaperPickerMode, setWallpaperPickerMode] = useState<'any' | 'video'>('any')
   const [animationMirror, setAnimationMirror] = useState<boolean>(() => {
     try { return localStorage.getItem(ANIMATION_MIRROR_KEY) === 'true' } catch (error) { startupStorageErrors['animation preference restore'] = describeStorageError(error); return false }
   })
@@ -1091,21 +1144,14 @@ function App() {
           const restored: Record<number, MonitorWallpaper> = {}
 
           for (const item of startupConfig.monitorWallpapers) {
-            if (!Number.isInteger(item.monitorId) || item.monitorId < 1 ||
-              !item.name || !item.data) continue
-
-            const binary = atob(item.data)
-            const bytes = Uint8Array.from(
-              binary,
-              (character) => character.charCodeAt(0)
-            )
+            if (!Number.isInteger(item.monitorId) || item.monitorId < 1 || !item.name) continue
+            const blob = item.blob ?? (item.data ? new Blob([Uint8Array.from(atob(item.data), (character) => character.charCodeAt(0))], { type: item.type || 'application/octet-stream' }) : null)
+            if (!blob) continue
 
             restored[item.monitorId] = {
               monitorId: item.monitorId,
               name: item.name,
-              blob: new Blob([bytes], {
-                type: item.type || 'application/octet-stream',
-              }),
+              blob,
             }
           }
 
@@ -1152,6 +1198,10 @@ function App() {
           if (typeof preferences.animationMirror === 'boolean') setAnimationMirror(preferences.animationMirror)
           if (typeof preferences.sequenceMirror === 'boolean') setSequenceMirror(preferences.sequenceMirror)
           if (VISUAL_THEMES.includes(preferences.visualTheme as VisualTheme)) setVisualTheme(preferences.visualTheme as VisualTheme)
+          if (typeof preferences.videoPausedByUser === 'boolean') setVideoPausedByUser(preferences.videoPausedByUser)
+          // Muted is intentionally the default even for older configuration files.
+          if (typeof preferences.videoMuted === 'boolean') setVideoMuted(preferences.videoMuted)
+          if (typeof preferences.videoLoop === 'boolean') setVideoLoop(preferences.videoLoop)
           const frame = preferences.consoleFrame
           if (frame && [frame.x, frame.y, frame.width, frame.height].every(Number.isFinite)) {
             setConsoleFrame({ x: frame.x, y: frame.y, width: frame.width, height: frame.height, anchor: frame.anchor === 'bottom' ? 'bottom' : 'top' })
@@ -1184,12 +1234,14 @@ function App() {
           setWallpaperMediaReady(false)
           setWallpaperUrl(url)
           setWallpaperName(startupWallpaper.name)
+          setWallpaperKind(wallpaperMediaKind(startupWallpaper.blob))
           setStatus(`${durableWallpaper ? 'DURABLE DEFAULT' : savedDefault?.blob ? 'DEFAULT WALLPAPER' : 'WALLPAPER'} RESTORED · ${startupWallpaper.name.toUpperCase()}`)
         } else {
           wallpaperStartedAt.current = Date.now()
           setWallpaperMediaReady(false)
           setWallpaperUrl(DEFAULT_WALLPAPER_URL)
           setWallpaperName(DEFAULT_WALLPAPER_NAME)
+          setWallpaperKind('image')
           setStatus('DEFAULT WALLPAPER LOADED · MOONLIT ALPINE MIRROR LAKE')
         }
       } catch (error) {
@@ -1199,6 +1251,7 @@ function App() {
           setWallpaperMediaReady(false)
           setWallpaperUrl(DEFAULT_WALLPAPER_URL)
           setWallpaperName(DEFAULT_WALLPAPER_NAME)
+          setWallpaperKind('image')
         }
         if (!cancelled) setStatus('WALLPAPER RESTORE ERROR · BUNDLED MOONLIT ALPINE ACTIVE')
       } finally {
@@ -1592,7 +1645,8 @@ function App() {
     return () => window.clearTimeout(timeout)
   }, [bootToken, booting, ready, standbyActive])
 
-  const openFilePicker = () => {
+  const openFilePicker = (mode: 'any' | 'video' = 'any') => {
+    setWallpaperPickerMode(mode)
     setStatus('SELECT A WALLPAPER FILE')
     fileInputRef.current?.click()
   }
@@ -1733,7 +1787,7 @@ function App() {
   const activateWallpaper = async (selection: SavedWallpaper, persistSelection = true) => {
     const nextUrl = URL.createObjectURL(selection.blob)
     try {
-      await decodeImage(nextUrl)
+      await decodeWallpaper(nextUrl, wallpaperMediaKind(selection.blob))
       if (persistSelection) await saveWallpaper(selection, false)
       const previousUrl = objectUrlRef.current
       objectUrlRef.current = nextUrl
@@ -1744,6 +1798,7 @@ function App() {
       setWallpaperMediaReady(false)
       setWallpaperUrl(nextUrl)
       setWallpaperName(selection.name)
+      setWallpaperKind(wallpaperMediaKind(selection.blob))
       setRevealComplete(false)
       setBooting(true)
       setStatus(`WALLPAPER ACTIVE · ${selection.name.toUpperCase()}`)
@@ -1780,8 +1835,8 @@ function App() {
     const persistDurableWallpaper = async (selection: SavedWallpaper | null) => {
       if (!brightnessToken) throw new Error('HELPER AUTHORIZATION REQUIRED · PAIR ONCE WITH SYS MONITOR PAIR <TOKEN>')
       const patch: Partial<StartupConfiguration> = selection
-        ? { wallpaperName: selection.name, wallpaperType: selection.blob.type || 'application/octet-stream', wallpaperData: await blobToBase64(selection.blob) }
-        : { wallpaperName: null, wallpaperType: null, wallpaperData: null }
+        ? { wallpaperName: selection.name, wallpaperType: selection.blob.type || 'application/octet-stream', wallpaperAsset: await uploadWallpaperAsset(brightnessToken, selection) }
+        : { wallpaperName: null, wallpaperType: null, wallpaperAsset: null }
       const result = await saveDurableStartupConfiguration(brightnessToken, patch)
       if (!result.saved) throw new Error('WINDOWS HELPER DID NOT CONFIRM THE CONFIGURATION SAVE')
     }
@@ -1836,22 +1891,26 @@ function App() {
             animationMirror,
             sequenceMirror,
             visualTheme,
+            videoPausedByUser,
+            videoMuted,
+            videoLoop,
             consoleFrame,
           }
 
+          const wallpaperAsset = await uploadWallpaperAsset(brightnessToken, { name: wallpaperName, blob })
           const savedMonitorWallpapers = await Promise.all(
             Object.values(monitorWallpapers).map(async (wallpaper) => ({
               monitorId: wallpaper.monitorId,
               name: wallpaper.name,
               type: wallpaper.blob.type || 'application/octet-stream',
-              data: await blobToBase64(wallpaper.blob),
+              asset: await uploadWallpaperAsset(brightnessToken, wallpaper),
             }))
           )
 
           const saved = await saveDurableStartupConfiguration(brightnessToken, {
             wallpaperName,
             wallpaperType: blob.type || 'application/octet-stream',
-            wallpaperData: await blobToBase64(blob),
+            wallpaperAsset,
             theme,
             settings,
             wallpaperDisplayMode,
@@ -1891,8 +1950,7 @@ function App() {
             if (
               !actual ||
               actual.name !== expected.name ||
-              actual.type !== expected.type ||
-              actual.data !== expected.data
+              actual.type !== expected.type
             ) {
               throw new Error(
                 `MONITOR ${expected.monitorId} WALLPAPER SAVE VERIFICATION FAILED`
@@ -2353,6 +2411,7 @@ function App() {
     } else if (normalized === 'help' || normalized === 'sys help' || normalized === '?') {
       report(['ELUCIDATOR // MAINFRAME', 'SYS STATUS · SYS STORAGE STATUS · SYS WALLPAPER [SELECT|SCAN|FIT]', 'SYS TEST · REPLAY THE SYSTEM BOOT SEQUENCE', 'SYS WALLPAPER DEFAULT [SET|SELECT|CLEAR]', 'SYS THEME [LIST|ACTIVATE]', 'SYS THEME DEFAULT [SET|SELECT]', 'ADMIN SYS CONFIG SAVE · SAVE ACTIVE WALLPAPER + THEME FOR STARTUP', 'SYS WALLPAPER FIT [COVER|CONTAIN|STRETCH|SPAN]','SYS WALLPAPER DISPLAY [SPAN|INDEPENDENT|STATUS]',
 'SYS WALLPAPER SELECT [1|2] · ASSIGN MONITOR WALLPAPER',
+'SYS WALLPAPER VIDEO SELECT [MONITOR] · MP4/WEBM IMPORT', 'SYS WALLPAPER VIDEO [PLAY|PAUSE|MUTE|UNMUTE|LOOP ON|OFF|STATUS]',
 'SYS WALLPAPER SWAP · EXCHANGE MONITOR 1 AND 2 IMAGES','SYS WALLPAPER SWAP · EXCHANGE MONITOR 1 AND 2 IMAGES', 'SYS HARDWARE · SYS TIME · SYS AUDIO · SYS SESSION · SYS ANIME', 'SYS BRIGHTNESS STATUS · SYS BRIGHTNESS <0–100>', 'SYS LOCK · LOCK THE WINDOWS SESSION', 'SYS LAUNCH [LIST|STATUS|WARFRAME|VSCODE|CHROME|ROBLOX|NETFLIX|ALECAFRAME]', 'SYS WIDGETS · SYS WIDGET <1–5> ON|OFF', 'SYS WIDGET POSITION INFO · REPORT CURRENT X/Y', 'SYS ANIMATION MIRROR [ON|OFF|STATUS]', 'SYS SEQUENCE MIRROR [ON|OFF|STATUS]', 'SYS WIDGETS SIZE <SCALE> · SYS WIDGET SIZE <ID> <SCALE>', 'SCALE · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2', 'SYS LAYOUT [LIST|FREE|LEFT|RIGHT|TOP|BOTTOM|SAVE|LOAD|RESET]', 'SYS ARISE · SYS GRIMOIRE · SYS LIMITLESS', 'SYS HINOKAMI KAGURA · SYS DEMON MODE', 'SYS HTTYD · SYS KAGUNE · SYS STEALTH', 'SYS LINK START · ACTIVATE THE SAO SYSTEM'])
       setStatus('SYSTEM HELP · COMMAND INDEX')
     } else if ((domain === 'httyd' && args.length === 1) || (domain === 'night' && action === 'fury' && args.length === 2)) {
@@ -2512,6 +2571,33 @@ function App() {
           report(['WALLPAPER DEFAULT', `ACTIVE DEFAULT ......... ${defaultWallpaperName?.toUpperCase() ?? 'NONE · USE LAST IMAGE / BUNDLED 3D RENDER'}`, 'USE · SET | SELECT | CLEAR'])
           setStatus(defaultWallpaperName ? `STARTUP WALLPAPER · ${defaultWallpaperName.toUpperCase()}` : 'NO CUSTOM STARTUP WALLPAPER')
         }
+      } else if (action === 'video') {
+        const videoAction = args[2]
+        if (!videoAction || videoAction === 'status') {
+          const activeVideos = [wallpaperKind === 'video' ? wallpaperName : null, ...Object.values(monitorWallpapers).filter((wallpaper) => wallpaperMediaKind(wallpaper.blob) === 'video').map((wallpaper) => `MONITOR ${wallpaper.monitorId}: ${wallpaper.name}`)].filter(Boolean)
+          report(['VIDEO WALLPAPER STATUS', `ACTIVE VIDEO ........... ${activeVideos.length ? activeVideos.join(' · ').toUpperCase() : 'NONE'}`, `PLAYBACK ............... ${videoPausedByUser || hostPlaybackSuspended ? 'PAUSED' : 'PLAYING'}`, `AUDIO .................. ${videoMuted ? 'MUTED' : 'UNMUTED'}`, `LOOP ................... ${videoLoop ? 'ON' : 'OFF'}`, 'MP4 / WEBM ONLY · HOST CODEC SUPPORT APPLIES'])
+          setStatus(activeVideos.length ? 'VIDEO WALLPAPER READY' : 'NO VIDEO WALLPAPER SELECTED')
+        } else if (videoAction === 'select' && args.length <= 4) {
+          const target = args[3]
+          if (target !== undefined) {
+            const monitorId = Number(target)
+            if (wallpaperDisplayMode !== 'independent' || !Number.isInteger(monitorId) || !monitorViewports.some((viewport) => viewport.id === monitorId)) {
+              report(['VIDEO MONITOR ERROR', 'ENABLE INDEPENDENT MODE, THEN USE A DETECTED MONITOR NUMBER.', 'USAGE · SYS WALLPAPER VIDEO SELECT [MONITOR]'])
+              setStatus('VIDEO MONITOR SELECTION UNAVAILABLE')
+            } else { setWallpaperTargetMonitor(monitorId); report(['VIDEO WALLPAPER SELECTION', `TARGET ................ MONITOR ${monitorId}`, 'SELECT AN MP4 OR WEBM FILE.']); openFilePicker('video') }
+          } else if (wallpaperDisplayMode === 'independent') {
+            report(['VIDEO WALLPAPER SELECTION', 'USE SYS WALLPAPER VIDEO SELECT <MONITOR> IN INDEPENDENT MODE.'])
+            setStatus('VIDEO MONITOR NUMBER REQUIRED')
+          } else { setWallpaperTargetMonitor(null); report(['VIDEO WALLPAPER SELECTION', 'SELECT AN MP4 OR WEBM FILE.']); openFilePicker('video') }
+        } else if (videoAction === 'play' && args.length === 3) {
+          setVideoPausedByUser(false); setHostPlaybackSuspended(false); report(['VIDEO PLAYBACK', 'USER PLAY INTENT ENABLED · MUTED PLAYBACK ONLY']); setStatus('VIDEO PLAYBACK STARTED')
+        } else if (videoAction === 'pause' && args.length === 3) {
+          setVideoPausedByUser(true); report(['VIDEO PLAYBACK', 'USER PAUSE INTENT SAVED · DECODERS STOPPED']); setStatus('VIDEO PLAYBACK PAUSED')
+        } else if ((videoAction === 'mute' || videoAction === 'unmute') && args.length === 3) {
+          const muted = videoAction === 'mute'; setVideoMuted(muted); report(['VIDEO AUDIO', muted ? 'MUTED' : 'UNMUTED', muted ? 'DEFAULT AND RESTART-SAFE.' : 'AUDIO MAY BE BLOCKED BY THE HOST.']); setStatus(`VIDEO ${muted ? 'MUTED' : 'UNMUTED'}`)
+        } else if (videoAction === 'loop' && (args[3] === 'on' || args[3] === 'off') && args.length === 4) {
+          const loop = args[3] === 'on'; setVideoLoop(loop); report(['VIDEO LOOP', `LOOP ................... ${loop ? 'ON' : 'OFF'}`]); setStatus(`VIDEO LOOP ${loop ? 'ON' : 'OFF'}`)
+        } else { report(['VIDEO WALLPAPER COMMAND ERROR', 'USAGE · VIDEO SELECT [MONITOR] | PLAY | PAUSE | MUTE | UNMUTE | LOOP ON|OFF | STATUS']); setStatus('INVALID VIDEO WALLPAPER COMMAND') }
       } else if (action === 'fit' && args.length === 2) {
         report(['WALLPAPER FIT', `ACTIVE ................ ${wallpaperFit.toUpperCase()}`, 'OPTIONS ............... COVER · CONTAIN · STRETCH · SPAN'])
         setStatus(`WALLPAPER FIT · ${wallpaperFit.toUpperCase()}`)
@@ -3180,6 +3266,14 @@ function App() {
     const file = event.currentTarget.files?.[0]
     event.currentTarget.value = ''
     if (!file) return
+    if (!isSupportedWallpaperFile(file) || (wallpaperPickerMode === 'video' && wallpaperMediaKind(file) !== 'video')) {
+      setStatus('SELECT A SUPPORTED MP4 OR WEBM VIDEO')
+      return
+    }
+    if (wallpaperMediaKind(file) === 'video' && file.size > MAX_VIDEO_BYTES) {
+      setStatus('VIDEO EXCEEDS THE 1 GB WALLPAPER LIMIT')
+      return
+    }
 
 
     const targetMonitor = wallpaperTargetMonitor
@@ -3193,7 +3287,7 @@ function App() {
       setStatus(`DECODING MONITOR ${targetMonitor} WALLPAPER`)
 
       try {
-        await decodeImage(temporaryUrl)
+        await decodeWallpaper(temporaryUrl, wallpaperMediaKind(file))
 
         setMonitorWallpapers((current) => ({
           ...current,
@@ -3216,6 +3310,7 @@ function App() {
       } finally {
         URL.revokeObjectURL(temporaryUrl)
         setWallpaperTargetMonitor(null)
+        setWallpaperPickerMode('any')
       }
 
       return
@@ -3225,7 +3320,7 @@ function App() {
     const nextUrl = URL.createObjectURL(file)
     setStatus('DECODING WALLPAPER…')
     try {
-      await decodeImage(nextUrl)
+      await decodeWallpaper(nextUrl, wallpaperMediaKind(file))
       let persisted = true
       try {
         await saveWallpaper({ blob: file, name: file.name })
@@ -3240,6 +3335,7 @@ function App() {
       setWallpaperMediaReady(false)
       setWallpaperUrl(nextUrl)
       setWallpaperName(file.name)
+      setWallpaperKind(wallpaperMediaKind(file))
       setRevealComplete(false)
       setBooting(true)
       setStatus(persisted
@@ -3251,6 +3347,7 @@ function App() {
       URL.revokeObjectURL(nextUrl)
       setStatus(error instanceof Error ? error.message.toUpperCase() : 'WALLPAPER LOAD FAILED')
     }
+    setWallpaperPickerMode('any')
   }
 
   const renderActivationScene = (activationKind: string, stageId: string) => (
@@ -3407,7 +3504,23 @@ function App() {
   return (
     <main className={`wallpaper-experience mode-${mode.toLowerCase()} theme-${theme}${!ready || !startupConfigHydrated || booting ? ' startup-interface-locked' : ''}${standbyActive ? ' reveal-standby-active' : ''}${nightStealth ? ' night-stealth-active' : ''}${specialEffect ? ' activation-active' : ''}${specialEffect?.kind === 'night-fury-stealth' ? ' night-fury-activating' : ''}${specialEffect?.kind === 'breathing-sun' ? ' hinokami-activating' : ''}`} style={{ '--interface-scale': interfaceScale } as CSSProperties}>
 
-      {wallpaperUrl && (
+      {wallpaperUrl && (wallpaperKind === 'video' ? (
+        <video
+          key={`wallpaper-video-${bootToken}`}
+          ref={(node) => { if (node) videoRefs.current.add(node); else for (const video of videoRefs.current) if (!video.isConnected) { video.pause(); videoRefs.current.delete(video) } }}
+          className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready
+            ? ' is-loading'
+            : booting && !standbyActive ? ' is-booting' : ' is-ready'}`}
+          src={wallpaperUrl}
+          muted={videoMuted}
+          loop={videoLoop}
+          playsInline
+          preload="metadata"
+          aria-label={wallpaperName}
+          onLoadedData={(event) => { setWallpaperMediaReady(true); if (!videoPausedByUser && !hostPlaybackSuspended) void event.currentTarget.play().catch(() => undefined) }}
+          onError={() => { setWallpaperMediaReady(true); setRevealComplete(true); setStatus('VIDEO PLAYBACK FAILED · CHECK MP4/WEBM CODEC') }}
+        />
+      ) : (
         <img
           key={`wallpaper-${bootToken}`}
           className={`wallpaper-backdrop wallpaper-fit-${wallpaperFit}${!ready
@@ -3424,11 +3537,12 @@ function App() {
             setRevealComplete(true)
           }}
         />
-      )}
+      ))}
 
       {wallpaperDisplayMode === 'independent' &&
         monitorViewports.map((viewport) => {
           const imageUrl = monitorWallpaperUrls[viewport.id]
+          const media = monitorWallpapers[viewport.id]
 
           if (!imageUrl) return null
 
@@ -3446,9 +3560,15 @@ function App() {
                 pointerEvents: 'none',
               }}
             >
-              <img
+              {media && wallpaperMediaKind(media.blob) === 'video' ? <video
+                ref={(node) => { if (node) videoRefs.current.add(node); else for (const video of videoRefs.current) if (!video.isConnected) { video.pause(); videoRefs.current.delete(video) } }}
                 src={imageUrl}
-                alt={`Monitor ${viewport.id} wallpaper`}
+                muted={videoMuted}
+                loop={videoLoop}
+                playsInline
+                preload="metadata"
+                onLoadedData={(event) => { if (!videoPausedByUser && !hostPlaybackSuspended) void event.currentTarget.play().catch(() => undefined) }}
+                onError={() => setStatus(`MONITOR ${viewport.id} VIDEO FAILED · CHECK CODEC`)}
                 style={{
                   display: 'block',
                   width: '100%',
@@ -3460,7 +3580,11 @@ function App() {
                         ? 'contain'
                         : 'cover',
                 }}
-              />
+              /> : <img
+                src={imageUrl}
+                alt={`Monitor ${viewport.id} wallpaper`}
+                style={{ display: 'block', width: '100%', height: '100%', objectFit: wallpaperFit === 'stretch' ? 'fill' : wallpaperFit === 'contain' ? 'contain' : 'cover' }}
+              />}
             </div>
           )
         })}
@@ -3981,7 +4105,7 @@ function App() {
         ref={fileInputRef}
         className="wallpaper-file-input"
         type="file"
-        accept="image/*"
+        accept={wallpaperPickerMode === 'video' ? 'video/mp4,video/webm,.mp4,.webm' : 'image/*,video/mp4,video/webm,.mp4,.webm'}
         onChange={chooseWallpaper}
         tabIndex={-1}
         aria-hidden="true"

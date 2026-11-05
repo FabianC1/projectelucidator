@@ -16,7 +16,9 @@ export type StoredMonitorWallpaper = {
   monitorId: number
   name: string
   type: string
-  data: string
+  data?: string
+  blob?: Blob
+  asset?: { file: string; hash: string }
 }
 
 export type StartupConfiguration = {
@@ -30,6 +32,7 @@ export type StartupConfiguration = {
   wallpaperError?: string | null
   wallpaperDisplayMode?: 'span' | 'independent'
   monitorWallpapers?: StoredMonitorWallpaper[]
+  wallpaperAsset?: { file: string; hash: string } | null
 
 }
 
@@ -44,6 +47,9 @@ export type StartupSettings = {
   animationMirror: boolean
   sequenceMirror?: boolean
   visualTheme: string
+  videoPausedByUser?: boolean
+  videoMuted?: boolean
+  videoLoop?: boolean
   consoleFrame: { x: number; y: number; width: number; height: number; anchor?: string } | null
   widgetsCompact?: boolean
   compactRestore?: { widgetLayout: string; widgetPositions: Record<string, { x: number; y: number; width?: number }> } | null
@@ -290,7 +296,7 @@ export async function readWallpaperStartupManifest(): Promise<
     }>
   }
 
-  const validFile = /^elucidator-wallpaper-[a-f0-9]{64}\.(jpg|png|webp|gif|bmp|img)$/
+  const validFile = /^elucidator-wallpaper-[a-f0-9]{64}\.(jpg|png|webp|gif|bmp|mp4|webm|img)$/
 
   const readImage = async (file: string, expectedHash: string): Promise<Blob> => {
     if (!validFile.test(file)) {
@@ -342,18 +348,11 @@ export async function readWallpaperStartupManifest(): Promise<
 
   for (const entry of manifest.monitorWallpapers ?? []) {
     const blob = await readImage(entry.file, entry.hash)
-    const bytes = new Uint8Array(await blob.arrayBuffer())
-
-    let binary = ''
-    for (let i = 0; i < bytes.length; i += 8192) {
-      binary += String.fromCharCode(...bytes.subarray(i, i + 8192))
-    }
-
     monitorWallpapers.push({
       monitorId: entry.monitorId,
       name: entry.name,
       type: entry.type,
-      data: btoa(binary),
+      blob,
     })
   }
 
@@ -438,4 +437,20 @@ export async function saveDurableStartupConfiguration(token: string, configurati
     method: 'POST',
     body: JSON.stringify(configuration),
   })
+}
+
+export async function uploadWallpaperAsset(token: string, wallpaper: { name: string; blob: Blob }) {
+  if (wallpaper.blob.size === 0 || wallpaper.blob.size > 104857600) throw new Error('WALLPAPER ASSET MUST BE BETWEEN 1 BYTE AND 100 MB')
+  const response = await fetch(`${HELPER_URL}/api/wallpaper-assets`, {
+    method: 'POST', cache: 'no-store', body: wallpaper.blob,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/octet-stream',
+      'X-Elucidator-Name': encodeURIComponent(wallpaper.name),
+      'X-Elucidator-Type': wallpaper.blob.type || 'application/octet-stream',
+    },
+  })
+  const result = await response.json() as { ok?: boolean; file?: string; hash?: string; message?: string }
+  if (!response.ok || !result.ok || !result.file || !result.hash) throw new Error(result.message ?? 'WALLPAPER ASSET UPLOAD FAILED')
+  return { file: result.file, hash: result.hash }
 }
