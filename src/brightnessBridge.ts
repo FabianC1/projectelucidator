@@ -18,6 +18,7 @@ export type StoredMonitorWallpaper = {
   type: string
   data?: string
   blob?: Blob
+  url?: string
   asset?: { file: string; hash: string }
 }
 
@@ -275,7 +276,7 @@ export async function readDurableStartupConfiguration() {
 
 
 export async function readWallpaperStartupManifest(): Promise<
-  (StartupConfiguration & { wallpaperBlob?: Blob }) | null
+  (StartupConfiguration & { wallpaperBlob?: Blob; wallpaperUrl?: string }) | null
 > {
   const response = await fetch(
     new URL('./elucidator-startup.json', window.location.href),
@@ -298,11 +299,19 @@ export async function readWallpaperStartupManifest(): Promise<
 
   const validFile = /^elucidator-wallpaper-[a-f0-9]{64}\.(jpg|png|webp|gif|bmp|mp4|webm|img)$/
 
-  const readImage = async (file: string, expectedHash: string): Promise<Blob> => {
+  const readAsset = async (file: string, expectedHash: string, type: string): Promise<{ blob?: Blob; url?: string }> => {
     if (!validFile.test(file)) {
       throw new Error('INVALID INSTALLED WALLPAPER FILENAME')
     }
+    const filenameHash = file.match(/[a-f0-9]{64}/)?.[0]
+    if (!/^[a-f0-9]{64}$/.test(expectedHash) || filenameHash !== expectedHash) {
+      throw new Error('INSTALLED WALLPAPER MANIFEST HASH IS INVALID')
+    }
 
+    // Video is streamed directly by the media element. The helper verifies the
+    // SHA-256 before installation and the manifest filename is hash-addressed;
+    // avoiding Blob + ArrayBuffer here prevents a second full-size allocation.
+    if (/^video\/(mp4|webm)$/i.test(type)) return { url: new URL(file, window.location.href).href }
     const imageResponse = await fetch(
       new URL(file, window.location.href),
       { cache: 'no-store' }
@@ -332,33 +341,37 @@ export async function readWallpaperStartupManifest(): Promise<
       throw new Error('INSTALLED WALLPAPER FAILED INTEGRITY CHECK')
     }
 
-    return blob
+    return { blob }
   }
 
   let wallpaperBlob: Blob | undefined
+  let wallpaperUrl: string | undefined
 
   if (manifest.wallpaperFile) {
-    wallpaperBlob = await readImage(
+    const asset = await readAsset(
       manifest.wallpaperFile,
-      manifest.wallpaperHash ?? ''
+      manifest.wallpaperHash ?? '', manifest.wallpaperType ?? ''
     )
+    wallpaperBlob = asset.blob; wallpaperUrl = asset.url
   }
 
   const monitorWallpapers: StoredMonitorWallpaper[] = []
 
   for (const entry of manifest.monitorWallpapers ?? []) {
-    const blob = await readImage(entry.file, entry.hash)
+    const asset = await readAsset(entry.file, entry.hash, entry.type)
     monitorWallpapers.push({
       monitorId: entry.monitorId,
       name: entry.name,
       type: entry.type,
-      blob,
+      blob: asset.blob,
+      url: asset.url,
     })
   }
 
   return {
     ...manifest,
     wallpaperBlob,
+    wallpaperUrl,
     monitorWallpapers,
   }
 }

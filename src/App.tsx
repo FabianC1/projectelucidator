@@ -44,7 +44,13 @@ type WallpaperDisplayMode = 'span' | 'independent'
 type MonitorWallpaper = {
   monitorId: number
   name: string
-  blob: Blob
+  blob?: Blob
+  url?: string
+  type?: string
+}
+
+function monitorWallpaperKind(wallpaper: MonitorWallpaper): WallpaperMediaKind {
+  return wallpaper.blob ? wallpaperMediaKind(wallpaper.blob) : /^video\//i.test(wallpaper.type ?? '') ? 'video' : 'image'
 }
 
 type MonitorViewport = {
@@ -788,21 +794,21 @@ function App() {
     const urls: Record<number, string> = {}
 
     for (const [id, wallpaper] of Object.entries(monitorWallpapers)) {
-      urls[Number(id)] = URL.createObjectURL(wallpaper.blob)
+      urls[Number(id)] = wallpaper.url ?? (wallpaper.blob ? URL.createObjectURL(wallpaper.blob) : '')
     }
 
     setMonitorWallpaperUrls(urls)
 
     return () => {
-      for (const url of Object.values(urls)) {
-        URL.revokeObjectURL(url)
+      for (const [id, url] of Object.entries(urls)) {
+        if (!monitorWallpapers[Number(id)]?.url) URL.revokeObjectURL(url)
       }
     }
   }, [monitorWallpapers])
 
-  // Lively does not expose a stable playback callback on every CEF build.  We
-  // honour a host event/callback when supplied and always stop decoding while
-  // this document is hidden.  The user pause intent wins when the host resumes.
+  // Lively does not document a stable playback callback for every CEF build.
+  // These optional hooks are best-effort only; document visibility is the
+  // guaranteed fallback. The host suspension state always wins over user play.
   useEffect(() => {
     const sync = () => {
       const shouldPlay = !videoPausedByUser && !hostPlaybackSuspended && !document.hidden
@@ -1121,7 +1127,7 @@ function App() {
           durableConfigPromise,
           installedConfigPromise,
         ])
-        const startupConfig: StartupConfiguration & { wallpaperBlob?: Blob } | null = durableConfig ?? installedConfig
+        const startupConfig: StartupConfiguration & { wallpaperBlob?: Blob; wallpaperUrl?: string } | null = durableConfig ?? installedConfig
         if (cancelled) return
         if (!durableConfigReadFailed) setStorageIssue('durable startup configuration restore', null)
         if (!installedConfig) setStorageIssue('installed startup configuration restore', null)
@@ -1145,13 +1151,15 @@ function App() {
 
           for (const item of startupConfig.monitorWallpapers) {
             if (!Number.isInteger(item.monitorId) || item.monitorId < 1 || !item.name) continue
-            const blob = item.blob ?? (item.data ? new Blob([Uint8Array.from(atob(item.data), (character) => character.charCodeAt(0))], { type: item.type || 'application/octet-stream' }) : null)
-            if (!blob) continue
+            const blob = item.blob ?? (item.data ? new Blob([Uint8Array.from(atob(item.data), (character) => character.charCodeAt(0))], { type: item.type || 'application/octet-stream' }) : undefined)
+            if (!blob && !item.url) continue
 
             restored[item.monitorId] = {
               monitorId: item.monitorId,
               name: item.name,
               blob,
+              url: item.url,
+              type: item.type,
             }
           }
 
@@ -1227,7 +1235,14 @@ function App() {
         catch (error) { setStorageIssue('durable startup wallpaper decode', error) }
         const startupWallpaper = durableWallpaper ?? (activeDefault?.blob ? activeDefault : saved)
         setDefaultWallpaperName(durableWallpaper?.name ?? activeDefault?.name ?? null)
-        if (startupWallpaper?.blob) {
+        if (startupConfig?.wallpaperUrl && startupConfig.wallpaperName && /^video\//i.test(startupConfig.wallpaperType ?? '')) {
+          wallpaperStartedAt.current = Date.now()
+          setWallpaperMediaReady(false)
+          setWallpaperUrl(startupConfig.wallpaperUrl)
+          setWallpaperName(startupConfig.wallpaperName)
+          setWallpaperKind('video')
+          setStatus(`INSTALLED VIDEO RESTORED · ${startupConfig.wallpaperName.toUpperCase()}`)
+        } else if (startupWallpaper?.blob) {
           const url = URL.createObjectURL(startupWallpaper.blob)
           objectUrlRef.current = url
           wallpaperStartedAt.current = Date.now()
@@ -1902,8 +1917,8 @@ function App() {
             Object.values(monitorWallpapers).map(async (wallpaper) => ({
               monitorId: wallpaper.monitorId,
               name: wallpaper.name,
-              type: wallpaper.blob.type || 'application/octet-stream',
-              asset: await uploadWallpaperAsset(brightnessToken, wallpaper),
+              type: wallpaper.blob?.type || wallpaper.type || 'application/octet-stream',
+              asset: await uploadWallpaperAsset(brightnessToken, { name: wallpaper.name, blob: wallpaper.blob ?? await (await fetch(wallpaper.url ?? '')).blob() }),
             }))
           )
 
@@ -2574,7 +2589,7 @@ function App() {
       } else if (action === 'video') {
         const videoAction = args[2]
         if (!videoAction || videoAction === 'status') {
-          const activeVideos = [wallpaperKind === 'video' ? wallpaperName : null, ...Object.values(monitorWallpapers).filter((wallpaper) => wallpaperMediaKind(wallpaper.blob) === 'video').map((wallpaper) => `MONITOR ${wallpaper.monitorId}: ${wallpaper.name}`)].filter(Boolean)
+          const activeVideos = [wallpaperKind === 'video' ? wallpaperName : null, ...Object.values(monitorWallpapers).filter((wallpaper) => monitorWallpaperKind(wallpaper) === 'video').map((wallpaper) => `MONITOR ${wallpaper.monitorId}: ${wallpaper.name}`)].filter(Boolean)
           report(['VIDEO WALLPAPER STATUS', `ACTIVE VIDEO ........... ${activeVideos.length ? activeVideos.join(' · ').toUpperCase() : 'NONE'}`, `PLAYBACK ............... ${videoPausedByUser || hostPlaybackSuspended ? 'PAUSED' : 'PLAYING'}`, `AUDIO .................. ${videoMuted ? 'MUTED' : 'UNMUTED'}`, `LOOP ................... ${videoLoop ? 'ON' : 'OFF'}`, 'MP4 / WEBM ONLY · HOST CODEC SUPPORT APPLIES'])
           setStatus(activeVideos.length ? 'VIDEO WALLPAPER READY' : 'NO VIDEO WALLPAPER SELECTED')
         } else if (videoAction === 'select' && args.length <= 4) {
@@ -2590,7 +2605,7 @@ function App() {
             setStatus('VIDEO MONITOR NUMBER REQUIRED')
           } else { setWallpaperTargetMonitor(null); report(['VIDEO WALLPAPER SELECTION', 'SELECT AN MP4 OR WEBM FILE.']); openFilePicker('video') }
         } else if (videoAction === 'play' && args.length === 3) {
-          setVideoPausedByUser(false); setHostPlaybackSuspended(false); report(['VIDEO PLAYBACK', 'USER PLAY INTENT ENABLED · MUTED PLAYBACK ONLY']); setStatus('VIDEO PLAYBACK STARTED')
+          setVideoPausedByUser(false); report(['VIDEO PLAYBACK', hostPlaybackSuspended ? 'USER PLAY INTENT SAVED · WAITING FOR LIVELY HOST RESUME' : 'USER PLAY INTENT ENABLED · MUTED PLAYBACK ONLY']); setStatus(hostPlaybackSuspended ? 'VIDEO WAITING FOR HOST RESUME' : 'VIDEO PLAYBACK STARTED')
         } else if (videoAction === 'pause' && args.length === 3) {
           setVideoPausedByUser(true); report(['VIDEO PLAYBACK', 'USER PAUSE INTENT SAVED · DECODERS STOPPED']); setStatus('VIDEO PLAYBACK PAUSED')
         } else if ((videoAction === 'mute' || videoAction === 'unmute') && args.length === 3) {
@@ -3560,7 +3575,7 @@ function App() {
                 pointerEvents: 'none',
               }}
             >
-              {media && wallpaperMediaKind(media.blob) === 'video' ? <video
+              {media && monitorWallpaperKind(media) === 'video' ? <video
                 ref={(node) => { if (node) videoRefs.current.add(node); else for (const video of videoRefs.current) if (!video.isConnected) { video.pause(); videoRefs.current.delete(video) } }}
                 src={imageUrl}
                 muted={videoMuted}
