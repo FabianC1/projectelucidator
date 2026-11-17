@@ -9,8 +9,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $script:SkipLivelyReload = [bool]$SkipLivelyReload
 $script:LivelyRoot = $LivelyRoot
-$script:HelperVersion = '2.2.0'
-$script:HelperCapabilities = @('brightness','lock','startup-config','credential-bootstrap','installation-update','display-geometry','app-launch')
+$script:HelperVersion = '2.3.0'
+$script:HelperCapabilities = @('brightness','lock','startup-config','wallpaper-assets','credential-bootstrap','installation-update','display-geometry','app-launch')
 
 $nativeSource = @'
 using System;
@@ -254,7 +254,7 @@ function Read-HttpRequest {
   }
   $length = 0
   if ($headers.ContainsKey('Content-Length')) { $length = [int]$headers['Content-Length'] }
-  if ($length -gt 157286400 -or $length -lt 0) { throw 'Request body too large.' }
+  if ($length -lt 0) { throw 'Invalid request body length.' }
   $body = New-Object byte[] $length
   $offset = 0
   while ($offset -lt $length) {
@@ -428,9 +428,9 @@ function Save-StartupConfiguration {
       $next.wallpaperName = $null; $next.wallpaperType = $null; $next.wallpaperFile = $null; $next.wallpaperHash = $null
     } else {
       if (-not $Patch.wallpaperName -or $Patch.wallpaperName.Length -gt 512) { throw 'Invalid wallpaper name.' }
-      if ($Patch.wallpaperData -isnot [string] -or $Patch.wallpaperData.Length -gt 139810132) { throw 'Wallpaper image exceeds the 100 MB limit.' }
+      if ($Patch.wallpaperData -isnot [string]) { throw 'Wallpaper image data is invalid.' }
       $bytes = [Convert]::FromBase64String($Patch.wallpaperData)
-      if ($bytes.Length -eq 0 -or $bytes.Length -gt 104857600) { throw 'Wallpaper image exceeds the 100 MB limit or is empty.' }
+      if ($bytes.Length -eq 0) { throw 'Wallpaper image is empty.' }
       $hash = Get-Sha256Hex $bytes
       $fileName = "$hash.bin"
       $imagePath = Join-Path $script:WallpaperDirectory $fileName
@@ -491,9 +491,9 @@ function Save-StartupConfiguration {
         $fileName = [string]$asset.file; $hash = [string]$asset.hash
         if (-not (Test-Path -LiteralPath (Join-Path $script:WallpaperDirectory $fileName) -PathType Leaf)) { throw 'Uploaded monitor wallpaper asset is missing.' }
       } else {
-        if ($data -isnot [string] -or $data.Length -gt 139810132) { throw 'Monitor wallpaper exceeds the 100 MB limit.' }
+        if ($data -isnot [string]) { throw 'Monitor wallpaper data is invalid.' }
         $bytes = [Convert]::FromBase64String($data)
-        if ($bytes.Length -eq 0 -or $bytes.Length -gt 104857600) { throw 'Monitor wallpaper is empty or exceeds 100 MB.' }
+        if ($bytes.Length -eq 0) { throw 'Monitor wallpaper is empty.' }
         $hash = Get-Sha256Hex $bytes
         $fileName = "$hash.bin"
       }
@@ -538,17 +538,19 @@ function Save-StartupConfiguration {
       [IO.File]::Replace($tempPath, $script:ConfigPath, $backupPath, $true)
     } else { [IO.File]::Move($tempPath, $script:ConfigPath) }
   } finally { if (Test-Path -LiteralPath $tempPath) { Remove-Item -LiteralPath $tempPath -Force } }
-  try {
-    if ($Patch.installIntoLively -eq $true) {
+  if ($Patch.installIntoLively -eq $true) {
+    try {
       $installResult = Install-StartupConfigurationIntoLively $next $script:BrightnessToken
       $script:LastInstallUpdated = [bool]$installResult.updated
       $script:LastReloadRequested = [bool]$installResult.reloadRequested
       $script:LastReloadMessage = $installResult.reloadMessage
+    } catch {
+      # The durable configuration is already atomic and valid. A browser preview
+      # or an inactive Lively installation must not undo the user's save.
+      $script:LastInstallUpdated = $false
+      $script:LastReloadRequested = $false
+      $script:LastReloadMessage = 'LIVELY INSTALLATION NOT UPDATED · ' + $_.Exception.Message
     }
-  } catch {
-    if ($null -ne $previousConfigBytes) { Write-AtomicBytes $script:ConfigPath $previousConfigBytes }
-    elseif (Test-Path -LiteralPath $script:ConfigPath) { Remove-Item -LiteralPath $script:ConfigPath -Force }
-    throw
   }
   return $next
 }
@@ -746,11 +748,18 @@ function Install-StartupConfigurationIntoLively {
       $livelyExe = Join-Path (Join-Path $env:LOCALAPPDATA 'Programs\Lively Wallpaper') 'Lively.exe'
       if (-not (Test-Path -LiteralPath $livelyExe -PathType Leaf)) { throw 'OFFICIAL LIVELY DESKTOP EXECUTABLE WAS NOT FOUND' }
       $arguments = 'setwp --file "' + $projectDirectory.Replace('"', '\"') + '"'
+      # The save request originates inside the current Lively WebView. Starting
+      # setwp synchronously can terminate that WebView before its HTTP response
+      # reaches the CLI, making a successful save look like a failure. Queue the
+      # reload after this response has had time to return instead.
       $reloadAttempted = $true
-      $reload = Start-Process -FilePath $livelyExe -ArgumentList $arguments -WindowStyle Hidden -PassThru -Wait
-      if ($reload.ExitCode -ne 0) { throw "LIVELY RELOAD COMMAND FAILED WITH EXIT CODE $($reload.ExitCode)" }
+      Start-Job -ScriptBlock {
+        param($Executable, $Arguments)
+        Start-Sleep -Milliseconds 750
+        Start-Process -FilePath $Executable -ArgumentList $Arguments -WindowStyle Hidden
+      } -ArgumentList $livelyExe, $arguments | Out-Null
       $reloadRequested = $true
-      $reloadMessage = 'LIVELY RELOAD REQUEST ACCEPTED'
+      $reloadMessage = 'LIVELY RELOAD QUEUED'
     } catch { $reloadMessage = $_.Exception.Message }
   }
   return [PSCustomObject]@{ updated = $true; reloadRequested = $reloadRequested; reloadMessage = $reloadMessage }
@@ -1664,7 +1673,7 @@ function Handle-Client {
       $type = [string]$request.Headers['X-Elucidator-Type']
       if ([string]::IsNullOrWhiteSpace($name) -or $name.Length -gt 512) { throw 'INVALID WALLPAPER ASSET NAME' }
       if ($type -notmatch '^(image/(jpeg|png|webp|gif|bmp)|video/(mp4|webm))$') { throw 'UNSUPPORTED WALLPAPER ASSET TYPE' }
-      if ($request.Body.Length -eq 0 -or $request.Body.Length -gt 104857600) { throw 'WALLPAPER ASSET EXCEEDS THE 100 MB LIMIT' }
+      if ($request.Body.Length -eq 0) { throw 'WALLPAPER ASSET IS EMPTY' }
       if (-not (Test-Path -LiteralPath $script:WallpaperDirectory)) { New-Item -ItemType Directory -Path $script:WallpaperDirectory -Force | Out-Null }
       $hash = Get-Sha256Hex $request.Body
       $file = "$hash.bin"

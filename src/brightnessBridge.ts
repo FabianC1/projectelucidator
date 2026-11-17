@@ -74,7 +74,7 @@ export async function getBrightnessHelperHealth(): Promise<HelperHealth> {
     const health = await response.json() as { available?: boolean; version?: unknown; capabilities?: unknown }
     if (!health.available) return { state: 'starting', message: 'WINDOWS HELPER IS STARTING OR RESTARTING' }
     const capabilities = Array.isArray(health.capabilities) ? health.capabilities.filter((item): item is string => typeof item === 'string') : []
-    if (!capabilities.includes('startup-config')) return { state: 'unsupported', version: typeof health.version === 'string' ? health.version : undefined, capabilities, message: 'WINDOWS HELPER IS OUTDATED · RUN THE ELUCIDATOR HELPER REPAIR' }
+    if (!capabilities.includes('startup-config') || !capabilities.includes('wallpaper-assets')) return { state: 'unsupported', version: typeof health.version === 'string' ? health.version : undefined, capabilities, message: 'WINDOWS HELPER IS OUTDATED · RUN THE ELUCIDATOR HELPER REPAIR' }
     return { state: 'online', version: typeof health.version === 'string' ? health.version : undefined, capabilities, message: 'WINDOWS HELPER ONLINE' }
   } catch (error) {
     return { state: 'offline', message: error instanceof DOMException && error.name === 'AbortError' ? 'WINDOWS HELPER TIMED OUT' : 'WINDOWS HELPER IS NOT LISTENING ON 127.0.0.1:17384' }
@@ -453,7 +453,7 @@ export async function saveDurableStartupConfiguration(token: string, configurati
 }
 
 export async function uploadWallpaperAsset(token: string, wallpaper: { name: string; blob: Blob }) {
-  if (wallpaper.blob.size === 0 || wallpaper.blob.size > 104857600) throw new Error('WALLPAPER ASSET MUST BE BETWEEN 1 BYTE AND 100 MB')
+  if (wallpaper.blob.size === 0) throw new Error('WALLPAPER ASSET CANNOT BE EMPTY')
   const response = await fetch(`${HELPER_URL}/api/wallpaper-assets`, {
     method: 'POST', cache: 'no-store', body: wallpaper.blob,
     headers: {

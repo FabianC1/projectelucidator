@@ -21,7 +21,6 @@ declare global {
 type SavedWallpaper = { blob: Blob; name: string }
 type WallpaperMediaKind = 'image' | 'video'
 
-const MAX_VIDEO_BYTES = 100 * 1024 * 1024
 function wallpaperMediaKind(blob: Blob): WallpaperMediaKind {
   return /^video\/(mp4|webm)$/i.test(blob.type) ? 'video' : 'image'
 }
@@ -679,7 +678,7 @@ const HELP_PAGES = [
   ],
   [
     'ELUCIDATOR // WALLPAPER VIDEO · HELP 2/2',
-    'VIDEO FILES ........... MP4 OR WEBM · MUTED BY DEFAULT · 100 MB MAXIMUM',
+    'VIDEO FILES ........... MP4 OR WEBM · MUTED BY DEFAULT',
     'SYS WALLPAPER VIDEO SELECT',
     '  IMPORT ONE SPAN VIDEO FOR THE WHOLE VIRTUAL DESKTOP.',
     'SYS WALLPAPER DISPLAY INDEPENDENT',
@@ -3344,10 +3343,6 @@ function App() {
     if (!file) return
     if (!isSupportedWallpaperFile(file) || (wallpaperPickerMode === 'video' && wallpaperMediaKind(file) !== 'video')) {
       setStatus('SELECT A SUPPORTED MP4 OR WEBM VIDEO')
-      return
-    }
-    if (wallpaperMediaKind(file) === 'video' && file.size > MAX_VIDEO_BYTES) {
-      setStatus('VIDEO EXCEEDS THE 1 GB WALLPAPER LIMIT')
       return
     }
 
